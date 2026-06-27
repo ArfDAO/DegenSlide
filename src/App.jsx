@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import SwipeCard from './components/SwipeCard';
 import Leaderboard from './components/Leaderboard';
 import Portfolio from './components/Portfolio';
@@ -498,9 +499,9 @@ export default function App() {
   return (
     <div className="app-container">
 
-      {/* ── MATCH MODAL ── */}
-      {matchTrader && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(10,10,26,0.95)', backdropFilter: 'blur(20px)' }}>
+      {/* ── MATCH MODAL — rendered via portal so transform on app-container doesn't break fixed positioning ── */}
+      {matchTrader && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(10,10,26,0.95)', backdropFilter: 'blur(20px)' }}>
           <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', maxWidth: 340 }}>
             <h2 style={{ fontSize: 44, fontWeight: 900, color: '#f72585', margin: 0, textShadow: '0 0 32px rgba(247,37,133,0.6)', fontStyle: 'italic', letterSpacing: '-0.05em' }}>
               IT'S A MATCH!
@@ -508,7 +509,7 @@ export default function App() {
             <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>
               You and <span style={{ color: '#fff', fontWeight: 800 }}>{matchTrader.address.slice(0,6)}…{matchTrader.address.slice(-4)}</span> liked each other.
             </p>
-            
+
             <div style={{ display: 'flex', gap: 16, margin: '32px 0' }}>
               <div style={{ width: 90, height: 90, borderRadius: '50%', border: '4px solid #f72585', overflow: 'hidden', boxShadow: '0 0 30px rgba(247,37,133,0.3)', background: 'linear-gradient(135deg, #f72585, #ff6b35)' }}>
                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🦊</div>
@@ -519,7 +520,7 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
-              <button 
+              <button
                 onClick={() => {
                   setMatches(prev => {
                      if (!prev.find(m => m.address === matchTrader.address)) return [matchTrader, ...prev];
@@ -533,7 +534,7 @@ export default function App() {
               >
                 Send a Message
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setMatches(prev => {
                      if (!prev.find(m => m.address === matchTrader.address)) return [matchTrader, ...prev];
@@ -547,7 +548,8 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── APE BURST ── */}

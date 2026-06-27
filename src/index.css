@@ -423,15 +423,32 @@ body {
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 0; }
 
-/* Responsive */
+/* Responsive — real phone */
 @media (max-width: 480px) {
-  .app-container {
+  html, body, #root {
+    height: 100%;
     width: 100%;
-    height: 100vh;
+    display: block;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100dvh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .app-container {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
     border-radius: 0;
     box-shadow: none;
-    transform: none;
+    transform: none !important;
   }
+
   .dynamic-island {
     display: none;
   }

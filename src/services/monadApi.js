@@ -1,5 +1,5 @@
 const EXPLORER = 'https://testnet.monadexplorer.com';
-const API_BASE = import.meta.env.DEV ? '/monad-api' : EXPLORER;
+const API_BASE = '/monad-api';
 
 export const EXPLORER_TX_URL = (hash) => `${EXPLORER}/tx/${hash}`;
 export const EXPLORER_ADDR_URL = (addr) => `${EXPLORER}/address/${addr}`;
