@@ -144,6 +144,7 @@ export default function App() {
   const [toast, setToast]               = useState(null);
   const [matchTrader, setMatchTrader]   = useState(null);
   const [showApe, setShowApe]           = useState(false);
+  const [portfolio, setPortfolio]       = useState([]);
   const [activeTab, setActiveTab]       = useState('deck');
   const [isLoading, setIsLoading]       = useState(false);
   const [isLiveData, setIsLiveData]     = useState(false);
@@ -211,6 +212,7 @@ export default function App() {
   const handleSwipeRight = useCallback((t) => {
     removeCard(t); showToast('copy');
     sendTx(t, 0.001);
+    setPortfolio(prev => [{ trader: t, action: 'COPY', amount: 0.001, time: Date.now() }, ...prev]);
     if (Math.random() < 0.35) {
       matchTimer.current = setTimeout(() => setMatchTrader(t), 2400);
     }
@@ -220,6 +222,7 @@ export default function App() {
     setShowApe(true);
     setTimeout(() => setShowApe(false), 1200);
     sendTx(t, 0.005);
+    setPortfolio(prev => [{ trader: t, action: 'ALL IN', amount: 0.005, time: Date.now() }, ...prev]);
   }, [removeCard, sendTx]);
 
   const swipe = (dir) => topCardRef.current?.swipe(dir);
@@ -238,7 +241,7 @@ export default function App() {
   const t = toast ? TOASTS[toast.type] : null;
 
   return (
-    <div className="mobile-shell">
+    <div className="app-container">
 
       {/* ── APE BURST ── */}
       {showApe && (
@@ -250,317 +253,15 @@ export default function App() {
         </div>
       )}
 
-      {/* ── STATUS BAR ── */}
-      <div className="status-bar">
-        <span style={{ color: 'var(--text-1)', fontWeight: 700 }}>{clock}</span>
-        <div className="flex items-center gap-3">
-          <SignalDots />
-          <svg width="15" height="12" viewBox="0 0 15 12" fill="none">
-            <path d="M7.5 3C9.5 3 11.3 3.8 12.6 5.1L14 3.7C12.3 2 10 1 7.5 1S2.7 2 1 3.7L2.4 5.1C3.7 3.8 5.5 3 7.5 3z" fill="var(--text-2)"/>
-            <path d="M7.5 6C8.9 6 10.1 6.6 11 7.5L12.4 6.1C11.1 4.8 9.4 4 7.5 4S3.9 4.8 2.6 6.1L4 7.5C4.9 6.6 6.1 6 7.5 6z" fill="var(--text-2)"/>
-            <circle cx="7.5" cy="10" r="1.5" fill="var(--text-2)"/>
-          </svg>
-          <div className="flex items-center gap-1">
-            <div className="h-3 rounded-sm" style={{ width: 20, background: 'var(--profit)', borderRadius: 2 }} />
-            <span style={{ color: 'var(--text-2)', fontSize: 10 }}>87%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── CONTENT ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-
-        {/* ── ONBOARDING ── */}
-        {!isConnected ? (
-          <div className="flex flex-1 flex-col items-center justify-center px-7 text-center">
-
-            {/* Logo */}
-            <div className="relative mb-6">
-              <div className="animate-pulse-glow animate-float grid h-24 w-24 place-items-center rounded-[28px] text-5xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,181,71,0.22) 0%, rgba(27,199,179,0.10) 100%)',
-                  border: '1px solid rgba(255,181,71,0.30)',
-                }}>
-                ◈
-              </div>
-              <div className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full text-[11px] font-black"
-                style={{ background: 'var(--volt)', color: '#1d1207', boxShadow: '0 4px 12px rgba(255,181,71,0.35)' }}>
-                ✦
-              </div>
-            </div>
-
-            {/* Brand */}
-            <p className="text-[10px] font-semibold uppercase tracking-[0.5em]" style={{ color: 'var(--monad)' }}>
-              Monad Blitz · 2025
-            </p>
-            <h1 className="mt-3 text-[48px] font-black leading-[1.05] tracking-tight">
-              Monad
-              <br />
-              <span style={{ background: 'linear-gradient(90deg, #FFB547, #1BC7B3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Swipe
-              </span>
-            </h1>
-              <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
-              Copy-trading meets Tinder. Swipe right to copy, left to pass, up to go all in — all on Monad.
-            </p>
-
-            {/* Swipe hints */}
-            <div className="mt-6 flex gap-4">
-              {[
-                { icon: '✕', label: 'Pass', color: 'var(--loss)', bg: 'rgba(255,71,87,0.1)' },
-                { icon: '💸', label: 'All In', color: 'var(--warn)', bg: 'rgba(255,181,71,0.1)' },
-                { icon: '✓', label: 'Copy', color: 'var(--profit)', bg: 'rgba(0,192,135,0.1)' },
-              ].map(({ icon, label, color, bg }) => (
-                <div key={label} className="flex flex-col items-center gap-2">
-                  <div className="grid h-10 w-10 place-items-center rounded-2xl text-lg"
-                    style={{ background: bg, border: `1px solid ${color}30`, color }}>
-                    {icon}
-                  </div>
-                  <span className="text-[10px] font-semibold" style={{ color: 'var(--text-3)' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Connect Button */}
-            <button
-              type="button"
-              disabled={isConnecting}
-              onClick={async () => {
-                if (!isMetaMaskAvailable()) {
-                  showToast('no_wallet');
-                  window.open('https://metamask.io/download/', '_blank');
-                  return;
-                }
-                setIsConnecting(true);
-                try {
-                  const addr = await connectWallet();
-                  setWalletAddress(addr);
-                  setIsConnected(true);
-                  showToast('connect');
-                } catch (err) {
-                  if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
-                } finally {
-                  setIsConnecting(false);
-                }
-              }}
-              className="mt-8 w-full rounded-2xl py-4 text-[15px] font-black tracking-wide transition active:scale-[0.97]"
-              style={{
-                background: isConnecting
-                  ? 'rgba(255,181,71,0.35)'
-                  : 'linear-gradient(135deg, #FFB547 0%, #1BC7B3 100%)',
-                color: '#fff',
-                boxShadow: '0 8px 32px rgba(255,181,71,0.28)',
-                border: 'none',
-                cursor: isConnecting ? 'wait' : 'pointer',
-              }}
-            >
-              {isConnecting ? '⏳  Connecting…' : '🦊  Connect with MetaMask'}
-            </button>
-
-            {/* Sub-note */}
-            <div className="mt-4 flex items-center gap-2">
-              <span className="h-px w-8" style={{ background: 'var(--border)' }} />
-              <p className="text-[11px]" style={{ color: 'var(--text-3)' }}>Monad Testnet · Auto-switch</p>
-              <span className="h-px w-8" style={{ background: 'var(--border)' }} />
-            </div>
-          </div>
-
-        ) : (
-          <>
-            {/* ── APP BAR ── */}
-            <div className="app-bar">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em]" style={{ color: 'var(--volt)' }}>Monad Swipe</p>
-                <h1 className="text-[20px] font-black tracking-tight leading-tight" style={{ color: 'var(--text-1)' }}>
-                  {activeTab === 'deck' ? 'Trade Deck' :
-                   activeTab === 'portfolio' ? 'Portfolio' :
-                   activeTab === 'leaderboard' ? 'Leaderboard' : 'Profile'}
-                </h1>
-              </div>
-              <div className="flex items-center gap-2">
-                {isLiveData && (
-                  <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ background: 'rgba(0,192,135,0.1)', border: '1px solid rgba(0,192,135,0.25)' }}>
-                    <div className="h-1.5 w-1.5 rounded-full animate-live-pulse" style={{ background: 'var(--profit)' }} />
-                    <span className="text-[10px] font-bold" style={{ color: 'var(--profit)' }}>LIVE</span>
-                  </div>
-                )}
-                {walletAddress && (
-                  <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ background: 'rgba(255,181,71,0.08)', border: '1px solid rgba(255,181,71,0.20)' }}>
-                    <div className="h-1.5 w-1.5 rounded-full" style={{ background: '#FFB547' }} />
-                    <span className="text-[10px] font-bold font-mono" style={{ color: '#FFD48C' }}>
-                      {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── STATS STRIP ── */}
-            {stats && (
-              <div className="flex gap-2 px-4 mb-3">
-                <StatChip label="Txns / s" value={parseInt(stats.totalTxns || 0, 10).toLocaleString()} accent="var(--monad)" />
-                <StatChip label="Blocks" value={parseInt(stats.totalBlocks || 0, 10).toLocaleString()} />
-                <StatChip label="Block Time" value={`${parseFloat(stats.avgBlockTime || 0).toFixed(2)}s`} accent="var(--profit)" />
-              </div>
-            )}
-
-            {/* ── TAB CONTENT ── */}
-            {activeTab === 'deck' ? (
-              <>
-                <div className="flex flex-1 flex-col items-center justify-center px-4">
-                  {isLoading ? (
-                    <div className="flex flex-col items-center gap-5">
-                      <div className="h-12 w-12 rounded-full border-2 border-transparent"
-                        style={{
-                          borderTopColor: 'var(--volt)',
-                          borderRightColor: 'rgba(255,181,71,0.24)',
-                          animation: 'spin 0.8s linear infinite',
-                        }} />
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text-3)' }}>Fetching live traders…</p>
-                    </div>
-                  ) : cards.length > 0 ? (
-                    <div className="card-deck-area">
-                      {[...cards.slice(0, 4)].reverse().map((trader, i, arr) => {
-                        const stackIndex = arr.length - 1 - i;
-                        return (
-                          <SwipeCard
-                            key={trader.id}
-                            ref={stackIndex === 0 ? topCardRef : null}
-                            trader={trader}
-                            stackIndex={stackIndex}
-                            isTopCard={stackIndex === 0}
-                            onSwipeLeft={handleSwipeLeft}
-                            onSwipeRight={handleSwipeRight}
-                            onSwipeUp={handleSwipeUp}
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="card-deck-area grid place-items-center rounded-[28px] text-center"
-                      style={{ background: 'var(--s1)', border: '1.5px dashed var(--border)' }}>
-                      <div>
-                        <p className="text-4xl mb-3">🃏</p>
-                        <p className="text-sm font-black" style={{ color: 'var(--text-1)' }}>Deck Empty</p>
-                        <p className="mt-1.5 text-xs" style={{ color: 'var(--text-3)' }}>You've seen all traders.</p>
-                        <button
-                          type="button"
-                          onClick={resetDeck}
-                          className="mt-5 rounded-2xl px-6 py-2.5 text-sm font-black transition active:scale-[0.97]"
-                          style={{
-                            background: 'var(--volt-dim)',
-                            border: '1px solid rgba(255,181,71,0.28)',
-                            color: '#FFD48C',
-                          }}
-                        >
-                          Reload Deck
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── ACTION BUTTONS ── */}
-                {!isLoading && cards.length > 0 && (
-                  <div className="action-row">
-                    <button type="button" className="btn-pass" onClick={() => swipe('left')}>✕</button>
-
-                    {/* Center FAB-style ALL IN button */}
-                    <button type="button" className="btn-ape" onClick={() => swipe('up')}>ALL IN</button>
-
-                    <button type="button" className="btn-copy" onClick={() => swipe('right')}>✓</button>
-                  </div>
-                )}
-              </>
-
-            ) : activeTab === 'portfolio' ? (
-              <EmptyTab icon="📊" title="Portfolio" desc="Copied trades will appear here after your first swipe right." badge="Soon" />
-            ) : activeTab === 'leaderboard' ? (
-              <Leaderboard traders={cards.length > 0 ? cards : mockTraders} />
-            ) : (
-              <div className="flex flex-1 flex-col gap-4 px-4 pt-2 overflow-y-auto">
-                {/* Wallet card */}
-                <div className="rounded-[20px] p-4"
-                  style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.15) 0%, rgba(34,211,238,0.08) 100%)', border: '1px solid rgba(123,97,255,0.25)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-[0.45em]" style={{ color: 'var(--volt)' }}>Connected Wallet</p>
-                  <p className="mt-1.5 text-sm font-mono font-bold break-all" style={{ color: 'var(--text-1)' }}>{walletAddress}</p>
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full" style={{ background: 'var(--profit)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: 'var(--profit)' }}>Monad Testnet</span>
-                  </div>
-                </div>
-
-                {/* Last Tx */}
-                {lastTxHash && (
-                  <div className="rounded-[20px] p-4"
-                    style={{ background: 'var(--s2)', border: '1px solid var(--border)' }}>
-                    <p className="text-[9px] font-black uppercase tracking-[0.45em]" style={{ color: 'var(--text-3)' }}>Last Transaction</p>
-                    <p className="mt-1.5 text-xs font-mono break-all" style={{ color: 'var(--text-2)' }}>{lastTxHash}</p>
-                    <a
-                      href={`${EXPLORER_URL}/tx/${lastTxHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold"
-                      style={{ color: '#FFB547' }}
-                    >
-                      View on Explorer ↗
-                    </a>
-                  </div>
-                )}
-
-                {/* Hint */}
-                {!lastTxHash && (
-                  <div className="flex flex-col items-center justify-center gap-3 pt-8 text-center">
-                    <span className="text-4xl">⛓</span>
-                    <p className="text-sm font-black" style={{ color: 'var(--text-1)' }}>No Transactions Yet</p>
-                    <p className="text-xs max-w-[200px]" style={{ color: 'var(--text-3)' }}>
-                      Swipe right (0.001 MON) or up (0.005 MON) on a trader to send a real Monad Testnet transaction.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── BOTTOM NAV (Material 3) ── */}
-            <nav className="bottom-nav">
-              {TABS.map(({ id, Icon, label }) => {
-                const active = activeTab === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveTab(id)}
-                    className="nav-item"
-                    style={{ color: active ? 'var(--volt)' : 'var(--text-3)' }}
-                  >
-                    {active && <div className="nav-pill" />}
-                    <div className="nav-icon pt-1">
-                      <Icon active={active} />
-                    </div>
-                    <span className={`nav-label ${active ? 'active' : ''}`}
-                      style={{ color: active ? 'var(--volt)' : 'var(--text-3)' }}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-          </>
-        )}
-      </div>
-
       {/* ── TOAST ── */}
       {t && (
         <div
           key={toast.key}
-          className="animate-slide-up pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-bold"
+          className="animate-slide-up pointer-events-none fixed top-16 left-1/2 z-[70] -translate-x-1/2 flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-bold shadow-lg"
           style={{
             background: t.color,
             border: `1px solid ${t.border}`,
             color: '#fff',
-            boxShadow: `0 8px 24px ${t.border}`,
             backdropFilter: 'blur(16px)',
             whiteSpace: 'nowrap',
           }}
@@ -570,70 +271,185 @@ export default function App() {
         </div>
       )}
 
-      {/* ── PROFIT MATCH MODAL ── */}
-      {matchTrader && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)' }}>
-          <div className="animate-slide-up-modal w-full max-w-sm rounded-[32px] p-6 text-center"
-            style={{
-              background: 'linear-gradient(160deg, var(--s2) 0%, var(--s1) 100%)',
-              border: '1px solid rgba(0,192,135,0.2)',
-              boxShadow: '0 24px 80px rgba(0,192,135,0.15)',
-            }}>
-            <div className="mx-auto mb-2 grid h-16 w-16 place-items-center rounded-3xl text-3xl"
-              style={{ background: 'rgba(0,192,135,0.15)', border: '1px solid rgba(0,192,135,0.3)' }}>
-              💰
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.45em]" style={{ color: 'var(--profit)' }}>
-              Profit Match
-            </p>
-            <h2 className="mt-1 text-2xl font-black" style={{ color: 'var(--text-1)' }}>It's a Match!</h2>
-            <p className="mt-1 text-lg font-black" style={{ color: 'var(--profit)' }}>+20% Profit Target Hit!</p>
+      {/* ── STATUS BAR ── */}
+      <div className="status-bar">
+        <span>{clock}</span>
+        <div className="dynamic-island" />
+        <div className="flex items-center gap-1.5">
+          <SignalDots />
+          <svg width="14" height="12" viewBox="0 0 16 12" fill="currentColor">
+            <path d="M12 2C13.1 2 14 2.9 14 4V8C14 9.1 13.1 10 12 10H4C2.9 10 2 9.1 2 8V4C2 2.9 2.9 2 4 2H12ZM12 0H4C1.8 0 0 1.8 0 4V8C0 10.2 1.8 12 4 12H12C14.2 12 16 10.2 16 8V4C16 1.8 14.2 0 12 0ZM18 4V8C18.6 8 19 7.6 19 7V5C19 4.4 18.6 4 18 4Z" />
+            <rect x="2" y="2" width="10" height="8" rx="1" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
 
-            <div className="my-4 rounded-2xl p-3 text-left"
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)' }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Copied Trade</p>
-              <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-1)' }}>{matchTrader.actionText}</p>
-              <p className="mt-0.5 text-xs font-mono" style={{ color: 'var(--text-2)' }}>
-                {matchTrader.address?.slice(0, 14)}…
-              </p>
-            </div>
-
-            <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (lastTxHash) {
-                    window.open(`${EXPLORER_URL}/tx/${lastTxHash}`, '_blank');
-                  }
-                  setMatchTrader(null);
-                }}
-                className="rounded-2xl py-3.5 text-sm font-black transition active:scale-[0.97]"
-                style={{
-                  background: 'linear-gradient(135deg, var(--profit) 0%, #00a070 100%)',
-                  color: '#fff',
-                  boxShadow: '0 6px 20px rgba(0,192,135,0.35)',
-                  border: 'none',
-                }}
-              >
-                💸  {lastTxHash ? 'View Tx on Explorer' : 'Take Profit'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setMatchTrader(null)}
-                className="rounded-2xl py-3.5 text-sm font-bold transition active:scale-[0.97]"
-                style={{
-                  background: 'var(--s3)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-1)',
-                }}
-              >
-                💎  HODL
-              </button>
-            </div>
+      {/* ── MOBILE HEADER ── */}
+      <header className="mobile-header">
+        <div>
+          <div className="mobile-header-subtitle">MONAD SWIPE</div>
+          <div className="mobile-header-title">
+            {activeTab === 'deck' ? 'Trade Deck' : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
           </div>
         </div>
-      )}
+        <button 
+          onClick={async () => {
+            if (isConnected) return;
+            if (!isMetaMaskAvailable()) {
+              showToast('no_wallet');
+              window.open('https://metamask.io/download/', '_blank');
+              return;
+            }
+            setIsConnecting(true);
+            try {
+              const addr = await connectWallet();
+              setWalletAddress(addr);
+              setIsConnected(true);
+              showToast('connect');
+            } catch (err) {
+              if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
+            } finally {
+              setIsConnecting(false);
+            }
+          }}
+          className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-gray-700 bg-white shadow-sm"
+        >
+          {isConnected ? (
+            <>
+              <div className="h-1.5 w-1.5 rounded-full bg-purple-500 animate-live-pulse" />
+              {walletAddress.slice(0, 5)}…{walletAddress.slice(-4)}
+            </>
+          ) : (
+            isConnecting ? '⏳ Connect' : '🦊 Connect'
+          )}
+        </button>
+      </header>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="main-content">
+        {!isConnected ? (
+          <div className="flex flex-col items-center justify-center h-full text-center pb-20">
+            <div className="text-6xl mb-6 grayscale opacity-50">🦊</div>
+            <h3 className="text-xl font-bold text-gray-900">Connect to Swipe</h3>
+            <p className="text-gray-500 mt-2 max-w-sm">Connect your MetaMask wallet to view live traders and start copy-trading.</p>
+          </div>
+        ) : activeTab === 'deck' ? (
+          <div className="flex flex-col h-full w-full relative">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center h-full pb-20">
+                <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-purple-500 border-r-purple-200 animate-spin" />
+                <p className="mt-4 text-sm font-semibold text-gray-500">Loading traders…</p>
+              </div>
+            ) : cards.length > 0 ? (
+              <>
+                <div className="card-deck-area">
+                  {[...cards.slice(0, 4)].reverse().map((trader, i, arr) => {
+                    const stackIndex = arr.length - 1 - i;
+                    return (
+                      <SwipeCard
+                        key={trader.id}
+                        ref={stackIndex === 0 ? topCardRef : null}
+                        trader={trader}
+                        stackIndex={stackIndex}
+                        isTopCard={stackIndex === 0}
+                        onSwipeLeft={handleSwipeLeft}
+                        onSwipeRight={handleSwipeRight}
+                        onSwipeUp={handleSwipeUp}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="action-row">
+                  <button type="button" className="btn-pass" onClick={() => swipe('left')}>✕</button>
+                  <button type="button" className="btn-ape" onClick={() => swipe('up')}>ALL IN</button>
+                  <button type="button" className="btn-copy" onClick={() => swipe('right')}>✓</button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center pb-20">
+                <span className="text-4xl mb-4">🃏</span>
+                <h3 className="font-bold text-gray-900">Deck Empty</h3>
+                <p className="text-sm text-gray-500 mt-1">You've seen all live traders.</p>
+                <button onClick={resetDeck} className="mt-6 px-6 py-2 bg-white border border-gray-200 shadow-sm rounded-full text-sm font-bold text-gray-700 hover:bg-gray-50">
+                  Reload Deck
+                </button>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'leaderboard' ? (
+          <div className="h-full overflow-hidden -mx-4">
+            <Leaderboard traders={cards.length > 0 ? cards : mockTraders} />
+          </div>
+        ) : activeTab === 'portfolio' ? (
+          portfolio.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center pb-20">
+              <span className="text-4xl mb-4 grayscale opacity-50">📊</span>
+              <h3 className="font-bold text-gray-900">Portfolio Empty</h3>
+              <p className="text-sm text-gray-500 mt-1">Copied trades will appear here.</p>
+            </div>
+          ) : (
+            <div className="h-full overflow-y-auto px-1 pb-4" style={{ scrollbarWidth: 'none' }}>
+              {portfolio.map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-4 mb-3 bg-white border border-gray-200 rounded-2xl shadow-sm hover:border-purple-300 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center border border-purple-100 text-purple-600 font-bold">
+                      {item.action === 'COPY' ? '✓' : '💸'}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">{item.trader.address.slice(0, 8)}…{item.trader.address.slice(-4)}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">{new Date(item.time).toLocaleTimeString()} · {item.action}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-gray-900">{item.amount} MON</div>
+                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">Pending</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-purple-600">Connected Wallet</p>
+              <p className="mt-1 font-mono font-bold text-gray-900 break-all">{walletAddress}</p>
+            </div>
+            {lastTxHash ? (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Last Transaction</p>
+                <p className="mt-1 font-mono text-sm text-gray-700 break-all">{lastTxHash}</p>
+                <a href={`${EXPLORER_URL}/tx/${lastTxHash}`} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-bold text-purple-600 hover:underline">
+                  View on SocialScan ↗
+                </a>
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-center py-8">
+                <span className="text-3xl mb-2 block grayscale opacity-50">⛓</span>
+                <p className="text-sm font-bold text-gray-900">No Transactions</p>
+                <p className="text-xs text-gray-500 mt-1">Swipe right on a trader to send a transaction.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* ── BOTTOM NAV ── */}
+      <nav className="bottom-nav">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <div className="nav-icon">
+              <tab.Icon active={activeTab === tab.id} />
+            </div>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+
     </div>
   );
 }

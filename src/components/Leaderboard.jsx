@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 
 const TIER_META = {
-  whale:       { label: 'WHALE',       color: '#FFB547', bg: 'rgba(255,181,71,0.12)',  icon: '🐋' },
-  pro:         { label: 'PRO',         color: '#1BC7B3', bg: 'rgba(27,199,179,0.12)', icon: '⚡' },
-  smart_money: { label: 'SMART $',     color: '#E8D38A', bg: 'rgba(232,211,138,0.12)', icon: '🧠' },
-  degen:       { label: 'DEGEN',       color: '#FF4757', bg: 'rgba(255,71,87,0.12)',  icon: '🎰' },
-  fresh:       { label: 'FRESH',       color: '#00C087', bg: 'rgba(0,192,135,0.12)',  icon: '🌱' },
+  whale:       { label: 'WHALE',       color: '#7b61ff', bg: 'rgba(123,97,255,0.1)',  icon: '🐋' },
+  pro:         { label: 'PRO',         color: '#7b61ff', bg: 'rgba(123,97,255,0.1)', icon: '⚡' },
+  smart_money: { label: 'SMART $',     color: '#4b5563', bg: '#f3f4f6', icon: '🧠' },
+  degen:       { label: 'DEGEN',       color: '#4b5563', bg: '#f3f4f6',  icon: '🎰' },
+  fresh:       { label: 'FRESH',       color: '#4b5563', bg: '#f3f4f6',  icon: '🌱' },
 };
 
 const RANK_META = [
-  { bg: 'linear-gradient(135deg, #FFE29A 0%, #FFB547 100%)', shadow: 'rgba(255,181,71,0.28)', label: '🥇' },
-  { bg: 'linear-gradient(135deg, #D8D1C2 0%, #8D8578 100%)', shadow: 'rgba(141,133,120,0.22)', label: '🥈' },
-  { bg: 'linear-gradient(135deg, #D49A67 0%, #8E5A2B 100%)', shadow: 'rgba(212,154,103,0.24)',  label: '🥉' },
+  { bg: 'linear-gradient(135deg, #7b61ff 0%, #5a3ee0 100%)', shadow: 'rgba(123,97,255,0.3)', label: '🥇' },
+  { bg: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)', shadow: 'rgba(156,163,175,0.3)', label: '🥈' },
+  { bg: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)', shadow: 'rgba(75,85,99,0.3)',  label: '🥉' },
 ];
 
 const FILTERS = [
@@ -106,7 +106,7 @@ function PodiumCard({ trader, rank, globalRank }) {
         <p className="text-[10px] font-mono font-bold" style={{ color: 'var(--text-2)' }}>
           {trader.address.slice(0, 6)}…{trader.address.slice(-4)}
         </p>
-        <p className="text-sm font-black mt-0.5" style={{ color: 'var(--profit)' }}>{trader.profit}</p>
+        <p className="text-sm font-black mt-0.5" style={{ color: 'var(--text-1)' }}>{trader.profit}</p>
         <p className="text-[9px] font-bold mt-0.5" style={{ color: tier.color }}>
           {tier.label}
         </p>
@@ -134,8 +134,8 @@ function TraderRow({ trader, rank }) {
     <div
       className="flex items-center gap-3 rounded-2xl px-3 py-3 transition active:scale-[0.98]"
       style={{
-        background: rank <= 3 ? 'rgba(255,255,255,0.025)' : 'transparent',
-        border: rank <= 3 ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+        background: rank <= 3 ? 'rgba(0,0,0,0.025)' : 'transparent',
+        border: rank <= 3 ? '1px solid rgba(0,0,0,0.06)' : '1px solid transparent',
         borderBottom: rank > 3 ? '1px solid var(--border)' : undefined,
         borderRadius: rank <= 3 ? 16 : 0,
       }}
@@ -183,7 +183,7 @@ function TraderRow({ trader, rank }) {
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>
-            WR <span style={{ color: trader.winRate >= 90 ? 'var(--profit)' : trader.winRate >= 75 ? 'var(--warn)' : 'var(--text-2)' }}>{trader.winRate}%</span>
+            WR <span style={{ color: trader.winRate >= 50 ? 'var(--monad)' : 'var(--text-2)' }}>{trader.winRate}%</span>
           </span>
           <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>·</span>
           <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>
@@ -196,8 +196,8 @@ function TraderRow({ trader, rank }) {
 
       {/* Sparkline + profit */}
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <Sparkline data={trader.sparkline} color={tier.color} />
-        <span className="text-xs font-black" style={{ color: 'var(--profit)' }}>{trader.profit}</span>
+        <Sparkline data={trader.sparkline} color={tier.color === '#7b61ff' ? '#7b61ff' : '#9ca3af'} />
+        <span className="text-xs font-black" style={{ color: 'var(--text-1)' }}>{trader.profit}</span>
       </div>
     </div>
   );
@@ -239,8 +239,8 @@ export default function Leaderboard({ traders = [] }) {
               className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-[0.95]"
               style={{
                 background: active ? 'var(--volt-dim)' : 'var(--s2)',
-                border: active ? '1px solid rgba(255,181,71,0.35)' : '1px solid var(--border)',
-                color: active ? '#FFD48C' : 'var(--text-3)',
+                border: active ? '1px solid rgba(123,97,255,0.35)' : '1px solid var(--border)',
+                color: active ? 'var(--monad)' : 'var(--text-3)',
               }}
             >
               {f.label}
@@ -257,8 +257,8 @@ export default function Leaderboard({ traders = [] }) {
               onClick={() => setSort(s.id)}
               className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-[0.95]"
               style={{
-                background: active ? 'rgba(27,199,179,0.1)' : 'var(--s2)',
-                border: active ? '1px solid rgba(27,199,179,0.28)' : '1px solid var(--border)',
+                background: active ? 'rgba(123,97,255,0.1)' : 'var(--s2)',
+                border: active ? '1px solid rgba(123,97,255,0.28)' : '1px solid var(--border)',
                 color: active ? 'var(--monad)' : 'var(--text-3)',
               }}
             >

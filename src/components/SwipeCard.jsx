@@ -8,29 +8,29 @@ function shortenAddress(addr) {
 }
 
 const TIER = {
-  whale:       { label: 'Whale',       emoji: '🐋', color: '#FFB547', bg: 'rgba(255,181,71,0.18)',  border: 'rgba(255,181,71,0.36)' },
-  smart_money: { label: 'Smart Money', emoji: '⚡', color: '#1BC7B3', bg: 'rgba(27,199,179,0.16)',  border: 'rgba(27,199,179,0.32)' },
-  pro:         { label: 'Pro',         emoji: '💎', color: '#E8D38A', bg: 'rgba(232,211,138,0.14)',  border: 'rgba(232,211,138,0.30)' },
-  degen:       { label: 'Degen',       emoji: '🔥', color: '#FCA5A5', bg: 'rgba(255,71,87,0.25)',   border: 'rgba(255,71,87,0.50)' },
-  fresh:       { label: 'Fresh',       emoji: '🌱', color: '#34D399', bg: 'rgba(0,192,135,0.22)',   border: 'rgba(0,192,135,0.45)' },
+  whale:       { label: 'Whale',       emoji: '🐋', color: '#7b61ff', bg: 'rgba(123,97,255,0.1)',  border: 'rgba(123,97,255,0.2)' },
+  smart_money: { label: 'Smart Money', emoji: '⚡', color: '#4b5563', bg: '#f3f4f6',  border: '#e5e7eb' },
+  pro:         { label: 'Pro',         emoji: '💎', color: '#7b61ff', bg: 'rgba(123,97,255,0.1)',  border: 'rgba(123,97,255,0.2)' },
+  degen:       { label: 'Degen',       emoji: '🔥', color: '#4b5563', bg: '#f3f4f6',   border: '#e5e7eb' },
+  fresh:       { label: 'Fresh',       emoji: '🌱', color: '#4b5563', bg: '#f3f4f6',   border: '#e5e7eb' },
 };
 
 const TAG_COLOR = {
-  Degen:    '#FF6B7A', Safe: '#00C087', Whale: '#FFB547', Pro: '#1BC7B3',
-  Sniper:   '#F87171', Breakout: '#A3E635', Momentum: '#E8D38A', Alpha: '#FFB547',
-  Trend:    '#D6A85A', Fast: '#FB923C', LowCap: '#F472B6', Fresh: '#00C087', Early: '#E8D38A',
+  Degen:    '#4b5563', Safe: '#7b61ff', Whale: '#7b61ff', Pro: '#4b5563',
+  Sniper:   '#4b5563', Breakout: '#7b61ff', Momentum: '#4b5563', Alpha: '#7b61ff',
+  Trend:    '#4b5563', Fast: '#7b61ff', LowCap: '#4b5563', Fresh: '#4b5563', Early: '#7b61ff',
 };
 
 const SENTIMENT_MAP = {
-  bullish: { label: 'Bullish', icon: '▲', color: '#00C087' },
-  bearish: { label: 'Bearish', icon: '▼', color: '#FF4757' },
-  neutral: { label: 'Neutral', icon: '●', color: '#8892A4' },
+  bullish: { label: 'Bullish', icon: '▲', color: '#7b61ff' },
+  bearish: { label: 'Bearish', icon: '▼', color: '#4b5563' },
+  neutral: { label: 'Neutral', icon: '●', color: '#9ca3af' },
 };
 
 const TOKEN_META = {
-  MON:  { icon: '◈', color: '#22D3EE' },
-  WETH: { icon: 'Ξ', color: '#FFB547' },
-  USDC: { icon: '$', color: '#00C087' },
+  MON:  { icon: '◈', color: '#7b61ff' },
+  WETH: { icon: 'Ξ', color: '#4b5563' },
+  USDC: { icon: '$', color: '#4b5563' },
 };
 
 function Sparkline({ values = [], positive = true }) {
@@ -45,7 +45,7 @@ function Sparkline({ values = [], positive = true }) {
   }));
   const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const fillD = `${pathD} L${W},${H} L0,${H} Z`;
-  const stroke = positive ? '#00C087' : '#FF4757';
+  const stroke = positive ? '#7b61ff' : '#9ca3af';
   const id = `sp-${Math.random().toString(36).slice(2, 6)}`;
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block' }}>
@@ -142,8 +142,8 @@ const SwipeCard = forwardRef(function SwipeCard(
   const token       = TOKEN_META[trader.tokenSymbol] ?? TOKEN_META.MON;
   const sentiment   = SENTIMENT_MAP[trader.sentiment] ?? SENTIMENT_MAP.neutral;
   const tier        = TIER[trader.tier] ?? TIER.fresh;
-  const winColor    = trader.winRate >= 75 ? '#00C087' : trader.winRate >= 55 ? '#FFB547' : '#FF4757';
-  const confColor   = trader.confidence >= 75 ? '#FFB547' : trader.confidence >= 55 ? '#1BC7B3' : '#FF4757';
+  const winColor    = trader.winRate >= 50 ? '#7b61ff' : '#6b7280';
+  const confColor   = trader.confidence >= 50 ? '#7b61ff' : '#6b7280';
 
   // Arka kartlar: sadece düz dikdörtgen, içerik yok
   if (stackIndex > 0) {
@@ -161,10 +161,10 @@ const SwipeCard = forwardRef(function SwipeCard(
           style={{
             zIndex: 30 - stackIndex,
             transform: `translateY(${stackIndex * 12}px) scale(${1 - stackIndex * 0.04})`,
-            borderRadius: 28,
-            background: stackIndex === 1 ? '#151915' : '#0E1210',
-            border: '1px solid rgba(255,181,71,0.12)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+            borderRadius: 24,
+            background: stackIndex === 1 ? '#f9fafb' : '#f3f4f6',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
             pointerEvents: 'none',
             width: '100%',
             height: '100%',
@@ -188,10 +188,10 @@ const SwipeCard = forwardRef(function SwipeCard(
         className="relative flex h-full w-full flex-col overflow-hidden"
         style={{
           zIndex: 30,
-          borderRadius: 28,
-          background: 'linear-gradient(180deg, #171C19 0%, #121614 100%)',
-          border: '1.5px solid rgba(255,181,71,0.22)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,181,71,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
+          borderRadius: 24,
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)',
           pointerEvents: isTopCard ? 'auto' : 'none',
           userSelect: 'none',
           touchAction: 'none',
@@ -213,28 +213,28 @@ const SwipeCard = forwardRef(function SwipeCard(
       >
         {/* Swipe overlays */}
         {swipeDir === 'right' && (
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-[28px] flex items-start justify-start p-5"
-            style={{ background: 'linear-gradient(135deg, rgba(0,192,135,0.12) 0%, transparent 60%)' }}>
+          <div className="pointer-events-none absolute inset-0 z-20 rounded-[24px] flex items-start justify-start p-5"
+            style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.15) 0%, transparent 60%)' }}>
             <span className="rounded-xl px-4 py-1.5 text-base font-black -rotate-12"
-              style={{ border: '2px solid #00C087', color: '#00C087', background: 'rgba(0,192,135,0.12)', letterSpacing: '0.05em' }}>
+              style={{ border: '2px solid #7b61ff', color: '#7b61ff', background: 'rgba(123,97,255,0.1)', letterSpacing: '0.05em' }}>
               COPY ✓
             </span>
           </div>
         )}
         {swipeDir === 'left' && (
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-[28px] flex items-start justify-end p-5"
-            style={{ background: 'linear-gradient(225deg, rgba(255,71,87,0.12) 0%, transparent 60%)' }}>
+          <div className="pointer-events-none absolute inset-0 z-20 rounded-[24px] flex items-start justify-end p-5"
+            style={{ background: 'linear-gradient(225deg, rgba(75,85,99,0.15) 0%, transparent 60%)' }}>
             <span className="rounded-xl px-4 py-1.5 text-base font-black rotate-12"
-              style={{ border: '2px solid #FF4757', color: '#FF4757', background: 'rgba(255,71,87,0.12)', letterSpacing: '0.05em' }}>
+              style={{ border: '2px solid #4b5563', color: '#4b5563', background: 'rgba(75,85,99,0.1)', letterSpacing: '0.05em' }}>
               PASS ✕
             </span>
           </div>
         )}
         {swipeDir === 'up' && (
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-[28px] flex items-end justify-center pb-10"
-            style={{ background: 'linear-gradient(0deg, rgba(255,181,71,0.12) 0%, transparent 60%)' }}>
+          <div className="pointer-events-none absolute inset-0 z-20 rounded-[24px] flex items-end justify-center pb-10"
+            style={{ background: 'linear-gradient(0deg, rgba(17,24,39,0.15) 0%, transparent 60%)' }}>
             <span className="rounded-xl px-5 py-1.5 text-base font-black"
-              style={{ border: '2px solid #FFB547', color: '#FFB547', background: 'rgba(255,181,71,0.12)', letterSpacing: '0.05em' }}>
+              style={{ border: '2px solid #111827', color: '#111827', background: 'rgba(17,24,39,0.1)', letterSpacing: '0.05em' }}>
               ALL IN 💸
             </span>
           </div>
@@ -247,9 +247,9 @@ const SwipeCard = forwardRef(function SwipeCard(
             <div className="flex items-center gap-1.5">
               {trader.isLive && (
                 <div className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-                  style={{ background: '#1BC7B3', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
+                  style={{ background: '#7b61ff', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
               )}
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#1BC7B3', letterSpacing: '0.12em' }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#7b61ff', letterSpacing: '0.12em' }}>
                 Monad Testnet
               </span>
             </div>
@@ -258,7 +258,7 @@ const SwipeCard = forwardRef(function SwipeCard(
               target="_blank"
               rel="noreferrer"
               className="font-mono text-[14px] font-bold hover:underline leading-none"
-              style={{ color: '#EEF2FF', letterSpacing: '0.02em' }}
+              style={{ color: '#111827', letterSpacing: '0.02em' }}
               onClick={e => e.stopPropagation()}
             >
               {shortenAddress(trader.address)}
@@ -273,16 +273,16 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ── DIVIDER ── */}
-        <div className="mx-5" style={{ height: 1, background: 'rgba(255,255,255,0.12)' }} />
+        <div className="mx-5" style={{ height: 1, background: '#f3f4f6' }} />
 
         {/* ── P&L SECTION ── */}
         <div className="relative px-5 pt-4 pb-3">
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#8892A4', letterSpacing: '0.12em' }}>
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#6b7280', letterSpacing: '0.12em' }}>
                 Est. P&amp;L
               </span>
-              <span className="text-[30px] font-black leading-none" style={{ color: '#00C087', letterSpacing: '-0.02em' }}>
+              <span className="text-[30px] font-black leading-none" style={{ color: isPositive ? '#111827' : '#4b5563', letterSpacing: '-0.02em' }}>
                 {trader.profit}
               </span>
               <div className="mt-1 flex items-center gap-1">
@@ -292,8 +292,8 @@ const SwipeCard = forwardRef(function SwipeCard(
                 <span className="text-[11px] font-semibold" style={{ color: sentiment.color }}>
                   {sentiment.label}
                 </span>
-                <span className="text-[10px]" style={{ color: '#8892A4' }}>·</span>
-                <span className="text-[10px] font-mono" style={{ color: '#8892A4' }}>{trader.balanceMon} MON</span>
+                <span className="text-[10px]" style={{ color: '#9ca3af' }}>·</span>
+                <span className="text-[10px] font-mono" style={{ color: '#6b7280' }}>{trader.balanceMon} MON</span>
               </div>
             </div>
             <div className="mt-1">
@@ -304,76 +304,76 @@ const SwipeCard = forwardRef(function SwipeCard(
           {/* Stats row */}
           <div className="mt-3 flex items-center gap-4">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#8892A4' }}>Win Rate</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Win Rate</span>
               <span className="text-[14px] font-black" style={{ color: winColor }}>{trader.winRate}%</span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#8892A4' }}>Volume 24h</span>
-              <span className="text-[14px] font-black" style={{ color: trader.volume24h ? '#1BC7B3' : '#8892A4' }}>
+              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Volume 24h</span>
+              <span className="text-[14px] font-black" style={{ color: trader.volume24h ? '#7b61ff' : '#9ca3af' }}>
                 {trader.volume24h ?? '—'}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#8892A4' }}>Txns</span>
-              <span className="text-[14px] font-black" style={{ color: '#EEF2FF' }}>
+              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Txns</span>
+              <span className="text-[14px] font-black" style={{ color: '#111827' }}>
                 {(trader.txCount ?? 0).toLocaleString()}
               </span>
             </div>
           </div>
 
           {/* Win rate bar */}
-          <div className="mt-2.5 w-full rounded-full overflow-hidden" style={{ height: 3, background: 'rgba(255,255,255,0.14)' }}>
+          <div className="mt-2.5 w-full rounded-full overflow-hidden" style={{ height: 4, background: '#f3f4f6' }}>
             <div className="h-full rounded-full" style={{ width: `${Math.min(trader.winRate, 100)}%`, background: winColor, transition: 'width 1s ease' }} />
           </div>
         </div>
 
         {/* ── DIVIDER ── */}
-        <div className="mx-5" style={{ height: 1, background: 'rgba(255,255,255,0.12)' }} />
+        <div className="mx-5" style={{ height: 1, background: '#f3f4f6' }} />
 
         {/* ── TRADE ACTION ── */}
         <div className="relative flex flex-1 flex-col justify-center px-5 py-4 gap-2">
           {/* Token pill */}
           <div className="self-start flex items-center gap-1.5 rounded-lg px-2.5 py-1"
-            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.20)' }}>
+            style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
             <span className="font-black" style={{ color: token.color, fontSize: 13 }}>{token.icon}</span>
             <span className="text-[11px] font-black tracking-wider" style={{ color: token.color }}>
               {trader.tokenSymbol}
             </span>
             {trader.lastTxMethod && (
-              <span className="text-[10px]" style={{ color: '#8892A4' }}>· {trader.lastTxMethod}</span>
+              <span className="text-[10px]" style={{ color: '#6b7280' }}>· {trader.lastTxMethod}</span>
             )}
           </div>
 
           {/* Action text */}
-          <h2 className="text-[18px] font-black uppercase leading-tight" style={{ color: '#EEF2FF', letterSpacing: '-0.01em' }}>
+          <h2 className="text-[18px] font-black uppercase leading-tight" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
             {trader.actionText}
           </h2>
 
           {/* Confidence */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8892A4' }}>Confidence</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>Confidence</span>
               <span className="text-[13px] font-black" style={{ color: confColor }}>{trader.confidence}%</span>
             </div>
-            <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: 'rgba(255,255,255,0.14)' }}>
+            <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: '#f3f4f6' }}>
               <div className="h-full rounded-full" style={{ width: `${Math.min(trader.confidence, 100)}%`, background: confColor, transition: 'width 1s ease' }} />
             </div>
           </div>
         </div>
 
         {/* ── DIVIDER ── */}
-        <div className="mx-5" style={{ height: 1, background: 'rgba(255,255,255,0.12)' }} />
+        <div className="mx-5" style={{ height: 1, background: '#f3f4f6' }} />
 
         {/* ── TAGS ── */}
         <div className="relative px-5 py-3.5 flex flex-wrap gap-1.5">
           {trader.tags.map((tag) => {
-            const color = TAG_COLOR[tag] ?? '#8892A4';
+            const color = TAG_COLOR[tag] ?? '#6b7280';
             return (
               <span key={tag}
                 className="rounded-lg px-2.5 py-1 text-[10px] font-bold"
                 style={{
-                  background: `${color}28`,
-                  border: `1px solid ${color}60`,
+                  background: `${color}1A`,
+                  border: `1px solid ${color}40`,
                   color,
                 }}>
                 #{tag}
