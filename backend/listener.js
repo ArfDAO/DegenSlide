@@ -26,8 +26,8 @@ import { WebSocketServer } from 'ws';
 import * as db from './db.js';
 
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
-const WS_PORT = Number(process.env.WS_PORT || 8081);
-const HTTP_PORT = Number(process.env.HTTP_PORT || 8082);
+const PORT = Number(process.env.PORT || 8082);
+const server = http.createServer();
 // Pro whale gating is USD-denominated: a trade only hits the deck if it moves
 // real money (WHALE_MIN_USD), OR it comes from a known/registered big wallet.
 const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 25);     // non-registered floor, in USD (Monad-scale)
@@ -420,13 +420,13 @@ function initFromDb() {
 }
 
 // ── WebSocket server ──
-const wss = new WebSocketServer({ port: WS_PORT });
+const wss = new WebSocketServer({ server });
 const clients = new Set();
 wss.on('connection', (ws) => {
   clients.add(ws);
   ws.on('close', () => clients.delete(ws));
 });
-console.log(`[WS]   ws://localhost:${WS_PORT}`);
+console.log(`[WS]   Attached to HTTP server`);
 
 function broadcast(card) {
   const msg = JSON.stringify({ type: 'NEW_TRADE', data: card });
@@ -601,8 +601,8 @@ const sendJson = (res, code, body) => {
   res.end(JSON.stringify(body));
 };
 
-http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://localhost:${HTTP_PORT}`);
+server.on('request', async (req, res) => {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname;
 
   if (path === '/health') {
@@ -672,7 +672,8 @@ http.createServer(async (req, res) => {
     });
   }
   sendJson(res, 404, { error: 'not found' });
-}).listen(HTTP_PORT, () => console.log(`[HTTP] http://localhost:${HTTP_PORT}`));
+});
+server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 
 await refreshMonPrice();
 console.log(`[price] MON = $${monPriceUsd} · whale floor $${WHALE_MIN_USD} (~${Math.round(WHALE_MIN_USD / monPriceUsd)} MON)`);

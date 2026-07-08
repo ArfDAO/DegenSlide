@@ -30,8 +30,8 @@ process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
 const db = await import('./db.js');
 
 const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
-const WS_PORT = Number(process.env.WS_PORT || 8083);
-const HTTP_PORT = Number(process.env.HTTP_PORT || 8084);
+const PORT = Number(process.env.PORT || 8084);
+const server = await import('node:http').then(m => m.createServer());
 const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 500);    // DISCOVERY floor: how big a swap must be to flag a NEW whale
 const TRACK_MIN_USD = Number(process.env.TRACK_MIN_USD || 150);    // TRACKING floor: known whales' trades shown down to this size (any token)
 const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 150000);
@@ -328,10 +328,10 @@ async function buildCard(sig, s) {
 }
 
 // ── WS ──
-const wss = new WebSocketServer({ port: WS_PORT });
+const wss = new WebSocketServer({ server });
 const clients = new Set();
 wss.on('connection', (ws) => { clients.add(ws); ws.on('close', () => clients.delete(ws)); });
-console.log(`[WS]   ws://localhost:${WS_PORT}`);
+console.log(`[WS]   Attached to HTTP server`);
 function broadcast(card) {
   const msg = JSON.stringify({ type: 'NEW_TRADE', data: card });
   for (const c of clients) if (c.readyState === 1) c.send(msg);
@@ -470,8 +470,8 @@ const sendJson = (res, code, body) => {
 };
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://localhost:${HTTP_PORT}`);
+server.on('request', async (req, res) => {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (p === '/health') {
     return sendJson(res, 200, {
@@ -528,7 +528,8 @@ http.createServer(async (req, res) => {
     });
   }
   sendJson(res, 404, { error: 'not found' });
-}).listen(HTTP_PORT, () => console.log(`[HTTP] http://localhost:${HTTP_PORT}`));
+});
+server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 
 // ── boot ──
 await refreshSolPrice();

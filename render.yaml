@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: deepswap-monad-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: backend
+    envVars:
+      - key: MONAD_RPC
+        value: https://rpc.monad.xyz
+      - key: WHALE_MIN_USD
+        value: 25
+
+  - type: web
+    name: deepswap-solana-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm run start:sol
+    rootDir: backend
+    envVars:
+      - key: SOLANA_RPC
+        value: https://api.mainnet-beta.solana.com
+      - key: WHALE_MIN_USD
+        value: 500
