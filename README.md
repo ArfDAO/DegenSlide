@@ -1,75 +1,76 @@
-# DegenSlide — Monad Copy-Trade Uygulaması
+# DegenSlide — Monad Mainnet Whale Copy-Trade
 
-Monad zincirindeki en iyi trader'ları Tinder tarzı kaydırma arayüzüyle keşfedip tek dokunuşla kopyalayan mobil-öncelikli bir DeFi uygulaması.
-
----
-
-## Ne Yapar?
-
-- **Swipe-to-Trade:** Sağa kaydır → trader'ı kopyala (Copy Trade), sola kaydır → geç, yukarı kaydır → tüm bakiyeyle gir (All In 💸)
-- **Canlı Veriler:** Monad ağından gerçek zamanlı en iyi trader'ları ve MON fiyatını çeker (DexScreener + Monad Explorer API)
-- **Cüzdan Entegrasyonu:** MetaMask ile bağlan, onchain işlemleri doğrudan uygulama içinden gönder
-- **Token Seçimi:** MON veya trending tokenlarla işlem yap; miktar için 3 hazır kademe ya da özel giriş
-- **Portföy Takibi:** Kopyaladığın işlemlerin geçmişi ve giriş fiyatı kaydı
-- **Leaderboard:** Trader sıralamalarını ve kişisel watchlist'ini görüntüle
-- **Match & Inbox:** Swipe'ta eşleşme simülasyonu, trader'larla mesajlaşma ekranı
-- **Favoriler:** Beğendiğin trader'ları profil sekmesinde sakla
+Tinder-style copy trading on **Monad mainnet**. The app surfaces real whales
+the moment they trade and lets you copy their buys with a swipe — **no mock,
+fake, or static data anywhere**. Every card is a real on-chain swap; every copy
+is a real PancakeSwap v3 transaction.
 
 ---
 
-## Teknoloji Yığını
+## How it works
 
-| Katman | Teknoloji |
-|--------|-----------|
-| UI | React 18, Tailwind CSS |
-| Animasyon | react-tinder-card, @react-spring/web |
-| Build | Vite |
-| Zincir | Monad Testnet |
-| Cüzdan | MetaMask (EIP-1193) |
-| Fiyat | DexScreener API |
+1. **On-chain indexer** (`backend/listener.js`) polls Monad mainnet for Uniswap v3
+   and PancakeSwap v3 `Swap` logs, resolves each pool's tokens on-chain, isolates
+   WMON-paired trades, and surfaces whale-sized buys/sells. It backfills recent
+   history at boot and then streams new trades live.
+2. **Deck** — each card is a real whale trade (real wallet, token, MON size),
+   enriched with live **DexScreener** market data (price, liquidity, FDV, volume).
+3. **Swipe right = copy** — buys the whale's token with MON on **PancakeSwap v3**
+   (where Monad's liquidity lives). The minimum output is quoted live via an
+   on-chain `eth_call` simulation of the real router, with a 2% slippage floor.
+4. **Swipe up = all-in**, swipe left = skip.
+5. **Leaderboard** ranks wallets by real indexed swap volume; **Watchlist** tracks
+   any wallet's balance + indexed trades; **Portfolio** tracks your copies + live PnL.
 
 ---
 
-## Kurulum
+## Real mainnet addresses used
+
+| What | Address |
+|------|---------|
+| Chain | Monad mainnet — chainId `143` (`0x8f`), RPC `https://rpc.monad.xyz` |
+| WMON | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
+| PancakeSwap v3 SwapRouter (copy exec) | `0x1b81D678ffb9C0263b24A97847620C99d213eB14` |
+| Uniswap v3 SwapRouter02 | `0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900` |
+| Explorer | https://monadscan.com |
+
+---
+
+## Run it
+
+**1. Start the whale indexer** (the deck depends on it):
+
+```bash
+cd backend
+npm install
+npm start          # serves WS :8081 (live feed) + HTTP :8082 (API)
+```
+
+Tune via env (see `backend/.env.example`), e.g. `WHALE_MIN_MON=5`,
+`INCLUDE_STABLES=1` to also show MON/stablecoin whale flow.
+
+**2. Start the frontend:**
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env   # points at the local indexer by default
+npm run dev            # http://localhost:5173
 ```
 
-Tarayıcıda `http://localhost:5173` adresini aç ve MetaMask'ı Monad Testnet'e bağla.
+Connect MetaMask (it will prompt to add/switch to Monad mainnet) and start swiping.
+
+> **Real money:** copies execute real swaps on mainnet with your own funds.
+> Start with a small copy amount in the ⚙️ settings.
 
 ---
 
-## Klasör Yapısı
+## Tech
 
-```
-src/
-├── components/
-│   ├── SwipeCard.jsx      # Kaydırılabilir trader kartı
-│   ├── Portfolio.jsx      # İşlem geçmişi ve PnL
-│   ├── Leaderboard.jsx    # Trader sıralaması
-│   ├── Inbox.jsx          # Eşleşmeler listesi
-│   ├── Chat.jsx           # Trader ile sohbet
-│   └── WatchlistPanel.jsx # Takip edilen cüzdanlar
-├── services/
-│   ├── wallet.js          # MetaMask bağlantısı ve işlem gönderimi
-│   ├── monadApi.js        # Monad Explorer API
-│   └── dexscreenerApi.js  # MON fiyatı ve trending tokenlar
-├── data/
-│   └── mockTraders.json   # Bağlantı öncesi örnek veriler
-└── App.jsx                # Ana uygulama ve sekme yönetimi
-```
+React 18 · Vite · Tailwind · react-tinder-card · framer-motion ·
+ethers (backend indexer) · ws · DexScreener API · PancakeSwap v3 / Uniswap v3.
 
----
+## Status / roadmap
 
-## Nasıl Kullanılır?
-
-1. Sağ üstteki **Connect** butonuna tıkla, MetaMask'ı onayla
-2. Token ve miktar seç (MON veya trend tokenlar, 0.001 – özel)
-3. Trader kartlarını kaydır:
-   - Sağ → Copy Trade
-   - Sol → Geç
-   - Yukarı → All In
-4. **Portfolio** sekmesinden işlemlerini takip et
-5. **Top** sekmesinden Leaderboard veya Watchlist'i görüntüle
+- ✅ Phase 1 — mainnet, live whale indexer, per-swipe copy via MetaMask (this build).
+- ⏳ Phase 2 — session-key SmartAccount + relayer (`contracts/`) for gasless,
+  popup-free "seamless" copying. Contracts are written but not yet wired in.

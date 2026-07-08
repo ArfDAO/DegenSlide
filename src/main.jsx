@@ -1,3 +1,7 @@
+import { Buffer } from 'buffer';
+// @solana/web3.js (Phantom tx signing) expects a Node-style global Buffer
+if (!globalThis.Buffer) globalThis.Buffer = Buffer;
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

@@ -1,0 +1,15 @@
+{
+  "name": "degen-slide-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "listener.js",
+  "scripts": {
+    "start": "node listener.js",
+    "dev": "node listener.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "ethers": "^6.13.1",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,9 +1,15 @@
 /**
- * DexScreener API Service — Monad chain
+ * DexScreener API Service — chain-aware (follows the ACTIVE chain).
  * Base: https://api.dexscreener.com
  */
+import { ACTIVE, DEXSCREENER_CHAIN } from '../config/chain.js';
 
 const DSX_BASE = 'https://api.dexscreener.com';
+const CHAIN = DEXSCREENER_CHAIN; // 'monad' | 'solana'
+// Native token whose USD price anchors the app (WMON on Monad, wSOL on Solana)
+const NATIVE_TOKEN = ACTIVE.id === 'solana'
+  ? ACTIVE.nativeToken
+  : '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 
 // Known Monad mainnet token addresses
 export const MONAD_TOKENS = {
@@ -56,10 +62,11 @@ async function dexFetch(path, timeout = 8000) {
  * NOTE: /token-pairs/v1 returns a raw array (no wrapper object)
  */
 export async function fetchTokenPairData(tokenAddress) {
-  const data = await dexFetch(`/token-pairs/v1/monad/${tokenAddress}`);
+  const data = await dexFetch(`/token-pairs/v1/${CHAIN}/${tokenAddress}`);
   const pairs = Array.isArray(data) ? data : data?.pairs ?? [];
   if (!pairs.length) return null;
-  return [...pairs].sort((a, b) => (b.volume?.h24 ?? 0) - (a.volume?.h24 ?? 0))[0];
+  const best = [...pairs].sort((a, b) => (b.volume?.h24 ?? 0) - (a.volume?.h24 ?? 0))[0];
+  return normalizePair(best);
 }
 
 /**
@@ -69,57 +76,8 @@ export async function fetchTokenPairData(tokenAddress) {
 export async function fetchMonadTrendingTokens(limit = 20) {
   const data = await dexFetch('/latest/dex/search?q=MON');
   const pairs = Array.isArray(data) ? data : data?.pairs ?? [];
-  
-  // Mock Meme/New tokens simulating newbie 5h/10h tokens
-  const mockMemes = [
-    {
-      chainId: 'monad',
-      pairAddress: '0xmockpepe123',
-      baseToken: { address: '0xpepe', symbol: 'PEPE', name: 'Pepe' },
-      quoteToken: { address: '0xmon', symbol: 'MON', name: 'Monad' },
-      priceUsd: '0.00042',
-      priceChange: { h24: 154.2 },
-      volume: { h24: 1205000 },
-      pairCreatedAt: Date.now() - 5 * 60 * 60 * 1000, // 5 hours ago
-      info: { imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/ethereum/0x6982508145454ce325ddbe47a25d4ec3d2311933.png' }
-    },
-    {
-      chainId: 'monad',
-      pairAddress: '0xmockwif123',
-      baseToken: { address: '0xwif', symbol: 'WIF', name: 'dogwifhat' },
-      quoteToken: { address: '0xmon', symbol: 'MON', name: 'Monad' },
-      priceUsd: '2.45',
-      priceChange: { h24: 82.1 },
-      volume: { h24: 3400000 },
-      pairCreatedAt: Date.now() - 10 * 60 * 60 * 1000, // 10 hours ago
-      info: { imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/ekpQGSJtjJVq124Dtz4x2DCDg8t21YvK2sS1xM61zS_5.png' }
-    },
-    {
-      chainId: 'monad',
-      pairAddress: '0xmockchad123',
-      baseToken: { address: '0xchad', symbol: 'CHAD', name: 'GigaChad' },
-      quoteToken: { address: '0xmon', symbol: 'MON', name: 'Monad' },
-      priceUsd: '0.051',
-      priceChange: { h24: 450.5 },
-      volume: { h24: 890000 },
-      pairCreatedAt: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
-      info: { imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/ethereum/0x6b89b97169a797d94f057f4a0b01e2ca303155e4.png' }
-    },
-    {
-      chainId: 'monad',
-      pairAddress: '0xmockjotchua123',
-      baseToken: { address: '0xjotchua', symbol: 'JOTCHUA', name: 'Baby Jotchua' },
-      quoteToken: { address: '0xmon', symbol: 'MON', name: 'Monad' },
-      priceUsd: '0.0012',
-      priceChange: { h24: 1250.0 },
-      volume: { h24: 560000 },
-      pairCreatedAt: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
-      info: { imageUrl: 'https://cdn.dexscreener.com/cms/images/FV9vlr_PRu-oJzED?width=64&height=64&fit=crop&quality=95&format=auto' }
-    }
-  ];
-
-  const realPairs = pairs.filter((p) => p.chainId === 'monad');
-  const combined = [...mockMemes, ...realPairs].slice(0, limit);
+  const realPairs = pairs.filter((p) => p.chainId === CHAIN);
+  const combined = [...realPairs].slice(0, limit);
   return combined.map(normalizePair);
 }
 
@@ -128,7 +86,7 @@ export async function fetchMonadTrendingTokens(limit = 20) {
  */
 export async function fetchTokensByAddresses(addresses) {
   if (!addresses?.length) return [];
-  const data = await dexFetch(`/tokens/v1/monad/${addresses.join(',')}`);
+  const data = await dexFetch(`/tokens/v1/${CHAIN}/${addresses.join(',')}`);
   const pairs = Array.isArray(data) ? data : data?.pairs ?? [];
   return pairs.map(normalizePair);
 }
@@ -178,16 +136,15 @@ export function normalizePair(pair) {
 }
 
 /**
- * Get MON price data — highest-volume MON/USDC pair on Monad
- * /token-pairs/v1 returns a raw array, NOT {pairs:[...]}
+ * Native asset price for the ACTIVE chain (MON on Monad, SOL on Solana) —
+ * highest-volume native/USDC pair. /token-pairs/v1 returns a raw array.
  */
 export async function fetchMONPrice() {
-  const data = await dexFetch(
-    `/token-pairs/v1/monad/${MONAD_TOKENS.MON.address}`
-  );
+  const data = await dexFetch(`/token-pairs/v1/${CHAIN}/${NATIVE_TOKEN}`);
 
   // API returns a plain array
-  const pairs = Array.isArray(data) ? data : data?.pairs ?? [];
+  const pairs = (Array.isArray(data) ? data : data?.pairs ?? [])
+    .filter((p) => p.chainId === CHAIN && p.baseToken?.address?.toLowerCase() === NATIVE_TOKEN.toLowerCase());
   if (!pairs.length) return null;
 
   // Prefer USDC quote, sort by 24h volume

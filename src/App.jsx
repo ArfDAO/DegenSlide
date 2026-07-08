@@ -1,24 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SwipeCard from './components/SwipeCard';
 import Leaderboard from './components/Leaderboard';
 import Portfolio from './components/Portfolio';
-import Inbox from './components/Inbox';
-import Chat from './components/Chat';
 import WatchlistPanel from './components/WatchlistPanel';
-import { BlockieAvatar } from './components/SwipeCard';
-import mockTraders from './data/mockTraders.json';
-import { fetchTopTraders, fetchMonadStats, EXPLORER_ADDR_URL } from './services/monadApi';
-import { fetchMONPrice, fetchMonadTrendingTokens } from './services/dexscreenerApi';
+import CuratedWhales from './components/CuratedWhales';
+import ProfilePage from './components/ProfilePage';
+import curatedWhalesData from './data/curatedWhales.json';
+import { X, Copy, Zap, Settings, Check, AlertTriangle, Info, Layers, WifiOff } from 'lucide-react';
+import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
+import {
+  fetchWhaleDeck,
+  fetchWhaleLeaderboard,
+  openWhaleFeed,
+  indexerHealth,
+} from './services/indexerApi';
+import { EXPLORER_URL, EXPLORER_ADDR_URL, DEFAULT_SLIPPAGE_BPS, ACTIVE, CHAINS, setActiveChainId, INDEXER_HTTP } from './config/chain.js';
 import {
   connectWallet,
   getConnectedAccount,
-  executeTradeTransaction,
-  isMetaMaskAvailable,
-  EXPLORER_URL,
-  SWAP_TOKENS,
-} from './services/wallet';
+  copyBuy,
+  sellToken,
+  getMonBalance,
+  isWalletAvailable,
+  onAccountsChanged,
+  disconnectWallet,
+  WALLET_NAME,
+  WALLET_INSTALL_URL,
+} from './services/activeWallet';
 
-/* ── Clock hook ── */
+// Per-chain localStorage keys — positions/balances/amounts are chain-specific.
+// (Monad keeps its original keys so existing users lose nothing.)
+const LSK = (name, legacy) => (ACTIVE.id === 'monad' ? legacy : `${ACTIVE.id}_${name}`);
+const WALLET_LS = LSK('wallet', 'monad_wallet');
+const PORTFOLIO_LS = LSK('portfolio', 'monad_portfolio');
+const LASTTX_LS = LSK('lastTx', 'monad_lastTx');
+const BALHIST_LS = LSK('balHist', 'monad_balHist');
+const AMOUNT_LS = LSK('tradeAmount', 'monad_tradeAmount');
+
+/* ── Clock ── */
 function useClock() {
   const [time, setTime] = useState(() => {
     const d = new Date();
@@ -34,853 +53,659 @@ function useClock() {
   return time;
 }
 
-/* ── Toast config ── */
+/* ── Toasts ── */
 const TOASTS = {
-  pass:       { msg: 'Skipped',              icon: '✕', color: 'rgba(255,71,87,0.95)',   border: 'rgba(255,71,87,0.3)' },
-  copy:       { msg: 'Copy Trade Sent!',     icon: '✓', color: 'rgba(0,192,135,0.95)',  border: 'rgba(0,192,135,0.3)' },
-  ape:        { msg: 'All In!',             icon: '💸', color: 'rgba(255,181,71,0.95)', border: 'rgba(255,181,71,0.3)' },
-  connect:    { msg: 'Wallet Connected',    icon: '🟢', color: 'rgba(0,192,135,0.95)',  border: 'rgba(0,192,135,0.3)' },
-  tx_sent:    { msg: 'Tx Sent!',           icon: '⛓',  color: 'rgba(123,97,255,0.95)', border: 'rgba(123,97,255,0.3)' },
-  tx_error:   { msg: 'Tx Failed',          icon: '⚠',  color: 'rgba(255,71,87,0.95)',  border: 'rgba(255,71,87,0.3)' },
-  swap_sent:  { msg: 'Swap Sent!',         icon: '↗',  color: 'rgba(0,192,135,0.95)',  border: 'rgba(0,192,135,0.3)' },
-  swap_error: { msg: 'Swap Failed',        icon: '⚠',  color: 'rgba(255,71,87,0.95)',  border: 'rgba(255,71,87,0.3)' },
-  no_funds:   { msg: 'Not enough MON!',    icon: '💰', color: 'rgba(255,159,28,0.95)', border: 'rgba(255,159,28,0.3)' },
-  no_wallet:  { msg: 'Install MetaMask!',  icon: '🦊', color: 'rgba(255,181,71,0.95)', border: 'rgba(255,181,71,0.3)' },
+  pass:       { msg: 'Skipped',            kind: 'info', color: 'var(--color-midnight-ink)' },
+  copy:       { msg: 'Copy sent',          kind: 'ok',   color: 'var(--color-tidewater-navy)' },
+  connect:    { msg: 'Wallet connected',   kind: 'ok',   color: 'var(--color-tidewater-navy)' },
+  copy_pending: { msg: 'Confirm in wallet…', kind: 'info', color: 'var(--color-tidewater-navy)' },
+  tx_sent:    { msg: 'Copy confirmed on-chain', kind: 'ok', color: 'var(--color-tidewater-navy)' },
+  tx_failed:  { msg: 'Transaction failed on-chain', kind: 'err', color: 'var(--color-obsidian)' },
+  tx_error:   { msg: 'Copy failed',        kind: 'err',  color: 'var(--color-obsidian)' },
+  no_balance: { msg: 'Can’t verify balance — trade blocked', kind: 'err', color: 'var(--color-obsidian)' },
+  no_liq:     { msg: 'No liquidity to copy', kind: 'err', color: 'var(--color-obsidian)' },
+  no_funds:   { msg: `Not enough ${ACTIVE.nativeSymbol}`, kind: 'err',  color: 'var(--color-obsidian)' },
+  no_wallet:  { msg: `Install ${WALLET_NAME}`, kind: 'err',  color: 'var(--color-obsidian)' },
+  no_indexer: { msg: 'Whale feed offline', kind: 'err',  color: 'var(--color-obsidian)' },
+  sl_hit:     { msg: 'Stop-loss hit',      kind: 'err',  color: 'var(--color-obsidian)' },
+  tp_hit:     { msg: 'Take-profit hit',    kind: 'ok',   color: 'var(--color-tidewater-navy)' },
+  sell_pending: { msg: 'Approve sell…',    kind: 'info', color: 'var(--color-tidewater-navy)' },
+  sell_sent:  { msg: 'Position closed',    kind: 'ok',   color: 'var(--color-tidewater-navy)' },
+  sell_cancel: { msg: 'Sell cancelled',    kind: 'info', color: 'var(--color-midnight-ink)' },
+  sell_fail:  { msg: 'Sell failed',        kind: 'err',  color: 'var(--color-obsidian)' },
+  sell_nobal: { msg: 'No tokens to sell',  kind: 'err',  color: 'var(--color-obsidian)' },
 };
+const TOAST_ICON = { ok: Check, err: AlertTriangle, info: Info };
 
-/* ── SVG Nav Icons ── */
+/* ── Nav icons ── */
 function IconDeck({ active }) {
-  const c = active ? '#f72585' : 'rgba(255,255,255,0.3)';
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6"
-        fill={active ? 'rgba(247,37,133,0.15)' : 'none'}/>
-      <rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6"
-        fill={active ? 'rgba(247,37,133,0.08)' : 'none'}/>
-    </svg>
-  );
+  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.15)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.08)' : 'none'}/></svg>);
 }
-
 function IconPortfolio({ active }) {
-  const c = active ? '#7b61ff' : 'rgba(255,255,255,0.3)';
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="12" width="4" height="9" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/>
-      <rect x="10" y="7" width="4" height="14" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/>
-      <rect x="17" y="3" width="4" height="18" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/>
-    </svg>
-  );
+  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="9" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="10" y="7" width="4" height="14" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="17" y="3" width="4" height="18" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/></svg>);
 }
-
 function IconLeaderboard({ active }) {
-  const c = active ? '#4cc9f0' : 'rgba(255,255,255,0.3)';
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
-        stroke={c} strokeWidth="1.6" strokeLinejoin="round"
-        fill={active ? 'rgba(76,201,240,0.2)' : 'none'}/>
-    </svg>
-  );
+  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(153,91,185,0.2)' : 'none'}/></svg>);
 }
-
 function IconProfile({ active }) {
-  const c = active ? '#00f5a0' : 'rgba(255,255,255,0.3)';
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6"
-        fill={active ? 'rgba(0,245,160,0.15)' : 'none'}/>
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/>
-    </svg>
-  );
+  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.15)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
 }
-
-function IconInbox({ active }) {
-  const c = active ? '#ff9f1c' : 'rgba(255,255,255,0.3)';
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(255,159,28,0.15)' : 'none'}/>
-      <path d="M22 6l-10 7L2 6" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
 const TABS = [
-  { id: 'deck',         Icon: IconDeck,        label: 'Deck' },
-  { id: 'portfolio',    Icon: IconPortfolio,   label: 'Portfolio' },
-  { id: 'inbox',        Icon: IconInbox,       label: 'Inbox' },
-  { id: 'leaderboard',  Icon: IconLeaderboard, label: 'Top' },
-  { id: 'profile',      Icon: IconProfile,     label: 'Profile' },
+  { id: 'deck', Icon: IconDeck, label: 'Deck' },
+  { id: 'portfolio', Icon: IconPortfolio, label: 'Portfolio' },
+  { id: 'leaderboard', Icon: IconLeaderboard, label: 'Top' },
+  { id: 'profile', Icon: IconProfile, label: 'Profile' },
 ];
 
-/* ── Empty tab placeholder ── */
-function EmptyTab({ icon, title, desc, badge }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-8">
-      <div className="relative">
-        <div className="grid h-20 w-20 place-items-center rounded-[24px] text-4xl"
-          style={{ background: 'var(--s2)', border: '1px solid var(--border)' }}>
-          {icon}
-        </div>
-        {badge && (
-          <span className="absolute -top-1 -right-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
-            style={{ background: 'var(--volt)', color: '#fff' }}>
-            {badge}
-          </span>
-        )}
-      </div>
-      <div>
-        <h3 className="text-base font-black" style={{ color: 'var(--text-1)' }}>{title}</h3>
-        <p className="mt-1.5 text-sm leading-relaxed max-w-[220px]" style={{ color: 'var(--text-3)' }}>{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ── Stat chip ── */
-function StatChip({ label, value, accent }) {
-  return (
-    <div className="stat-chip flex-1 min-w-0">
-      <p className="text-[9px] font-semibold uppercase tracking-widest truncate" style={{ color: 'var(--text-3)' }}>{label}</p>
-      <p className="text-[12px] font-black mt-0.5 truncate" style={{ color: accent ?? 'var(--text-1)' }}>{value}</p>
-    </div>
-  );
-}
-
-/* ── Signal dots (status bar) ── */
 function SignalDots() {
-  return (
-    <div className="flex items-end gap-[2px]">
-      {[8, 12, 16, 20].map((h, i) => (
-        <div key={i} className="w-1 rounded-sm" style={{ height: h, background: i < 3 ? 'var(--text-2)' : 'var(--text-3)' }} />
-      ))}
-    </div>
-  );
+  return (<div className="flex items-end gap-[2px]">{[8, 12, 16, 20].map((h, i) => (<div key={i} className="w-1 rounded-sm" style={{ height: h, background: i < 3 ? 'var(--text-2)' : 'var(--text-3)' }} />))}</div>);
 }
 
 /* ── localStorage helpers ── */
 function loadLS(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw !== null ? JSON.parse(raw) : fallback;
-  } catch { return fallback; }
+  try { const raw = localStorage.getItem(key); return raw !== null ? JSON.parse(raw) : fallback; } catch { return fallback; }
 }
-function saveLS(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-}
+function saveLS(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
-/* ── Trade Amount Tier Selector ── */
-const TIERS = [
-  { label: '0.001', value: 0.001 },
-  { label: '0.01',  value: 0.01  },
-  { label: '0.05',  value: 0.05  },
+// Quick-pick copy amounts in the chain's native unit (MON vs SOL scale differs ~100x)
+const TIERS = ACTIVE.copyTiers;
+
+const SLIPPAGE_TIERS = [
+  { label: '0.5%', bps: 50 },
+  { label: '1%', bps: 100 },
+  { label: '2%', bps: 200 },
+  { label: '5%', bps: 500 },
 ];
 
-function TierSelector({ amount, onChange }) {
+/* ── Trade settings popover: copy amount + slippage (token is dictated by the whale) ── */
+function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageBps, onChangeSlippage, monPriceUsd, monBalance }) {
   const [manualVal, setManualVal] = useState('');
-
-  const isManual = !TIERS.some(t => t.value === amount);
-
-  const handleManualChange = (e) => {
-    const raw = e.target.value.replace(/[^0-9.]/g, '');
-    setManualVal(raw);
-    const num = parseFloat(raw);
-    if (!isNaN(num) && num > 0) onChange(num);
-  };
-
-  const handleTierClick = (val) => {
-    setManualVal('');
-    onChange(val);
-  };
-
+  const isManual = !TIERS.some((t) => t.value === amount);
+  if (!open) return null;
+  const GAS_BUFFER = ACTIVE.gasBuffer; // leave native funds for gas/rent
+  const maxCopy = monBalance != null ? Math.max(0, monBalance - GAS_BUFFER) : null;
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 6,
-      padding: '7px 12px',
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 16,
-      marginBottom: 0,
-    }}>
-      <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap', marginRight: 2 }}>MON</span>
-      <div style={{ display: 'flex', gap: 5, flex: 1 }}>
-        {TIERS.map(tier => {
-          const active = !isManual && amount === tier.value;
-          return (
-            <button
-              key={tier.value}
-              type="button"
-              onClick={() => handleTierClick(tier.value)}
-              style={{
-                flex: 1, padding: '6px 0', borderRadius: 10, border: 'none',
-                fontSize: 11, fontWeight: 800, cursor: 'pointer',
-                transition: 'all 0.18s',
-                background: active
-                  ? 'linear-gradient(135deg,#f72585,#7b61ff)'
-                  : 'rgba(255,255,255,0.07)',
-                color: active ? '#fff' : 'rgba(255,255,255,0.55)',
-                boxShadow: active ? '0 2px 12px rgba(247,37,133,0.35)' : 'none',
-                transform: active ? 'scale(1.05)' : 'scale(1)',
-              }}
-            >
-              {tier.label}
+    <>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(4px)', borderRadius: 'inherit' }} />
+      <div className="animate-slide-up-modal" style={{ position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 81, background: 'var(--color-paper-white)', borderRadius: 24, padding: 20, boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid var(--color-silver-lining)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>Copy Amount</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 14, border: 'none', background: 'var(--color-frost-shadow)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-pebble)' }}><X size={15} /></button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{ACTIVE.nativeSymbol} spent per copy</label>
+          {monBalance != null && (
+            <button type="button" onClick={() => { if (maxCopy > 0) { setManualVal(String(+maxCopy.toFixed(3))); onChangeAmount(+maxCopy.toFixed(3)); } }}
+              style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-tidewater-navy)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              Balance: {monBalance.toFixed(3)} {ACTIVE.nativeSymbol} · Max
             </button>
-          );
-        })}
-        {/* Manuel input */}
-        <input
-          type="text"
-          inputMode="decimal"
-          placeholder="custom"
-          value={manualVal}
-          onFocus={() => {
-            if (isManual) setManualVal(String(amount));
-          }}
-          onChange={handleManualChange}
-          style={{
-            flex: 1.2, padding: '6px 6px', borderRadius: 10,
-            border: `1px solid ${isManual ? 'rgba(123,97,255,0.7)' : 'rgba(255,255,255,0.1)'}`,
-            background: isManual ? 'rgba(123,97,255,0.15)' : 'rgba(255,255,255,0.05)',
-            color: isManual ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
-            fontSize: 11, fontWeight: 800, textAlign: 'center',
-            outline: 'none', transition: 'all 0.18s', minWidth: 0,
-          }}
-        />
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {TIERS.map((tier) => {
+            const active = !isManual && amount === tier.value;
+            return (
+              <button key={tier.value} type="button" onClick={() => { setManualVal(''); onChangeAmount(tier.value); }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                {tier.label}
+              </button>
+            );
+          })}
+          <input type="text" inputMode="decimal" placeholder="Custom" value={manualVal}
+            onFocus={() => { if (isManual) setManualVal(String(amount)); }}
+            onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); setManualVal(raw); const num = parseFloat(raw); if (!isNaN(num) && num > 0) onChangeAmount(num); }}
+            style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${isManual ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)'}`, background: 'var(--color-frost-shadow)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none', minWidth: 0 }} />
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--color-pebble)', marginTop: 8, fontWeight: 600 }}>
+          {monPriceUsd ? `≈ $${(amount * monPriceUsd).toFixed(4)} USD per copy` : `Each swipe buys the whale’s token with this much ${ACTIVE.nativeSymbol}`}
+        </div>
+        {maxCopy != null && amount > maxCopy && (
+          <div style={{ fontSize: 11, color: 'var(--color-aurora-magenta)', marginTop: 4, fontWeight: 700 }}>
+            Over balance — need {ACTIVE.nativeSymbol} for gas too. Max ≈ {maxCopy.toFixed(3)}.
+          </div>
+        )}
+
+        {/* Slippage tolerance */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--color-silver-lining)' }}>
+          <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Slippage tolerance</label>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {SLIPPAGE_TIERS.map((s) => {
+              const active = slippageBps === s.bps;
+              return (
+                <button key={s.bps} type="button" onClick={() => onChangeSlippage(s.bps)}
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--color-pebble)', marginTop: 6, fontWeight: 600 }}>
+            Max price move tolerated per swap. Higher fills in volatile pools; lower is safer.
+          </div>
+        </div>
       </div>
-      <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
-        ≈ ${(amount * 3.2).toFixed(4)}
-      </span>
-    </div>
+    </>
   );
 }
 
-function TokenSelector({ selected, onChange, tokens }) {
-  return (
-    <div className="hide-scrollbar" style={{ display: 'flex', gap: 6, marginBottom: 6, overflowX: 'auto', paddingBottom: 2 }}>
-      {tokens.map(t => (
-        <button
-          key={t.symbol}
-          type="button"
-          onClick={() => onChange(t.symbol)}
-          style={{
-            flex: '0 0 auto', padding: '8px 14px', borderRadius: 12,
-            fontSize: 12, fontWeight: 800, cursor: 'pointer',
-            transition: 'all 0.18s', display: 'flex', alignItems: 'center', gap: 6,
-            background: selected === t.symbol ? `${t.color || '#fff'}20` : 'rgba(255,255,255,0.05)',
-            color: selected === t.symbol ? (t.color || '#fff') : 'rgba(255,255,255,0.4)',
-            border: `1px solid ${selected === t.symbol ? (t.color || '#fff') : 'transparent'}`,
-            boxShadow: selected === t.symbol ? `0 2px 8px ${t.color || '#fff'}40` : 'none',
-          }}
-        >
-          {t.imageUrl ? <img src={t.imageUrl} alt={t.symbol} style={{ width: 14, height: 14, borderRadius: '50%' }} /> : t.icon} {t.symbol}
-        </button>
-      ))}
-    </div>
-  );
-}
+// Verified whale roster for the ACTIVE chain: Monad ships the on-chain-scanned
+// file (backend/scanWhales.js); Solana serves its live-promoted roster over
+// HTTP (/roster). Both are real, bot-filtered on-chain wallets.
+const STATIC_CURATED = ACTIVE.id === 'monad' ? (curatedWhalesData.whales || []) : [];
+
+// Deck size-tier filter (USD value of the trade) — thresholds are per-chain.
+const TIER_MIN_USD = ACTIVE.tiers;
+const DECK_TIERS = [
+  { id: 'all', label: 'All', color: 'var(--color-pebble)' },
+  { id: 'big', label: 'Big', color: '#0ea5e9' },
+  { id: 'shark', label: 'Shark', color: '#7c3aed' },
+  { id: 'whale', label: 'Whale', color: '#2563eb' },
+];
 
 export default function App() {
   const clock = useClock();
-  const [isConnected, setIsConnected]   = useState(false);
-  const [walletAddress, setWalletAddress] = useState(() => loadLS('monad_wallet', null));
+  const [isConnected, setIsConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(() => loadLS(WALLET_LS, null));
   const [isConnecting, setIsConnecting] = useState(false);
-  const [cards, setCards]               = useState(mockTraders.map(t => ({ ...t, isLive: false })));
-  const [toast, setToast]               = useState(null);
-  const [matchTrader, setMatchTrader]   = useState(null);
-  const [showApe, setShowApe]           = useState(false);
-  const [portfolio, setPortfolio]       = useState(() => loadLS('monad_portfolio', []));
-  const [activeTab, setActiveTab]       = useState(() => loadLS('monad_tab', 'deck'));
-  const [isLoading, setIsLoading]       = useState(false);
-  const [isLiveData, setIsLiveData]     = useState(false);
-  const [stats, setStats]               = useState(null);
-  const [trendingTokens, setTrendingTokens] = useState([]);
-  const [tradeAmount, setTradeAmount]   = useState(() => loadLS('monad_tradeAmount', 0.001));
-  const [tradeToken, setTradeToken]     = useState(() => loadLS('monad_tradeToken', 'MON'));
-  const [lastTxHash, setLastTxHash]     = useState(() => loadLS('monad_lastTx', null));
-  const [favorites, setFavorites]       = useState(() => loadLS('monad_favorites', []));
-  const [matches, setMatches]           = useState(() => loadLS('monad_matches', []));
-  const [messages, setMessages]         = useState(() => loadLS('monad_messages', {}));
-  const [activeChat, setActiveChat]     = useState(null);
-  const [watchlist, setWatchlist]       = useState(() => loadLS('monad_watchlist', []));
-  const [lbMode, setLbMode]             = useState('rankings');
-  const topCardRef  = useRef(null);
-  const matchTimer  = useRef(null);
-
-  const allTokens = useMemo(() => {
-    const base = [...SWAP_TOKENS];
-    const seen = new Set(base.map(t => t.symbol.toUpperCase()));
-    for (const pt of trendingTokens) {
-      const sym = pt.baseToken?.symbol;
-      if (!sym) continue;
-      const symUpper = sym.toUpperCase();
-      if (seen.has(symUpper)) continue;
-      seen.add(symUpper);
-      base.push({
-        symbol: symUpper,
-        label: symUpper,
-        icon: null,
-        imageUrl: pt.imageUrl,
-        color: '#ffffff',
-        address: pt.baseToken.address,
-        pairAddress: pt.pairAddress,
-      });
-    }
-    return base;
-  }, [trendingTokens]);
-
-  // ── Dinamik scale: viewport yüksekliğine tam sığdır ──
+  const [cards, setCards] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [showApe, setShowApe] = useState(false);
+  const [portfolio, setPortfolio] = useState(() =>
+    loadLS(PORTFOLIO_LS, []).map((p, i) => (p.id ? p : { ...p, id: `${p.token?.address || 'pos'}-${p.time || 0}-${i}` }))
+  );
+  const [activeTab, setActiveTab] = useState(() => loadLS('monad_tab', 'deck'));
+  const [isLoading, setIsLoading] = useState(true);
+  const [indexerUp, setIndexerUp] = useState(true);
+  const [monPriceUsd, setMonPriceUsd] = useState(null);
+  const [monBalance, setMonBalance] = useState(null);
+  const [tradeAmount, setTradeAmount] = useState(() => loadLS(AMOUNT_LS, TIERS[1].value));
+  const [slippageBps, setSlippageBps] = useState(() => loadLS('monad_slippage', DEFAULT_SLIPPAGE_BPS));
+  const [lastTxHash, setLastTxHash] = useState(() => loadLS(LASTTX_LS, null));
+  // Favorites/watchlist are address-format-specific → stored per chain
+  // (Monad keeps its original keys; other chains get prefixed ones).
+  const FAV_KEY = ACTIVE.id === 'monad' ? 'monad_favorites' : `${ACTIVE.id}_favorites`;
+  const WATCH_KEY = ACTIVE.id === 'monad' ? 'monad_watchlist' : `${ACTIVE.id}_watchlist`;
+  const [favorites, setFavorites] = useState(() => loadLS(FAV_KEY, []));
+  const [watchlist, setWatchlist] = useState(() => loadLS(WATCH_KEY, []));
+  // Verified roster for this chain (Solana: fetched live from the indexer)
+  const [curatedWhalesList, setCuratedWhalesList] = useState(STATIC_CURATED);
+  const curatedSet = curatedWhalesList.reduce((s, w) => (s.add((w.address || '').toLowerCase()), s), new Set());
   useEffect(() => {
-    const CONTAINER_H = 852;
-    const PADDING = 16; // üst+alt boşluk
-    const updateScale = () => {
-      const vh = window.innerHeight;
-      const scale = Math.min(1, (vh - PADDING) / CONTAINER_H);
+    // Both chains serve a live /roster that MERGES the scanned/curated file with
+    // this session's live-promoted whales, so Smart Money grows over time.
+    // Monad seeds instantly from the bundled file, then the fetch takes over.
+    let alive = true;
+    const load = () => fetch(`${INDEXER_HTTP}/roster`).then((r) => r.json())
+      .then((d) => { if (alive && Array.isArray(d.whales) && d.whales.length) setCuratedWhalesList(d.whales); })
+      .catch(() => {});
+    load();
+    const id = setInterval(load, 60000); // live-promoted roster keeps growing
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+  const [settings, setSettings] = useState(() => ({ liveFeed: true, hideStables: false, minWhaleMon: 0, autoSell: true, ...loadLS('monad_settings', {}) }));
+  const [balanceHistory, setBalanceHistory] = useState(() => loadLS(BALHIST_LS, []));
+  const settingsRef = useRef(settings);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  const sellingRef = useRef(new Set());
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [lbMode, setLbMode] = useState('rankings');
+  const [showTradeSettings, setShowTradeSettings] = useState(false);
+  // USD scale differs per chain, so the tier choice is stored per chain too
+  const DECKTIER_LS = LSK('deckTier', 'monad_deckTier');
+  const [deckTier, setDeckTier] = useState(() => loadLS(DECKTIER_LS, 'all'));
+  useEffect(() => { saveLS(DECKTIER_LS, deckTier); }, [deckTier]);
+  const topCardRef = useRef(null);
+
+  // Viewport scale
+  useEffect(() => {
+    const CONTAINER_H = 852, PADDING = 16;
+    const update = () => {
+      const scale = Math.min(1, (window.innerHeight - PADDING) / CONTAINER_H);
       document.documentElement.style.setProperty('--app-scale', scale);
     };
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, []);
 
-  // Auto-reconnect if MetaMask already authorized
+  // Auto-reconnect the ACTIVE chain's wallet (MetaMask on Monad, Phantom on Solana)
   useEffect(() => {
     getConnectedAccount().then((addr) => {
-      if (addr) {
-        setWalletAddress(addr);
-        setIsConnected(true);
-        saveLS('monad_wallet', addr);
-      }
+      if (addr) { setWalletAddress(addr); setIsConnected(true); saveLS(WALLET_LS, addr); }
     });
-
-    if (isMetaMaskAvailable()) {
-      const handleAccountsChanged = (accounts) => {
-        if (!accounts.length) {
-          setIsConnected(false);
-          setWalletAddress(null);
-          saveLS('monad_wallet', null);
-        } else {
-          const addr = accounts[0].toLowerCase();
-          setWalletAddress(addr);
-          saveLS('monad_wallet', addr);
-        }
-      };
-      const handleChainChanged = () => window.location.reload();
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
-      };
-    }
+    return onAccountsChanged((accounts) => {
+      if (!accounts.length) { setIsConnected(false); setWalletAddress(null); saveLS(WALLET_LS, null); }
+      else { setWalletAddress(accounts[0]); saveLS(WALLET_LS, accounts[0]); }
+    });
   }, []);
 
-  // Cüzdan adresi değişince localStorage'a kaydet + bağlantı durumunu güncelle
+  useEffect(() => { if (walletAddress) { saveLS(WALLET_LS, walletAddress); setIsConnected(true); } }, [walletAddress]);
+  useEffect(() => { saveLS(PORTFOLIO_LS, portfolio); }, [portfolio]);
+  useEffect(() => { if (lastTxHash) saveLS(LASTTX_LS, lastTxHash); }, [lastTxHash]);
+  useEffect(() => { saveLS('monad_tab', activeTab); }, [activeTab]);
+  useEffect(() => { saveLS(AMOUNT_LS, tradeAmount); }, [tradeAmount]);
+  useEffect(() => { saveLS('monad_slippage', slippageBps); }, [slippageBps]);
+  useEffect(() => { saveLS(FAV_KEY, favorites); }, [favorites]);
+  useEffect(() => { saveLS(WATCH_KEY, watchlist); }, [watchlist]);
+  useEffect(() => { saveLS('monad_settings', settings); }, [settings]);
+
+  const updateSetting = useCallback((key, value) => setSettings((s) => ({ ...s, [key]: value })), []);
+
+  const addWatchWallet = useCallback((addr) => setWatchlist((p) => (p.includes(addr) ? p : [addr, ...p])), []);
+  const toggleFavorite = useCallback((trader) => {
+    setFavorites((prev) => {
+      const exists = prev.some((f) => f.address === trader.address);
+      return exists ? prev.filter((f) => f.address !== trader.address) : [{ ...trader }, ...prev];
+    });
+  }, []);
+
+  // The Watchlist view always shows favorited whales plus any manually
+  // added wallets — so anything you save on a card appears here too.
+  const watchlistView = (() => {
+    const favAddrs = favorites.map((f) => (f.address || '').toLowerCase()).filter(Boolean);
+    return [...new Set([...favAddrs, ...watchlist])];
+  })();
+  const isFavAddr = (addr) => favorites.some((f) => (f.address || '').toLowerCase() === addr);
+  const removeFromWatchlist = useCallback((addr) => {
+    const a = (addr || '').toLowerCase();
+    setWatchlist((prev) => prev.filter((w) => w !== a));
+    // if it's only here because it's favorited, un-favorite it too
+    setFavorites((prev) => prev.filter((f) => (f.address || '').toLowerCase() !== a));
+  }, []);
+  const saveAllCurated = useCallback((save) => {
+    setFavorites((prev) => {
+      if (!save) return prev.filter((f) => !curatedSet.has((f.address || '').toLowerCase()));
+      const have = new Set(prev.map((f) => (f.address || '').toLowerCase()));
+      const adds = curatedWhalesList.filter((w) => !have.has(w.address.toLowerCase())).map((w) => ({ address: w.address, tokenSymbol: w.lastToken }));
+      return [...adds, ...prev];
+    });
+  }, []);
+
+  // ── Load real whale deck + MON price + leaderboard; open live feed ──
   useEffect(() => {
-    if (walletAddress) {
-      saveLS('monad_wallet', walletAddress);
-      setIsConnected(true);
-    }
+    let alive = true;
+    setIsLoading(true);
+    indexerHealth().then((h) => { if (alive) setIndexerUp(!!h); });
+    Promise.all([fetchWhaleDeck(40), fetchMONPrice(), fetchWhaleLeaderboard()])
+      .then(([deck, mon, lb]) => {
+        if (!alive) return;
+        setCards(deck);
+        if (mon) setMonPriceUsd(mon.priceUsd);
+        setLeaderboard(lb);
+        setIndexerUp(deck.length > 0 || indexerUp);
+      })
+      .finally(() => { if (alive) setIsLoading(false); });
+
+    const closeFeed = openWhaleFeed((card) => {
+      if (!settingsRef.current.liveFeed) return; // live feed paused in settings
+      setCards((prev) => (prev.find((c) => c.id === card.id) ? prev : [card, ...prev].slice(0, 60)));
+    });
+
+    const lbTimer = setInterval(() => fetchWhaleLeaderboard().then((lb) => { if (alive && lb.length) setLeaderboard(lb); }), 20000);
+    const monTimer = setInterval(() => fetchMONPrice().then((m) => { if (alive && m) setMonPriceUsd(m.priceUsd); }), 30000);
+
+    return () => { alive = false; closeFeed(); clearInterval(lbTimer); clearInterval(monTimer); };
+  }, []);
+
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2800); return () => clearTimeout(t); }, [toast]);
+  const showToast = (type, msg) => setToast({ type, key: Date.now(), msg });
+
+  const removeCard = useCallback((trader) => setCards((prev) => prev.filter((c) => c.id !== trader.id)), []);
+
+  const refreshBalance = useCallback((addr) => {
+    const a = addr || walletAddress;
+    if (!a) return;
+    getMonBalance(a).then((b) => {
+      if (b == null) return;
+      setMonBalance(b);
+      // record a real balance snapshot for the history chart (throttled to ~1/min)
+      setBalanceHistory((prev) => {
+        const last = prev[prev.length - 1];
+        const now = Date.now();
+        if (last && now - last.t < 60000 && Math.abs(last.v - b) < 1e-9) return prev;
+        const next = [...prev, { t: now, v: b }].slice(-80);
+        saveLS(BALHIST_LS, next);
+        return next;
+      });
+    });
   }, [walletAddress]);
 
-  // Portfolio değişince kaydet
   useEffect(() => {
-    saveLS('monad_portfolio', portfolio);
-  }, [portfolio]);
+    if (!walletAddress) { setMonBalance(null); return; }
+    refreshBalance(walletAddress);
+    const id = setInterval(() => refreshBalance(walletAddress), 20000);
+    return () => clearInterval(id);
+  }, [walletAddress, refreshBalance]);
 
-  // Son tx hash değişince kaydet
-  useEffect(() => {
-    if (lastTxHash) saveLS('monad_lastTx', lastTxHash);
-  }, [lastTxHash]);
-
-  // Aktif sekme değişince kaydet
-  useEffect(() => {
-    saveLS('monad_tab', activeTab);
-  }, [activeTab]);
-
-  // Trade miktarı değişince kaydet
-  useEffect(() => {
-    saveLS('monad_tradeAmount', tradeAmount);
-  }, [tradeAmount]);
-
-  // Seçili token değişince kaydet
-  useEffect(() => {
-    saveLS('monad_tradeToken', tradeToken);
-  }, [tradeToken]);
-
-  // Favoriler değişince kaydet
-  useEffect(() => {
-    saveLS('monad_favorites', favorites);
-  }, [favorites]);
-
-  // Watchlist değişince kaydet
-  useEffect(() => {
-    saveLS('monad_watchlist', watchlist);
-  }, [watchlist]);
-
-  const addWatchWallet  = useCallback((addr) => setWatchlist(prev => [addr, ...prev]), []);
-  const removeWatchWallet = useCallback((addr) => setWatchlist(prev => prev.filter(a => a !== addr)), []);
-
-  // Eşleşmeler ve Mesajlar
-  useEffect(() => {
-    saveLS('monad_matches', matches);
-  }, [matches]);
-  useEffect(() => {
-    saveLS('monad_messages', messages);
-  }, [messages]);
-
-  const toggleFavorite = useCallback((trader) => {
-    setFavorites(prev => {
-      const exists = prev.find(f => f.address === trader.address);
-      if (exists) return prev.filter(f => f.address !== trader.address);
-      return [{ ...trader }, ...prev];
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isConnected) return;
-    setIsLoading(true);
-    Promise.all([fetchTopTraders(), fetchMonadStats(), fetchMonadTrendingTokens(15)]).then(([result, statsData, trendingData]) => {
-      if (result.traders) { setCards(result.traders); setIsLiveData(true); }
-      if (statsData) setStats(statsData);
-      if (trendingData) setTrendingTokens(trendingData);
-    }).finally(() => setIsLoading(false));
-  }, [isConnected]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  useEffect(() => () => clearTimeout(matchTimer.current), []);
-
-  const showToast = (type) => setToast({ type, key: Date.now() });
-
-  const removeCard = useCallback((trader) => {
-    setCards((prev) => prev.filter((c) => c.id !== trader.id));
-  }, []);
-
-  const sendTx = useCallback(async (trader, amountMon, tokenObj) => {
-    if (!walletAddress || !trader.address) return;
+  const doConnect = useCallback(async () => {
+    if (!isWalletAvailable()) { showToast('no_wallet'); window.open(WALLET_INSTALL_URL, '_blank'); return false; }
+    setIsConnecting(true);
     try {
-      const { hash, type } = await executeTradeTransaction(walletAddress, trader.address, amountMon, tokenObj?.symbol, tokenObj?.address);
+      const addr = await connectWallet();
+      setWalletAddress(addr); setIsConnected(true); saveLS(WALLET_LS, addr);
+      showToast('connect');
+      return true;
+    } catch (err) {
+      if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
+      return false;
+    } finally { setIsConnecting(false); }
+  }, []);
+
+  // ── Copy execution: real swap of the whale's token on the ACTIVE chain
+  // (Monad: MetaMask + PancakeSwap/Uniswap v3 · Solana: Phantom + Jupiter) ──
+  const sendCopy = useCallback(async (trader, amountMon, action = 'COPY') => {
+    // Safety net for any future chain without in-app execution
+    if (!ACTIVE.copySupported) {
+      if (trader?.tokenAddress) window.open(`https://jup.ag/swap/SOL-${trader.tokenAddress}`, '_blank');
+      showToast('copy', 'Opened on Jupiter — in-app copy not live on this chain yet');
+      return;
+    }
+    let from = walletAddress;
+    if (!from) { const ok = await doConnect(); if (!ok) return; from = await getConnectedAccount(); if (!from) return; }
+    try {
+      // Honest status: nothing is "sent" until the wallet signs AND the chain confirms.
+      showToast('copy_pending');
+      const { hash, expectedOut, dex, decimals: liveDecimals } = await copyBuy(from, trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, slippageBps });
       setLastTxHash(hash);
-      showToast(type === 'swap' ? 'swap_sent' : 'tx_sent');
+      showToast('tx_sent');
+      const addr = (trader.tokenAddress || '').toLowerCase();
+      const decimals = liveDecimals ?? trader.tokenDecimals ?? 18;
+      const invested = monPriceUsd ? amountMon * monPriceUsd : 0;
+      const gotTokens = (expectedOut || '0').toString();
+      // Upsert: buying the same token again averages into one position (real DCA).
+      setPortfolio((prev) => {
+        const i = prev.findIndex((p) => (p.token?.address || '').toLowerCase() === addr);
+        if (i >= 0) {
+          const p = prev[i];
+          const merged = {
+            ...p,
+            amountMon: (p.amountMon ?? p.amount ?? 0) + amountMon,
+            tokensRaw: (BigInt(p.tokensRaw || '0') + BigInt(gotTokens)).toString(),
+            investedUsd: (p.investedUsd ?? 0) + invested,
+            lastTime: Date.now(),
+          };
+          const copy = [...prev]; copy[i] = merged; return copy;
+        }
+        const entry = {
+          id: `${addr}-${Date.now()}`,
+          trader: { address: trader.address },
+          action,
+          token: { symbol: trader.tokenSymbol, address: trader.tokenAddress, decimals },
+          dex: dex || trader.dex || null,
+          amountMon,
+          tokensRaw: gotTokens,
+          investedUsd: invested,
+          monPriceUsd: monPriceUsd ?? null,
+          time: Date.now(),
+          stopLossPct: null,
+          takeProfitPct: null,
+        };
+        return [entry, ...prev];
+      });
+      setFavorites((prev) => (prev.find((f) => f.address === trader.address) ? prev : [{ address: trader.address, tokenSymbol: trader.tokenSymbol }, ...prev]));
+      refreshBalance(from);
     } catch (err) {
       if (err.code === 4001) return;
-      const msg = (err.message || '').toLowerCase();
-      const isSwap = tokenObj?.symbol && tokenObj.symbol !== 'MON';
-      if (msg.includes('insufficient funds') || msg.includes('insufficient balance') || msg.includes('exceeds balance')) {
-        showToast('no_funds');
-      } else {
-        showToast(isSwap ? 'swap_error' : 'tx_error');
-      }
+      const m = (err.message || '').toLowerCase();
+      if (err.message === 'NO_LIQUIDITY') showToast('no_liq');
+      else if (err.message === 'INSUFFICIENT_FUNDS') showToast('no_funds', `Need ${err.needMon.toFixed(3)} ${ACTIVE.nativeSymbol} · have ${err.haveMon.toFixed(3)}`);
+      else if (err.message === 'BALANCE_UNKNOWN') showToast('no_balance');
+      else if (err.message === 'TX_FAILED' || err.message === 'TX_TIMEOUT') showToast('tx_failed');
+      else if (m.includes('insufficient') || m.includes('exceeds balance')) showToast('no_funds');
+      else showToast('tx_error');
     }
-  }, [walletAddress]);
+  }, [walletAddress, monPriceUsd, doConnect, slippageBps, refreshBalance]);
 
-  const handleSwipeLeft  = useCallback((t) => { removeCard(t); showToast('pass'); }, [removeCard]);
-  const handleSwipeRight = useCallback(async (t) => {
-    removeCard(t); showToast('copy');
-    const tokenObj = allTokens.find(tk => tk.symbol === tradeToken) || { symbol: tradeToken };
-    sendTx(t, tradeAmount, tokenObj);
-    // Snapshot entry price at trade time for PnL tracking
-    const monPriceData = await fetchMONPrice().catch(() => null);
-    const entryPriceUsd = monPriceData?.priceUsd ?? null;
-    setPortfolio(prev => [{ trader: t, action: 'COPY', amount: tradeAmount, token: tokenObj, time: Date.now(), entryPriceUsd }, ...prev]);
-    if (Math.random() < 0.65) {
-      matchTimer.current = setTimeout(() => setMatchTrader(t), 1200);
+  const handleDisconnect = useCallback(() => {
+    disconnectWallet();
+    setWalletAddress(null); setIsConnected(false); setMonBalance(null);
+    saveLS(WALLET_LS, null);
+  }, []);
+
+  const handleClearData = useCallback(() => {
+    setPortfolio([]); setFavorites([]); setWatchlist([]); setLastTxHash(null); setBalanceHistory([]);
+    saveLS(PORTFOLIO_LS, []); saveLS(FAV_KEY, []);
+    saveLS(WATCH_KEY, []); saveLS(LASTTX_LS, null); saveLS(BALHIST_LS, []);
+  }, []);
+
+  const removePosition = useCallback((id) => setPortfolio((prev) => prev.filter((p) => p.id !== id)), []);
+  const setPositionTargets = useCallback((id, targets) =>
+    setPortfolio((prev) => prev.map((p) => (p.id === id ? { ...p, ...targets } : p))), []);
+  const buyMorePosition = useCallback((item, amount) => {
+    if (!item?.token?.address || !(amount > 0)) { showToast('tx_error'); return; }
+    sendCopy({ address: item.trader?.address, tokenAddress: item.token.address, tokenSymbol: item.token.symbol, tokenDecimals: item.token.decimals }, amount);
+  }, [sendCopy]);
+
+  // Sell a position back to native MON (manual "Close" or auto SL/TP). Real on-chain swap.
+  const sellPosition = useCallback(async (p) => {
+    let from = walletAddress;
+    if (!from) { const ok = await doConnect(); if (!ok) throw new Error('NO_WALLET'); from = await getConnectedAccount(); if (!from) throw new Error('NO_WALLET'); }
+    showToast('sell_pending');
+    try {
+      const { hash } = await sellToken(from, p.token.address, { slippageBps, preferredDex: p.dex, amountRaw: p.tokensRaw });
+      setLastTxHash(hash);
+      showToast('sell_sent');
+      setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+      refreshBalance(from);
+    } catch (err) {
+      if (err.code === 4001) { showToast('sell_cancel'); throw err; }
+      const m = err.message;
+      if (m === 'NO_BALANCE') showToast('sell_nobal');
+      else if (m === 'NO_LIQUIDITY') showToast('no_liq');
+      else showToast('sell_fail');
+      throw err;
     }
-  }, [removeCard, sendTx, tradeAmount, tradeToken, allTokens]);
-  const handleSwipeUp = useCallback(async (t) => {
-    removeCard(t); showToast('ape');
-    setShowApe(true);
-    setTimeout(() => setShowApe(false), 1200);
-    const tokenObj = allTokens.find(tk => tk.symbol === tradeToken) || { symbol: tradeToken };
-    sendTx(t, tradeAmount, tokenObj);
-    // Snapshot entry price at trade time for PnL tracking
-    const monPriceData = await fetchMONPrice().catch(() => null);
-    const entryPriceUsd = monPriceData?.priceUsd ?? null;
-    setPortfolio(prev => [{ trader: t, action: 'ALL IN', amount: tradeAmount, token: tokenObj, time: Date.now(), entryPriceUsd }, ...prev]);
-  }, [removeCard, sendTx, tradeAmount, tradeToken, allTokens]);
+  }, [walletAddress, slippageBps, doConnect, refreshBalance]);
+
+  // ── Auto stop-loss / take-profit: watch live token prices, sell when a target is crossed ──
+  useEffect(() => {
+    if (!walletAddress) return;
+    let alive = true;
+    const check = async () => {
+      if (!settingsRef.current.autoSell) return;
+      const open = portfolio.filter((p) => p.token?.address && p.tokensRaw && (p.stopLossPct != null || p.takeProfitPct != null) && !sellingRef.current.has(p.id));
+      if (!open.length) return;
+      const addrs = [...new Set(open.map((p) => p.token.address))];
+      let priceMap = {};
+      try {
+        const pairs = await fetchTokensByAddresses(addrs);
+        pairs.forEach((pr) => { if (pr.baseToken?.address) priceMap[pr.baseToken.address.toLowerCase()] = pr.priceUsd; });
+      } catch { return; }
+      if (!alive) return;
+      for (const p of open) {
+        const price = priceMap[(p.token.address || '').toLowerCase()];
+        if (price == null || !p.investedUsd) continue;
+        const dec = p.token?.decimals ?? 18;
+        let tokens;
+        try { tokens = Number(BigInt(p.tokensRaw)) / 10 ** dec; } catch { continue; }
+        if (!tokens) continue;
+        const pnlPct = ((tokens * price) / p.investedUsd - 1) * 100;
+        const hitSL = p.stopLossPct != null && pnlPct <= p.stopLossPct;
+        const hitTP = p.takeProfitPct != null && pnlPct >= p.takeProfitPct;
+        if (!hitSL && !hitTP) continue;
+        sellingRef.current.add(p.id); // guard against duplicate popups
+        showToast(hitSL ? 'sl_hit' : 'tp_hit', `$${p.token.symbol} ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}% — closing…`);
+        try { await sellPosition(p); }
+        catch { sellingRef.current.delete(p.id); } // let it retry on the next crossing
+      }
+    };
+    const id = setInterval(check, 25000);
+    check();
+    return () => { alive = false; clearInterval(id); };
+  }, [walletAddress, portfolio, sellPosition]);
+
+  const handleSwipeLeft = useCallback((t) => { removeCard(t); showToast('pass'); }, [removeCard]);
+  // No optimistic "sent" toast — sendCopy reports real wallet/chain status only.
+  const handleSwipeRight = useCallback((t) => { removeCard(t); sendCopy(t, tradeAmount); }, [removeCard, sendCopy, tradeAmount]);
+  const handleSwipeUp = useCallback((t) => {
+    removeCard(t); setShowApe(true); setTimeout(() => setShowApe(false), 1200);
+    sendCopy(t, tradeAmount * 5, 'APE');
+  }, [removeCard, sendCopy, tradeAmount]);
 
   const swipe = (dir) => topCardRef.current?.swipe(dir);
-
-  const resetDeck = () => {
-    setCards(mockTraders.map(t => ({ ...t, isLive: false })));
-    setIsLiveData(false);
-    if (isConnected) {
-      setIsLoading(true);
-      fetchTopTraders().then((result) => {
-        if (result.traders) { setCards(result.traders); setIsLiveData(true); }
-      }).finally(() => setIsLoading(false));
-    }
-  };
+  const reloadDeck = useCallback(() => { setIsLoading(true); fetchWhaleDeck(40).then((d) => setCards(d)).finally(() => setIsLoading(false)); }, []);
 
   const t = toast ? TOASTS[toast.type] : null;
 
+  // Deck respects the pro settings + the size-tier filter (Whale / Shark / Big / All).
+  const usdOf = (c) => (c.amountUsd != null ? c.amountUsd : (c.amountMon || 0) * (monPriceUsd || 0));
+  const deckCards = cards.filter((c) =>
+    (!settings.hideStables || !c.isStable) &&
+    (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) &&
+    usdOf(c) >= (TIER_MIN_USD[deckTier] || 0)
+  );
+
   return (
     <div className="app-container">
-
-      {/* ── MATCH MODAL — position:absolute so it stays inside the phone frame ── */}
-      {matchTrader && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflowY: 'auto', padding: '24px 24px 32px', background: 'rgba(10,10,26,0.95)', backdropFilter: 'blur(20px)', borderRadius: 'inherit' }}>
-          <div className="animate-slide-up-modal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', maxWidth: 320, flexShrink: 0 }}>
-            <h2 style={{ fontSize: 40, fontWeight: 900, color: '#f72585', margin: 0, textShadow: '0 0 32px rgba(247,37,133,0.6)', fontStyle: 'italic', letterSpacing: '-0.05em' }}>
-              IT'S A MATCH!
-            </h2>
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', marginTop: 10, marginBottom: 0 }}>
-              You and <span style={{ color: '#fff', fontWeight: 800 }}>{matchTrader.address.slice(0,6)}…{matchTrader.address.slice(-4)}</span> liked each other.
-            </p>
-
-            <div style={{ display: 'flex', gap: 16, margin: '20px 0' }}>
-              <div style={{ width: 90, height: 90, borderRadius: '50%', border: '4px solid #f72585', overflow: 'hidden', boxShadow: '0 0 30px rgba(247,37,133,0.3)', background: 'linear-gradient(135deg, #f72585, #ff6b35)' }}>
-                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🦊</div>
-              </div>
-              <div style={{ width: 90, height: 90, borderRadius: '50%', border: '4px solid #00f5a0', overflow: 'hidden', boxShadow: '0 0 30px rgba(0,245,160,0.3)' }}>
-                 <BlockieAvatar addr={matchTrader.address} size={90} />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
-              <button
-                onClick={() => {
-                  setMatches(prev => {
-                     if (!prev.find(m => m.address === matchTrader.address)) return [matchTrader, ...prev];
-                     return prev;
-                  });
-                  setActiveTab('inbox');
-                  setActiveChat(matchTrader);
-                  setMatchTrader(null);
-                }}
-                style={{ padding: '16px', borderRadius: 24, background: 'linear-gradient(135deg, #f72585, #7b61ff)', border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(247,37,133,0.4)' }}
-              >
-                Send a Message
-              </button>
-              <button
-                onClick={() => {
-                  setMatches(prev => {
-                     if (!prev.find(m => m.address === matchTrader.address)) return [matchTrader, ...prev];
-                     return prev;
-                  });
-                  setMatchTrader(null);
-                }}
-                style={{ padding: '16px', borderRadius: 24, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}
-              >
-                Keep Swiping
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── APE BURST ── */}
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="animate-rocket flex flex-col items-center gap-3">
-            <span className="text-8xl">🚀</span>
-            <span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--warn)' }}>All In!</span>
-          </div>
+          <div className="animate-rocket flex flex-col items-center gap-3"><Zap size={72} strokeWidth={1.5} style={{ color: 'var(--color-tag-violet)' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--color-tag-violet)' }}>All In</span></div>
         </div>
       )}
 
-      {/* ── TOAST ── */}
       {t && (
-        <div
-          key={toast.key}
-          className="animate-slide-up pointer-events-none fixed top-16 left-1/2 z-[70] -translate-x-1/2 flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-bold shadow-lg"
-          style={{
-            background: t.color,
-            border: `1px solid ${t.border}`,
-            color: '#fff',
-            backdropFilter: 'blur(16px)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span>{t.icon}</span>
-          <span>{t.msg}</span>
+        <div key={toast.key} className="animate-slide-up pointer-events-none fixed top-16 left-1/2 z-[70] -translate-x-1/2 flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-bold shadow-lg" style={{ background: t.color, border: '1px solid var(--color-silver-lining)', color: '#fff', backdropFilter: 'blur(16px)', whiteSpace: 'nowrap' }}>
+          {(() => { const I = TOAST_ICON[t.kind] || Info; return <I size={15} strokeWidth={2.5} />; })()}<span>{toast.msg || t.msg}</span>
         </div>
       )}
 
-      {/* ── STATUS BAR ── */}
       <div className="status-bar">
         <span>{clock}</span>
         <div className="dynamic-island" />
         <div className="flex items-center gap-1.5">
           <SignalDots />
-          <svg width="14" height="12" viewBox="0 0 16 12" fill="currentColor">
-            <path d="M12 2C13.1 2 14 2.9 14 4V8C14 9.1 13.1 10 12 10H4C2.9 10 2 9.1 2 8V4C2 2.9 2.9 2 4 2H12ZM12 0H4C1.8 0 0 1.8 0 4V8C0 10.2 1.8 12 4 12H12C14.2 12 16 10.2 16 8V4C16 1.8 14.2 0 12 0ZM18 4V8C18.6 8 19 7.6 19 7V5C19 4.4 18.6 4 18 4Z" />
-            <rect x="2" y="2" width="10" height="8" rx="1" fill="currentColor"/>
-          </svg>
+          <svg width="14" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="2" y="2" width="10" height="8" rx="1" fill="currentColor"/></svg>
         </div>
       </div>
 
-      {/* ── MOBILE HEADER ── */}
-      <header className="mobile-header" style={activeChat ? { display: 'none' } : {}}>
+      <header className="mobile-header">
         <div>
           <div className="mobile-header-subtitle">DEGENSLIDE</div>
-          <div className="mobile-header-title">
-            {activeTab === 'deck' ? '' : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
-          </div>
+          <div className="mobile-header-title">{activeTab === 'deck' ? `Whales · ${ACTIVE.label}` : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}</div>
         </div>
-        <button
-          onClick={async () => {
-            if (isConnected) return;
-            if (!isMetaMaskAvailable()) {
-              showToast('no_wallet');
-              window.open('https://metamask.io/download/', '_blank');
-              return;
-            }
-            setIsConnecting(true);
-            try {
-              const addr = await connectWallet();
-              setWalletAddress(addr);
-              setIsConnected(true);
-              saveLS('monad_wallet', addr);
-              showToast('connect');
-            } catch (err) {
-              if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
-            } finally {
-              setIsConnecting(false);
-            }
-          }}
-          className={`connect-btn ${isConnected ? 'connected' : ''}`}
-        >
-          {isConnected ? (
-            <>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00f5a0', boxShadow: '0 0 8px #00f5a0' }} />
-              {walletAddress.slice(0, 5)}…{walletAddress.slice(-4)}
-            </>
-          ) : (
-            isConnecting ? '⏳ Connecting…' : '🦊 Connect'
-          )}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Network switcher — persists choice, reloads onto the selected chain's indexer */}
+          <div style={{ display: 'flex', background: 'var(--color-frost-shadow)', borderRadius: 100, padding: 3, border: '1px solid var(--color-silver-lining)' }}>
+            {Object.values(CHAINS).map((c) => {
+              const on = ACTIVE.id === c.id;
+              return (
+                <button key={c.id} type="button" onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}
+                  style={{ padding: '5px 11px', borderRadius: 100, border: 'none', cursor: on ? 'default' : 'pointer', fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', background: on ? 'var(--color-tidewater-navy)' : 'transparent', color: on ? '#fff' : 'var(--color-pebble)' }}>
+                  {c.nativeSymbol}
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => { if (!isConnected) doConnect(); }} className={`connect-btn ${isConnected ? 'connected' : ''}`} title={isConnected ? walletAddress : `Connect ${WALLET_NAME}`}>
+            {isConnected ? (<><div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00f5a0', boxShadow: '0 0 8px #00f5a0' }} />{walletAddress.slice(0, 5)}…{walletAddress.slice(-4)}</>) : (isConnecting ? 'Connecting…' : 'Connect')}
+          </button>
+        </div>
       </header>
 
-      {/* ── MAIN CONTENT ── */}
       <main className="main-content">
         {activeTab === 'leaderboard' ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: '0 -16px' }}>
-            {/* Mode toggle */}
             <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', flexShrink: 0 }}>
-              {[{ id: 'rankings', label: '🏆 Rankings' }, { id: 'watchlist', label: '🐋 Watchlist' }].map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setLbMode(m.id)}
-                  style={{
-                    flex: 1, padding: '8px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
-                    fontSize: 11, fontWeight: 800, transition: 'all 0.18s',
-                    background: lbMode === m.id ? 'linear-gradient(135deg,#7b61ff,#4cc9f0)' : 'rgba(255,255,255,0.06)',
-                    color: lbMode === m.id ? '#fff' : 'rgba(255,255,255,0.4)',
-                    boxShadow: lbMode === m.id ? '0 4px 16px rgba(123,97,255,0.3)' : 'none',
-                  }}
-                >
+              {[{ id: 'rankings', label: 'Whales' }, { id: 'curated', label: 'Smart Money' }, { id: 'watchlist', label: 'Watchlist' }].map((m) => (
+                <button key={m.id} type="button" onClick={() => setLbMode(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: lbMode === m.id ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', color: lbMode === m.id ? 'var(--color-paper-white)' : 'var(--color-midnight-ink)', boxShadow: lbMode === m.id ? 'none' : 'var(--shadow-md)' }}>
                   {m.label}
-                  {m.id === 'watchlist' && watchlist.length > 0 && (
-                    <span style={{ marginLeft: 5, background: '#f72585', borderRadius: 8, padding: '1px 5px', fontSize: 9 }}>
-                      {watchlist.length}
-                    </span>
-                  )}
+                  {m.id === 'watchlist' && watchlistView.length > 0 && (<span style={{ marginLeft: 5, background: 'var(--color-aurora-magenta)', borderRadius: 8, padding: '1px 5px', fontSize: 9, color: 'var(--color-paper-white)' }}>{watchlistView.length}</span>)}
+                  {m.id === 'curated' && curatedWhalesList.length > 0 && (<span style={{ marginLeft: 5, background: 'var(--color-tidewater-navy)', borderRadius: 8, padding: '1px 5px', fontSize: 9, color: 'var(--color-paper-white)' }}>{curatedWhalesList.length}</span>)}
                 </button>
               ))}
             </div>
             {lbMode === 'rankings' ? (
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Leaderboard traders={cards.length > 0 ? cards : mockTraders} />
-              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}><Leaderboard traders={leaderboard} monPriceUsd={monPriceUsd} onWatch={addWatchWallet} watchlist={watchlist} /></div>
+            ) : lbMode === 'curated' ? (
+              <CuratedWhales whales={curatedWhalesList} favorites={favorites} onToggleFavorite={toggleFavorite} onSaveAll={saveAllCurated} />
             ) : (
-              <WatchlistPanel wallets={watchlist} onAdd={addWatchWallet} onRemove={removeWatchWallet} />
+              <WatchlistPanel wallets={watchlistView} onAdd={addWatchWallet} onRemove={removeFromWatchlist} />
             )}
-          </div>
-        ) : !isConnected ? (
-          <div className="flex flex-col items-center justify-center h-full text-center pb-20" style={{ gap: 16 }}>
-            <div style={{ fontSize: 64, filter: 'drop-shadow(0 0 24px rgba(247,37,133,0.5))' }}>🦊</div>
-            <h3 style={{ fontSize: 20, fontWeight: 900, color: '#ffffff', margin: 0 }}>Connect to Swipe</h3>
-            <p style={{ color: 'rgba(255,255,255,0.45)', margin: 0, maxWidth: 240, fontSize: 13, lineHeight: 1.5 }}>Connect your MetaMask wallet to view live traders and start copy-trading.</p>
           </div>
         ) : activeTab === 'deck' ? (
           <div className="flex flex-col h-full w-full relative">
+            <div style={{ display: 'flex', gap: 6, padding: '2px 2px 12px', flexShrink: 0 }}>
+              {DECK_TIERS.map((tier) => {
+                const active = deckTier === tier.id;
+                const cnt = cards.filter((c) => (!settings.hideStables || !c.isStable) && (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) && usdOf(c) >= TIER_MIN_USD[tier.id]).length;
+                return (
+                  <button key={tier.id} type="button" onClick={() => setDeckTier(tier.id)}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', color: active ? '#fff' : 'var(--color-midnight-ink)', boxShadow: active ? 'none' : 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    {tier.id !== 'all' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? '#fff' : tier.color }} />}
+                    {tier.label}
+                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.65 }}>{cnt}</span>
+                  </button>
+                );
+              })}
+            </div>
             {isLoading ? (
               <div className="flex flex-col items-center justify-center h-full pb-20" style={{ gap: 16 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid transparent', borderTopColor: '#f72585', borderRightColor: '#7b61ff', animation: 'spin 0.8s linear infinite', boxShadow: '0 0 20px rgba(247,37,133,0.4)' }} />
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', margin: 0 }}>Loading traders…</p>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid transparent', borderTopColor: 'var(--color-tidewater-navy)', borderRightColor: 'var(--color-aurora-magenta)', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-pebble)', margin: 0 }}>Scanning {ACTIVE.label} for whales…</p>
               </div>
-            ) : cards.length > 0 ? (
+            ) : deckCards.length > 0 ? (
               <>
-                {/* ── Trade controls: token + miktar seçimi ── */}
-                <div style={{ flexShrink: 0, paddingBottom: 6 }}>
-                  <TokenSelector selected={tradeToken} onChange={setTradeToken} tokens={allTokens} />
-                  <TierSelector amount={tradeAmount} onChange={setTradeAmount} />
-                </div>
-
-                {/* ── Kart destesi ── */}
+                <TradeSettingsPopover open={showTradeSettings} onClose={() => setShowTradeSettings(false)} amount={tradeAmount} onChangeAmount={setTradeAmount} slippageBps={slippageBps} onChangeSlippage={setSlippageBps} monPriceUsd={monPriceUsd} monBalance={monBalance} />
                 <div className="card-deck-area">
-                  {[...cards.slice(0, 4)].reverse().map((trader, i, arr) => {
+                  {[...deckCards.slice(0, 4)].reverse().map((trader, i, arr) => {
                     const stackIndex = arr.length - 1 - i;
                     return (
-                      <SwipeCard
-                        key={trader.id}
-                        ref={stackIndex === 0 ? topCardRef : null}
-                        trader={trader}
-                        stackIndex={stackIndex}
-                        isTopCard={stackIndex === 0}
-                        onSwipeLeft={handleSwipeLeft}
-                        onSwipeRight={handleSwipeRight}
-                        onSwipeUp={handleSwipeUp}
-                        isFavorite={favorites.some(f => f.address === trader.address)}
-                        onToggleFavorite={toggleFavorite}
-                      />
+                      <SwipeCard key={trader.id} ref={stackIndex === 0 ? topCardRef : null} trader={trader} stackIndex={stackIndex} isTopCard={stackIndex === 0}
+                        onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onSwipeUp={handleSwipeUp} monPriceUsd={monPriceUsd}
+                        isFavorite={favorites.some((f) => f.address === trader.address)} onToggleFavorite={toggleFavorite}
+                        isCurated={curatedSet.has((trader.address || '').toLowerCase())} />
                     );
                   })}
                 </div>
-
-                {/* ── Aksiyon butonları ── */}
                 <div className="action-row">
-                  <button type="button" className="btn-pass" onClick={() => swipe('left')} title="Pass">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                    </svg>
+                  <button type="button" onClick={() => setShowTradeSettings(true)} title={`${tradeAmount} ${ACTIVE.nativeSymbol} / copy`}
+                    style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+                    <Settings size={18} color="var(--color-pebble)" />
+                    <span style={{ position: 'absolute', top: -2, right: -2, fontSize: 8, fontWeight: 700, background: 'var(--color-tidewater-navy)', color: '#fff', borderRadius: 8, padding: '1px 5px', lineHeight: '14px' }}>{tradeAmount}</span>
                   </button>
-                  <button type="button" className="btn-ape" onClick={() => swipe('up')}>ALL IN 💸</button>
-                  <button type="button" className="btn-copy" onClick={() => swipe('right')} title="Copy Trade">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
+                  <button type="button" className="btn-pass" onClick={() => swipe('left')} title="Skip"><X size={24} /></button>
+                  <button type="button" className="btn-ape" onClick={() => swipe('up')}><Zap size={14} style={{ marginRight: 6 }} /> ALL IN</button>
+                  <button type="button" className="btn-copy" onClick={() => swipe('right')} title="Copy Trade"><Copy size={22} /></button>
                 </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center pb-20" style={{ gap: 12 }}>
-                <span style={{ fontSize: 48, filter: 'drop-shadow(0 0 20px rgba(247,37,133,0.5))' }}>🃏</span>
-                <h3 style={{ fontWeight: 900, color: '#ffffff', fontSize: 18, margin: 0 }}>Deck Empty</h3>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>You've seen all live traders.</p>
-                <button onClick={resetDeck} style={{
-                  marginTop: 8, padding: '10px 28px',
-                  background: 'linear-gradient(135deg, #f72585, #7b61ff)',
-                  border: 'none', borderRadius: 50,
-                  fontSize: 12, fontWeight: 800, color: '#fff',
-                  cursor: 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  boxShadow: '0 8px 24px rgba(247,37,133,0.4)',
-                }}>
-                  Reload Deck
-                </button>
+                {indexerUp ? <Layers size={40} strokeWidth={1.5} color="var(--color-pebble)" /> : <WifiOff size={40} strokeWidth={1.5} color="var(--color-pebble)" />}
+                <h3 style={{ fontWeight: 600, color: 'var(--color-midnight-ink)', fontSize: 19, margin: 0 }}>{indexerUp ? 'Waiting for whales…' : 'Whale feed offline'}</h3>
+                <p style={{ fontSize: 14, color: 'var(--color-pebble)', margin: 0, maxWidth: 240 }}>{indexerUp ? `New large trades on ${ACTIVE.label} will appear here live.` : `Start the indexer (backend/${ACTIVE.kind === 'svm' ? 'solListener.js' : 'listener.js'}) to stream live whale trades.`}</p>
+                <button onClick={reloadDeck} style={{ marginTop: 8, padding: '10px 28px', background: 'var(--color-tidewater-navy)', border: 'none', borderRadius: 100, fontSize: 14, fontWeight: 600, color: 'var(--color-paper-white)', cursor: 'pointer' }}>Reload</button>
               </div>
-            )}
-          </div>
-        ) : activeTab === 'inbox' ? (
-          <div className="h-full overflow-hidden -mx-4" style={activeChat ? { marginBottom: -16 } : {}}>
-            {activeChat ? (
-              <Chat
-                trader={activeChat}
-                initialMessages={messages[activeChat.address] || []}
-                onBack={() => setActiveChat(null)}
-                onUpdateMessages={(addr, msgs) => setMessages(prev => ({ ...prev, [addr]: msgs }))}
-              />
-            ) : (
-              <Inbox matches={matches} lastMessages={messages} onOpenChat={setActiveChat} />
             )}
           </div>
         ) : activeTab === 'portfolio' ? (
-          <div className="h-full px-1">
-            <Portfolio portfolio={portfolio} />
-          </div>
+          <div className="h-full px-1"><Portfolio portfolio={portfolio} monPriceUsd={monPriceUsd} tradeAmount={tradeAmount} autoSell={settings.autoSell} onRemove={removePosition} onBuyMore={buyMorePosition} onSetTargets={setPositionTargets} onSell={sellPosition} /></div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16, paddingBottom: 24 }}>
-            <div style={{ padding: '14px 16px', background: 'rgba(123,97,255,0.1)', border: '1px solid rgba(123,97,255,0.25)', borderRadius: 16 }}>
-              <p style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#7b61ff', margin: 0 }}>Connected Wallet</p>
-              <p style={{ marginTop: 6, fontFamily: 'monospace', fontWeight: 700, color: '#ffffff', wordBreak: 'break-all', fontSize: 12, margin: '6px 0 0' }}>{walletAddress}</p>
-            </div>
-            
-            {/* FAVORITES LIST */}
-            <div style={{ padding: '14px 16px', background: 'rgba(247,37,133,0.05)', border: '1px solid rgba(247,37,133,0.15)', borderRadius: 16 }}>
-              <p style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#f72585', margin: 0 }}>Favorited Traders</p>
-              {favorites.length === 0 ? (
-                <p style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: '6px 0 0' }}>No favorites yet. Swipe or use the heart icon to save traders.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-                  {favorites.map(fav => (
-                    <div
-                      key={fav.address}
-                      onClick={() => window.open(EXPLORER_ADDR_URL(fav.address), '_blank')}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                        background: 'linear-gradient(135deg, #f72585, #7b61ff)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 900, color: '#fff', fontFamily: 'monospace'
-                      }}>
-                        {fav.address.slice(2, 4).toUpperCase()}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
-                          {fav.address.slice(0, 6)}…{fav.address.slice(-4)}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {fav.actionText || 'Active on Monad'}
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(fav);
-                        }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 16 }}
-                      >
-                        ❤️
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {lastTxHash ? (
-              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16 }}>
-                <p style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Last Transaction</p>
-                <p style={{ marginTop: 6, fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.7)', wordBreak: 'break-all', margin: '6px 0 0' }}>{lastTxHash}</p>
-                <a href={`${EXPLORER_URL}/tx/${lastTxHash}`} target="_blank" rel="noreferrer" style={{ marginTop: 10, display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#7b61ff', textDecoration: 'none' }}>
-                  View on SocialScan ↗
-                </a>
-              </div>
-            ) : (
-              <div style={{ padding: '32px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, textAlign: 'center' }}>
-                <span style={{ fontSize: 32, display: 'block', marginBottom: 8, opacity: 0.4 }}>⛓</span>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', margin: 0 }}>No Transactions</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4, margin: '4px 0 0' }}>Swipe right on a trader to send a transaction.</p>
-              </div>
-            )}
-          </div>
+          <ProfilePage
+            walletAddress={walletAddress} monBalance={monBalance} monPriceUsd={monPriceUsd}
+            portfolio={portfolio} watchlistCount={watchlistView.length} balanceHistory={balanceHistory}
+            settings={settings} updateSetting={updateSetting}
+            lastTxHash={lastTxHash} indexerUp={indexerUp}
+            onDisconnect={handleDisconnect} onClearData={handleClearData}
+          />
         )}
       </main>
 
-      {/* ── BOTTOM NAV ── */}
-      <nav className="bottom-nav" style={activeChat ? { display: 'none' } : {}}>
+      <nav className="bottom-nav">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-              style={isActive ? {
-                background: 'rgba(255,255,255,0.06)',
-              } : {}}
-            >
-              <div className="nav-icon">
-                <tab.Icon active={isActive} />
-              </div>
+            <button key={tab.id} type="button" className={`nav-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)} style={isActive ? { background: 'rgba(255,255,255,0.06)' } : {}}>
+              <div className="nav-icon"><tab.Icon active={isActive} /></div>
               <span>{tab.label}</span>
               {isActive && <div className="nav-dot" />}
             </button>
           );
         })}
       </nav>
-
     </div>
   );
 }

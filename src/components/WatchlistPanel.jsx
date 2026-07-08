@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Repeat, ArrowUpRight, Check, Landmark, Gift, Zap, Coins, Sprout, X, Waves, RefreshCw, ExternalLink } from 'lucide-react';
 import { fetchWalletInfo, fetchWalletTxns } from '../services/monadApi';
+import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, ACTIVE } from '../config/chain.js';
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -18,16 +20,17 @@ function weiToMon(wei) {
   return null;
 }
 
-function methodIcon(method, txTypes) {
+function MethodIcon({ method, txTypes }) {
   const m = (method || '').toLowerCase();
-  if (m.includes('swap')) return '🔄';
-  if (m === 'transfer' || (txTypes || []).includes('token_transfer')) return '📤';
-  if (m.includes('mint')) return '🌿';
-  if (m.includes('approve')) return '✅';
-  if (m.includes('stake') || m.includes('deposit')) return '🏦';
-  if (m.includes('claim') || m.includes('harvest')) return '🌾';
-  if ((txTypes || []).includes('coin_transfer') || m === '') return '💸';
-  return '⚡';
+  const p = { size: 14, color: 'var(--color-pebble)' };
+  if (m.includes('swap')) return <Repeat {...p} />;
+  if (m === 'transfer' || (txTypes || []).includes('token_transfer')) return <ArrowUpRight {...p} />;
+  if (m.includes('mint')) return <Sprout {...p} />;
+  if (m.includes('approve')) return <Check {...p} />;
+  if (m.includes('stake') || m.includes('deposit')) return <Landmark {...p} />;
+  if (m.includes('claim') || m.includes('harvest')) return <Gift {...p} />;
+  if ((txTypes || []).includes('coin_transfer') || m === '') return <Coins {...p} />;
+  return <Zap {...p} />;
 }
 
 function TxRow({ tx }) {
@@ -38,42 +41,43 @@ function TxRow({ tx }) {
 
   return (
     <a
-      href={`https://testnet.monadexplorer.com/tx/${tx.hash}`}
+      href={EXPLORER_TX_URL(tx.hash)}
       target="_blank"
       rel="noreferrer"
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '8px 0', textDecoration: 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--color-silver-lining)',
       }}
     >
       <div style={{
         width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-        background: isSuccess ? 'rgba(123,97,255,0.15)' : 'rgba(255,71,87,0.1)',
+        background: 'var(--color-frost-shadow)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 14,
       }}>
-        {methodIcon(method, tx.tx_types)}
+        <MethodIcon method={method} txTypes={tx.tx_types} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-midnight-ink)', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {method}
         </div>
-        {mon && <div style={{ fontSize: 10, color: '#7b61ff', fontWeight: 700 }}>{mon}</div>}
+        {mon && <div style={{ fontSize: 10, color: 'var(--color-aurora-magenta)', fontWeight: 600 }}>{mon}</div>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{ago}</div>
-        <div style={{ fontSize: 9, color: isSuccess ? '#00f5a0' : '#f72585' }}>{isSuccess ? '✓' : '✗'}</div>
+        <div style={{ fontSize: 9, color: 'var(--color-pebble)' }}>{ago}</div>
+        <div style={{ display: 'flex', color: isSuccess ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)' }}>{isSuccess ? <Check size={11} /> : <X size={11} />}</div>
       </div>
     </a>
   );
 }
 
-function WalletCard({ wallet, onRemove }) {
+function WalletCard({ wallet, onRemove, defaultExpanded = false }) {
   const [txns, setTxns] = useState([]);
   const [info, setInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [loadedOnce, setLoadedOnce] = useState(false);
   const mountedRef = useRef(true);
 
   const refresh = useCallback(async () => {
@@ -86,24 +90,27 @@ function WalletCard({ wallet, onRemove }) {
     if (infoData) setInfo(infoData);
     setTxns(txData);
     setLoading(false);
+    setLoadedOnce(true);
   }, [wallet]);
 
+  // Lazy: only fetch/poll while expanded — keeps a 100-whale watchlist cheap.
   useEffect(() => {
     mountedRef.current = true;
+    if (!expanded) return () => { mountedRef.current = false; };
     refresh();
     const id = setInterval(refresh, 30000);
     return () => { mountedRef.current = false; clearInterval(id); };
-  }, [refresh]);
+  }, [expanded, refresh]);
 
   const balanceMon = info?.coin_balance
     ? parseFloat(info.coin_balance) / 1e18
     : null;
 
   const tier = balanceMon !== null
-    ? balanceMon > 100000 ? { icon: '🐋', label: 'WHALE', color: '#7b61ff' }
-    : balanceMon > 10000 ? { icon: '🧠', label: 'SMART $', color: '#4cc9f0' }
-    : balanceMon > 1000  ? { icon: '⚡', label: 'PRO', color: '#00f5a0' }
-    : { icon: '🎰', label: 'DEGEN', color: '#ff9f1c' }
+    ? balanceMon > 100000 ? { label: 'WHALE', color: 'var(--color-tidewater-navy)' }
+    : balanceMon > 10000 ? { label: 'SMART', color: 'var(--color-aurora-green)' }
+    : balanceMon > 1000  ? { label: 'PRO', color: 'var(--color-deep-iris)' }
+    : { label: 'DEGEN', color: 'var(--color-aurora-magenta)' }
     : null;
 
   const txCount = info?.transactions_count ?? null;
@@ -113,8 +120,9 @@ function WalletCard({ wallet, onRemove }) {
 
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--color-paper-white)',
+      border: '1px solid var(--color-silver-lining)',
+      boxShadow: 'var(--shadow-md)',
       borderRadius: 16,
       overflow: 'hidden',
       marginBottom: 10,
@@ -126,35 +134,36 @@ function WalletCard({ wallet, onRemove }) {
       >
         <div style={{
           width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-          background: 'linear-gradient(135deg, #7b61ff, #4cc9f0)',
+          background: 'var(--color-frost-shadow)',
+          border: '1px solid var(--color-silver-lining)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 900, color: '#fff', fontFamily: 'monospace',
+          fontSize: 13, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: 'monospace',
         }}>
           {wallet.slice(2, 4).toUpperCase()}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: 'monospace' }}>
               {wallet.slice(0, 6)}…{wallet.slice(-4)}
             </span>
             {tier && (
-              <span style={{ fontSize: 8, fontWeight: 800, color: tier.color, background: `${tier.color}18`, border: `1px solid ${tier.color}30`, borderRadius: 6, padding: '1px 5px', letterSpacing: '0.08em' }}>
-                {tier.icon} {tier.label}
+              <span style={{ fontSize: 8, fontWeight: 600, color: tier.color, background: 'transparent', border: `1px solid ${tier.color}`, borderRadius: 6, padding: '1px 5px', letterSpacing: '0.08em' }}>
+                {tier.label}
               </span>
             )}
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 3, alignItems: 'center' }}>
             {balanceMon !== null && (
-              <span style={{ fontSize: 10, color: '#7b61ff', fontWeight: 700 }}>
+              <span style={{ fontSize: 10, color: 'var(--color-aurora-magenta)', fontWeight: 600 }}>
                 {balanceMon >= 1000 ? (balanceMon / 1000).toFixed(1) + 'K' : balanceMon.toFixed(2)} MON
               </span>
             )}
             {txCount !== null && (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{txCount} txns</span>
+              <span style={{ fontSize: 10, color: 'var(--color-pebble)', fontWeight: 600 }}>{txCount} txns</span>
             )}
             {recentActivity && (
-              <span style={{ fontSize: 10, color: 'rgba(0,245,160,0.7)' }}>● {recentActivity}</span>
+              <span style={{ fontSize: 10, color: 'var(--color-aurora-green)', fontWeight: 600 }}>● {recentActivity}</span>
             )}
           </div>
         </div>
@@ -162,31 +171,31 @@ function WalletCard({ wallet, onRemove }) {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <button
             onClick={e => { e.stopPropagation(); refresh(); }}
-            title="Yenile"
+            title="Refresh"
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 6, fontSize: 15,
-              color: loading ? '#7b61ff' : 'rgba(255,255,255,0.3)',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex',
+              color: loading ? 'var(--color-tidewater-navy)' : 'var(--color-pebble)',
               animation: loading ? 'spin 1s linear infinite' : 'none',
             }}
           >
-            ↻
+            <RefreshCw size={14} />
           </button>
           <a
-            href={`https://testnet.monadexplorer.com/address/${wallet}`}
+            href={EXPLORER_ADDR_URL(wallet)}
             target="_blank"
             rel="noreferrer"
             onClick={e => e.stopPropagation()}
-            title="Explorer'da aç"
-            style={{ color: 'rgba(255,255,255,0.3)', fontSize: 15, padding: 6, textDecoration: 'none', lineHeight: 1 }}
+            title="Open in explorer"
+            style={{ color: 'var(--color-pebble)', padding: 6, textDecoration: 'none', display: 'flex' }}
           >
-            ↗
+            <ExternalLink size={14} />
           </a>
           <button
             onClick={e => { e.stopPropagation(); onRemove(wallet); }}
-            title="Kaldır"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, fontSize: 13, color: 'rgba(255,71,87,0.5)' }}
+            title="Remove"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--color-aurora-magenta)' }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       </div>
@@ -195,12 +204,12 @@ function WalletCard({ wallet, onRemove }) {
       {expanded && (
         <div style={{ padding: '0 14px 10px' }}>
           {loading && txns.length === 0 ? (
-            <div style={{ padding: '14px 0', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>
-              Yükleniyor…
+            <div style={{ padding: '14px 0', textAlign: 'center', color: 'var(--color-pebble)', fontSize: 11, fontWeight: 600 }}>
+              Loading…
             </div>
           ) : txns.length === 0 ? (
-            <div style={{ padding: '14px 0', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>
-              İşlem bulunamadı
+            <div style={{ padding: '14px 0', textAlign: 'center', color: 'var(--color-pebble)', fontSize: 11, fontWeight: 600 }}>
+              No transactions found
             </div>
           ) : (
             txns.slice(0, 6).map(tx => <TxRow key={tx.hash} tx={tx} />)
@@ -216,13 +225,16 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove }) {
   const [error, setError] = useState('');
 
   const handleAdd = () => {
-    const addr = input.trim().toLowerCase();
-    if (!/^0x[0-9a-f]{40}$/i.test(addr)) {
-      setError('Geçersiz adres — 0x ile başlayan 42 karakterli adres girin.');
+    // EVM chains use 0x…40-hex; Solana uses base58 (32–44 chars)
+    const isEvm = ACTIVE.kind === 'evm';
+    const addr = isEvm ? input.trim().toLowerCase() : input.trim();
+    const valid = isEvm ? /^0x[0-9a-f]{40}$/i.test(addr) : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
+    if (!valid) {
+      setError(isEvm ? 'Invalid address — enter a 42-character 0x address.' : 'Invalid address — enter a Solana base58 address.');
       return;
     }
     if (wallets.includes(addr)) {
-      setError('Bu adres zaten listende.');
+      setError('This address is already on your list.');
       return;
     }
     setError('');
@@ -239,28 +251,30 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove }) {
             value={input}
             onChange={e => { setInput(e.target.value); setError(''); }}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            placeholder="0x… balina adresi ekle"
+            placeholder="0x… add whale address"
             style={{
               flex: 1, padding: '10px 13px', borderRadius: 12, minWidth: 0,
-              border: `1px solid ${error ? 'rgba(255,71,87,0.45)' : 'rgba(255,255,255,0.1)'}`,
-              background: 'rgba(255,255,255,0.05)',
-              color: '#fff', fontSize: 11, fontFamily: 'monospace',
+              border: `1px solid ${error ? 'var(--color-aurora-magenta)' : 'var(--color-silver-lining)'}`,
+              background: 'var(--color-paper-white)',
+              color: 'var(--color-midnight-ink)', fontSize: 11, fontFamily: 'monospace', fontWeight: 600,
               outline: 'none',
+              boxShadow: 'var(--shadow-md)',
             }}
           />
           <button
             onClick={handleAdd}
             style={{
               padding: '10px 14px', borderRadius: 12, border: 'none', flexShrink: 0,
-              background: 'linear-gradient(135deg, #7b61ff, #4cc9f0)',
-              color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer',
+              background: 'var(--color-tidewater-navy)',
+              color: 'var(--color-paper-white)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              boxShadow: 'var(--shadow-md)',
             }}
           >
-            + Ekle
+            Add
           </button>
         </div>
         {error && (
-          <p style={{ fontSize: 10, color: 'rgba(255,71,87,0.8)', margin: '6px 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: 10, color: 'var(--color-aurora-magenta)', margin: '6px 0 0', lineHeight: 1.4, fontWeight: 600 }}>
             {error}
           </p>
         )}
@@ -270,11 +284,10 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
         {wallets.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, paddingTop: 36, textAlign: 'center' }}>
-            <span style={{ fontSize: 44 }}>🐋</span>
-            <p style={{ fontSize: 15, fontWeight: 900, color: '#fff', margin: 0 }}>Balina Takibi</p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0, maxWidth: 230, lineHeight: 1.6 }}>
-              Takip etmek istediğin cüzdan adresini yukarıya yapıştır.
-              Son işlemleri otomatik yenilenir.
+            <Waves size={40} strokeWidth={1.5} color="var(--color-pebble)" />
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-midnight-ink)', margin: 0, fontFamily: '"averta standard", sans-serif' }}>Track whales</p>
+            <p style={{ fontSize: 12, color: 'var(--color-pebble)', margin: 0, maxWidth: 230, lineHeight: 1.6, fontWeight: 600 }}>
+              Paste a wallet address above to follow it. Its recent trades refresh automatically.
             </p>
           </div>
         ) : (

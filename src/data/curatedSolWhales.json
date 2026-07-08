@@ -1,0 +1,160 @@
+{
+  "source": "Solana mainnet — on-chain discovery + behavioural bot elimination (signer balance-delta parsing, one-quote pools)",
+  "scannedAt": "2026-07-03T20:56:56.674Z",
+  "txsScanned": 1500,
+  "minUsdPerSwap": 300,
+  "minLiquidityUsd": 150000,
+  "botsRemoved": {
+    "sameSlotArb": 0,
+    "churnMM": 1
+  },
+  "count": 6,
+  "whales": [
+    {
+      "address": "CreQJ2t94QK5dsxUZGXfPJ8Nx7wA9LHr5chxjSMkbNft",
+      "volumeUsd": 38098.13,
+      "volumeMon": 460.9,
+      "solBalance": 498.45,
+      "trades": 34,
+      "buys": 13,
+      "sells": 21,
+      "directionality": 0.24,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "TRUMP",
+        "JUP",
+        "BOME",
+        "GOAT",
+        "POPCAT",
+        "MOODENG"
+      ],
+      "lastToken": "BOME",
+      "realizedUsd": -40.24,
+      "realizedMon": -0.49,
+      "closedTokens": 3,
+      "winTokens": 0,
+      "winRate": 0
+    },
+    {
+      "address": "AnFan663XTan3jvNM4bUWBVW2eNw4jmMrHSUPaiyCea3",
+      "volumeUsd": 29683.26,
+      "volumeMon": 359.1,
+      "solBalance": 2.99,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "mSOL"
+      ],
+      "lastToken": "mSOL",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "FkaLnX17cXZGyeu3kZGdHCNdFMJJzBrPPYVvd18B3MZp",
+      "volumeUsd": 9157.27,
+      "volumeMon": 110.78,
+      "solBalance": 181.24,
+      "trades": 6,
+      "buys": 3,
+      "sells": 3,
+      "directionality": 0,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "ORCA",
+        "TRUMP"
+      ],
+      "lastToken": "ORCA",
+      "realizedUsd": -17.39,
+      "realizedMon": -0.21,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
+    },
+    {
+      "address": "FrhLfj81LRpMR3EwSSCGPzHmxsnoq8h628ne68vK5oMN",
+      "volumeUsd": 7756.76,
+      "volumeMon": 93.84,
+      "solBalance": 121.49,
+      "trades": 7,
+      "buys": 2,
+      "sells": 5,
+      "directionality": 0.43,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "MEW",
+        "MOODENG",
+        "GOAT",
+        "RAY"
+      ],
+      "lastToken": "MEW",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
+      "volumeUsd": 37286.49,
+      "volumeMon": 451.08,
+      "solBalance": 97.03,
+      "trades": 31,
+      "buys": 11,
+      "sells": 20,
+      "directionality": 0.29,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "TRUMP",
+        "POPCAT",
+        "RAY",
+        "ORCA",
+        "JLP",
+        "MEW"
+      ],
+      "lastToken": "TRUMP",
+      "realizedUsd": -29.26,
+      "realizedMon": -0.35,
+      "closedTokens": 3,
+      "winTokens": 0,
+      "winRate": 0
+    },
+    {
+      "address": "4GQeEya6ZTwvXre4Br6ZfDyfe2WQMkcDz2QbkJZazVqS",
+      "volumeUsd": 1909.08,
+      "volumeMon": 23.1,
+      "solBalance": 45.36,
+      "trades": 1,
+      "buys": 0,
+      "sells": 1,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "ORCA"
+      ],
+      "lastToken": "ORCA",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    }
+  ]
+}
