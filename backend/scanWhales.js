@@ -25,7 +25,7 @@ import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
 
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
 const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap floor (discovery gathers cumulative behaviour)
-const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 50000);    // high-liquidity token floor
+const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 150000);    // high-liquidity token floor (raised: thin pools + tax tokens were reverting real copy-trades)
 const MAX_BLOCKS = Number(process.env.SCAN_MAX_BLOCKS || 300000); // deeper window so low-volume-but-real tokens accumulate enough candidates
 const TARGET = Number(process.env.SCAN_TARGET || 400);           // distinct candidate wallets before bot-filtering
 const OUT_COUNT = Number(process.env.OUT_COUNT || 100);

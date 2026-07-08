@@ -34,7 +34,7 @@ const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 25);     // non-regist
 const REGISTERED_MIN_MON = Number(process.env.REGISTERED_MIN_MON || 100); // dust floor for known whales
 const WHALE_MIN_MON = Number(process.env.WHALE_MIN_MON || 5);      // absolute pre-filter (cheap check)
 const INCLUDE_SELLS = process.env.INCLUDE_SELLS === '1'; // deck shows copyable BUYs only by default
-const DECK_ROSTER_ONLY = process.env.DECK_ROSTER_ONLY !== '0'; // deck = verified whale roster only (default on)
+const DECK_ROSTER_ONLY = process.env.DECK_ROSTER_ONLY === '1'; // deck shows ALL whales by default (set =1 to restrict to verified roster only)
 const POLL_MS = Number(process.env.POLL_MS || 2000);
 const MAX_BLOCK_SPAN = Number(process.env.MAX_BLOCK_SPAN || 90); // RPC caps getLogs at 100
 const BACKFILL_BLOCKS = Number(process.env.BACKFILL_BLOCKS || 4000); // scan recent history at boot
@@ -125,6 +125,7 @@ function runDiscovery(reason) {
   });
   child.on('error', (e) => { discoveryRunning = false; console.warn('[discovery] spawn failed:', e.message); });
 }
+
 function rosterAgeHours() {
   try { return (Date.now() - fs.statSync(CURATED_PATH).mtimeMs) / 3600000; } catch { return Infinity; }
 }

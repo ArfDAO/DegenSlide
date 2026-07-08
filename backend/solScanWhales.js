@@ -54,10 +54,13 @@ const UA = { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' 
 // ── rate-limit-aware RPC (public mainnet-beta throttles hard) ──
 async function rpc(method, params, tries = 4) {
   for (let i = 0; i < tries; i++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 15000); // a hung fetch must not stall the whole scan for days
     try {
       const res = await fetch(SOL_RPC, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+        signal: ac.signal,
       });
       if (res.status === 429) { await sleep(500 * (i + 1)); continue; }
       const j = await res.json();
@@ -66,6 +69,8 @@ async function rpc(method, params, tries = 4) {
     } catch (e) {
       if (i === tries - 1) throw e;
       await sleep(300 * (i + 1));
+    } finally {
+      clearTimeout(t);
     }
   }
   return null;

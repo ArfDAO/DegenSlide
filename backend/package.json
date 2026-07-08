@@ -5,6 +5,7 @@
   "main": "listener.js",
   "scripts": {
     "start": "node listener.js",
+    "start:sol": "node solListener.js",
     "dev": "node listener.js"
   },
   "dependencies": {

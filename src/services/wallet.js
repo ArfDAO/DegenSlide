@@ -118,13 +118,16 @@ function encodeMulticall(items) {
   return SEL_MULTICALL + pad32(hexBig(32n)) + encodeBytesArray(items);
 }
 
+
+
 // Balance-independent quote: simulate the swap from the WMON contract (huge MON
 // balance) so it never reverts for lack of funds. Returns amountOut (0n if no pool).
 async function quoteRoute(route, tokenOut, amountInWei, fee, deadline) {
   const data = encodeExactInputSingle(route, {
     tokenOut, fee, recipient: CONTRACTS.WMON, deadline, amountIn: amountInWei, amountOutMinimum: 0n,
   });
-  const res = await rpcEthCall({ from: CONTRACTS.WMON, to: route.router, value: hexBig(amountInWei), data });
+  const tx = { from: CONTRACTS.WMON, to: route.router, value: hexBig(amountInWei), data };
+  const res = await rpcEthCall(tx);
   if (!res || res === '0x') return 0n;
   try { return BigInt('0x' + strip(res).slice(0, 64)); } catch { return 0n; }
 }
@@ -204,40 +207,51 @@ export async function bestCopyQuote(tokenOut, amountMon, opts = {}) {
  */
 export async function copyBuy(from, tokenOut, amountMon, opts = {}) {
   if (!tokenOut || !/^0x[0-9a-fA-F]{40}$/.test(tokenOut)) throw new Error('NO_TOKEN_ADDRESS');
+  const { routeKey, fee, amountOut, amountInWei: maxAmountInWei, deadline } = await bestCopyQuote(tokenOut, amountMon, opts);
+  if (amountOut === 0n) throw Object.assign(new Error('NO_LIQUIDITY'), { details: 'No route found' });
 
-  const slippageBps = opts.slippageBps ?? DEFAULT_SLIPPAGE_BPS;
-  const { routeKey, fee, amountOut, amountInWei, deadline } = await bestCopyQuote(tokenOut, amountMon, opts);
-  if (!routeKey || amountOut === 0n) throw new Error('NO_LIQUIDITY');
+  const balance = BigInt(await mmCall('eth_getBalance', [from, 'latest']));
+  let amountInWei = maxAmountInWei;
+  const GAS_BUFFER = 20000000000000000n; // 0.02 MON
+  if (balance <= amountInWei + GAS_BUFFER) {
+    if (balance > GAS_BUFFER) amountInWei = balance - GAS_BUFFER;
+    else throw insufficient(amountInWei, balance, 0n);
+  }
 
-  const route = ROUTES[routeKey];
+  const slippageBps = opts.slippageBps || 1000; // 10% default
   const amountOutMin = (amountOut * BigInt(10000 - slippageBps)) / 10000n;
 
+  const route = ROUTES[routeKey];
   const data = encodeExactInputSingle(route, {
     tokenOut, fee, recipient: from, deadline, amountIn: amountInWei, amountOutMinimum: amountOutMin,
   });
   const tx = { from, to: route.router, value: hexBig(amountInWei), data };
 
-  // Pre-flight: on mainnet gas is paid in MON ON TOP of the swap value, so the
-  // wallet needs value + gas. Check up-front and fail with clear numbers instead
-  // of prompting a doomed MetaMask confirmation.
-  const balance = BigInt(await mmCall('eth_getBalance', [from, 'latest']));
-  if (balance <= amountInWei) {
-    throw insufficient(amountInWei, balance, 0n);
-  }
+
   let gasLimit;
   try {
     gasLimit = BigInt(await mmCall('eth_estimateGas', [tx]));
   } catch (e) {
-    const m = (e.message || '').toLowerCase();
-    if (m.includes('insufficient funds')) throw insufficient(amountInWei, balance, 0n);
-    throw Object.assign(new Error('SWAP_REVERT'), { cause: e }); // slippage / pool issue
+    const errStr = String(e?.message || '') + String(e?.cause?.message || '') + JSON.stringify(e?.cause?.data || {}) + JSON.stringify(e?.data || {}) + JSON.stringify(e || {});
+    if (errStr.toLowerCase().includes('insufficient funds')) {
+      throw insufficient(amountInWei, balance, 0n);
+    }
+    if (errStr.toLowerCase().includes('reserve balance')) {
+      console.warn('[CopyTrade] Monad RPC reserve balance bug detected. Bypassing estimateGas with 800k gas limit.');
+      gasLimit = 800000n;
+    } else {
+      console.error('[CopyTrade] EstimateGas Reverted. Tx:', tx, 'Error:', e);
+      throw Object.assign(new Error('SWAP_REVERT'), { cause: e }); // slippage / pool issue
+    }
   }
+  
   const gasPrice = BigInt(await mmCall('eth_gasPrice'));
   const gasCost = gasLimit * gasPrice;
   if (balance < amountInWei + gasCost) {
     throw insufficient(amountInWei, balance, gasCost);
   }
 
+  tx.gas = hexBig(gasLimit); // MUST provide gas to prevent MetaMask from re-estimating
   const hash = await mmCall('eth_sendTransaction', [tx]);
   // A sent tx is not a trade — only a mined, successful one is.
   const rec = await waitReceipt(hash);

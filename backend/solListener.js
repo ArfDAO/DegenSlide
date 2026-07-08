@@ -57,13 +57,20 @@ const QUOTE_TOKENS = new Map([
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const UA = { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } };
 async function rpc(method, params) {
-  const res = await fetch(SOL_RPC, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  const j = await res.json();
-  if (j.error) throw new Error(j.error.message);
-  return j.result;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 15000); // a hung connection must not stall the whole indexer
+  try {
+    const res = await fetch(SOL_RPC, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      signal: ac.signal,
+    });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error.message);
+    return j.result;
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 // ── live SOL price (DexScreener, refreshed) ──

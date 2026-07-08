@@ -449,6 +449,8 @@ export default function App() {
       setFavorites((prev) => (prev.find((f) => f.address === trader.address) ? prev : [{ address: trader.address, tokenSymbol: trader.tokenSymbol }, ...prev]));
       refreshBalance(from);
     } catch (err) {
+      const causeData = err.cause?.data;
+      console.error('[CopyTrade] failed:', err.message, '·', err.cause?.message || '', '· data:', JSON.stringify(causeData ?? null), err);
       if (err.code === 4001) return;
       const m = (err.message || '').toLowerCase();
       if (err.message === 'NO_LIQUIDITY') showToast('no_liq');

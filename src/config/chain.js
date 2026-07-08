@@ -84,7 +84,7 @@ export const CONTRACTS = {
 export const FEE_TIERS = [500, 2500, 10000, 100];
 
 // Default slippage tolerance for copy swaps (basis points). 200 = 2%.
-export const DEFAULT_SLIPPAGE_BPS = 200; // mainnet-safe default, NEVER 0
+export const DEFAULT_SLIPPAGE_BPS = 1000; // 10% default for volatile meme coins
 
 // ── Backend indexer endpoints — follow the ACTIVE chain ──
 // (env-overridable per chain: VITE_INDEXER_* for Monad, VITE_SOL_INDEXER_* for Solana)
