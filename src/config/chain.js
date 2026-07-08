@@ -15,8 +15,8 @@ export const CHAINS = {
     nativeSymbol: 'MON',
     dexSlug: 'monad',                                  // DexScreener chain slug
     explorer: 'https://monadscan.com', txPath: 'tx', addrPath: 'address',
-    indexerHttp: env2.VITE_INDEXER_HTTP || 'http://localhost:8082',
-    indexerWs: env2.VITE_INDEXER_WS || 'ws://localhost:8082',
+    indexerHttp: env2.VITE_INDEXER_HTTP || 'https://deepswap-monad-bot2.onrender.com',
+    indexerWs: env2.VITE_INDEXER_WS || 'wss://deepswap-monad-bot2.onrender.com',
     // Deck size tiers (USD) — calibrated to real Monad trade sizes
     tiers: { all: 0, big: 50, shark: 150, whale: 300 },
     copySupported: true,                               // MetaMask + PancakeSwap/Uniswap v3
@@ -30,8 +30,8 @@ export const CHAINS = {
     nativeToken: 'So11111111111111111111111111111111111111112',
     dexSlug: 'solana',
     explorer: 'https://solscan.io', txPath: 'tx', addrPath: 'account',
-    indexerHttp: env2.VITE_SOL_INDEXER_HTTP || 'http://localhost:8084',
-    indexerWs: env2.VITE_SOL_INDEXER_WS || 'ws://localhost:8084',
+    indexerHttp: env2.VITE_SOL_INDEXER_HTTP || 'https://deepswap-solana-bot.onrender.com',
+    indexerWs: env2.VITE_SOL_INDEXER_WS || 'wss://deepswap-solana-bot.onrender.com',
     rpcUrl: env2.VITE_SOL_RPC || 'https://api.mainnet-beta.solana.com',
     jupiterApi: 'https://lite-api.jup.ag/swap/v1', // live Jupiter aggregator (quote + swap tx)
     // Solana-scale tiers (much bigger single swaps)
