@@ -1,4 +1,5 @@
 {
+  "name": "deepswap",
   "rewrites": [
     { "source": "/monad-api/:path*", "destination": "/api/monad-proxy" }
   ]

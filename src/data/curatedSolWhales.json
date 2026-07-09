@@ -1,12 +1,12 @@
 {
   "source": "Solana mainnet — on-chain discovery + behavioural bot elimination (signer balance-delta parsing, one-quote pools)",
-  "scannedAt": "2026-07-09T14:20:33.218Z",
-  "txsScanned": 6000,
+  "scannedAt": "2026-07-09T18:15:25.722Z",
+  "txsScanned": 0,
   "minUsdPerSwap": 300,
   "minLiquidityUsd": 150000,
   "botsRemoved": {
     "sameSlotArb": 0,
-    "churnMM": 2
+    "churnMM": 0
   },
   "count": 9,
   "whales": [
@@ -55,28 +55,6 @@
       "winRate": null
     },
     {
-      "address": "FrhLfj81LRpMR3EwSSCGPzHmxsnoq8h628ne68vK5oMN",
-      "volumeUsd": 1978.2,
-      "volumeMon": 25.65,
-      "solBalance": 128.76,
-      "trades": 5,
-      "buys": 0,
-      "sells": 5,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "MOODENG"
-      ],
-      "lastToken": "MOODENG",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
       "address": "J5e2u47g3u2D5Eq66dnvrd2EnCkF8khLAisbuVHDxzt8",
       "volumeUsd": 25451,
       "volumeMon": 330.06,
@@ -114,28 +92,6 @@
         "CARDS"
       ],
       "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
-      "volumeUsd": 1363.93,
-      "volumeMon": 17.69,
-      "solBalance": 92.42,
-      "trades": 3,
-      "buys": 3,
-      "sells": 0,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "MOODENG"
-      ],
-      "lastToken": "MOODENG",
       "realizedUsd": 0,
       "realizedMon": 0,
       "closedTokens": 0,
@@ -207,6 +163,50 @@
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
+    },
+    {
+      "address": "FrhLfj81LRpMR3EwSSCGPzHmxsnoq8h628ne68vK5oMN",
+      "volumeUsd": 1978.2,
+      "volumeMon": 25.65,
+      "solBalance": 128.76,
+      "trades": 5,
+      "buys": 0,
+      "sells": 5,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "MOODENG"
+      ],
+      "lastToken": "MOODENG",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
+      "volumeUsd": 1363.93,
+      "volumeMon": 17.69,
+      "solBalance": 92.42,
+      "trades": 3,
+      "buys": 3,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "tokens": [
+        "MOODENG"
+      ],
+      "lastToken": "MOODENG",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
     }
   ]
 }
