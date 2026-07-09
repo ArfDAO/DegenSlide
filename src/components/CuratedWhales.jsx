@@ -76,27 +76,27 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
                   {w.isMarketMaker ? (
                     <>
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${fmtMon(w.lpAddedUsd)} LP</span>
-                      <span style={{ fontSize: 8, fontWeight: 800, color: '#2563eb', border: '1px solid #2563eb', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: '#22d3ee', border: '1px solid rgba(34,211,238,0.5)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
                     </>
                   ) : (
                     <>
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${fmtMon(w.volumeUsd != null ? w.volumeUsd : (w.volumeMon || 0) * 0.02)}</span>
                       <span style={{ fontSize: 9.5, color: 'var(--color-pebble)', fontWeight: 600 }}>{w.trades} tx</span>
                       {(() => {
-                        const bias = w.buys > w.sells * 1.5 ? { t: 'Accumulating', c: '#10B981' } : w.sells > w.buys * 1.5 ? { t: 'Distributing', c: '#EF4444' } : null;
+                        const bias = w.buys > w.sells * 1.5 ? { t: 'Accumulating', c: 'var(--up)' } : w.sells > w.buys * 1.5 ? { t: 'Distributing', c: 'var(--down)' } : null;
                         return bias ? <span style={{ fontSize: 8, fontWeight: 800, color: bias.c, border: `1px solid ${bias.c}`, borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>{bias.t}</span> : null;
                       })()}
                     </>
                   )}
                   {(w.tokens || []).slice(0, 2).map((t) => (
-                    <span key={t} style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--color-aurora-magenta)', background: 'var(--color-frost-shadow)', borderRadius: 6, padding: '1px 5px' }}>${t}</span>
+                    <span key={t} style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--color-deep-iris)', background: 'var(--color-frost-shadow)', borderRadius: 6, padding: '1px 5px' }}>${t}</span>
                   ))}
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 62 }}>
                 {w.closedTokens > 0 ? (
                   <>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: w.realizedMon >= 0 ? '#10B981' : '#EF4444' }}>{w.realizedMon >= 0 ? '+' : ''}{fmtMon(w.realizedMon)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: w.realizedMon >= 0 ? 'var(--up)' : 'var(--down)' }}>{w.realizedMon >= 0 ? '+' : ''}{fmtMon(w.realizedMon)}</div>
                     <div style={{ fontSize: 8.5, color: 'var(--color-pebble)', fontWeight: 700 }}>realized{w.winRate != null ? ` · ${Math.round(w.winRate * 100)}%` : ''}</div>
                   </>
                 ) : (
@@ -105,7 +105,7 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
               </div>
               <button onClick={() => onToggleFavorite?.({ address: w.address, tokenSymbol: w.lastToken })} title={saved ? 'Remove from watchlist' : 'Save to watchlist'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, display: 'flex', flexShrink: 0 }}>
-                <Heart size={17} color={saved ? '#EF4444' : 'var(--color-pebble)'} fill={saved ? '#EF4444' : 'none'} />
+                <Heart size={17} color={saved ? 'var(--down)' : 'var(--color-pebble)'} fill={saved ? '#ff5d7d' : 'none'} />
               </button>
             </div>
           );

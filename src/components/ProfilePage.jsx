@@ -119,7 +119,7 @@ export default function ProfilePage({
 
   const STATS = [
     { label: 'Copies', value: totalCopies, color: 'var(--color-midnight-ink)' },
-    { label: `${ACTIVE.nativeSymbol} Used`, value: monDeployed.toFixed(monDeployed >= 100 ? 0 : 2), color: 'var(--color-aurora-magenta)' },
+    { label: `${ACTIVE.nativeSymbol} Used`, value: monDeployed.toFixed(monDeployed >= 100 ? 0 : 2), color: 'var(--accent-2)' },
     { label: 'Watchlist', value: watchlistCount, color: 'var(--color-tidewater-navy)' },
     { label: 'Tokens', value: uniqueTokens, color: 'var(--color-midnight-ink)' },
   ];
@@ -128,49 +128,55 @@ export default function ProfilePage({
     <div style={{ height: '100%', overflowY: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16, paddingBottom: 32 }}>
 
-        {/* ── Wallet header ── */}
-        <div style={{ ...CARD, padding: 16 }}>
+        {/* ── Wallet hero — gradient identity card ── */}
+        <div style={{
+          position: 'relative', overflow: 'hidden', borderRadius: 24, padding: 18,
+          background: 'radial-gradient(140% 110% at 15% 0%, rgba(109,93,246,0.22) 0%, rgba(34,211,238,0.06) 45%, transparent 70%), var(--surface-1)',
+          border: '1px solid rgba(109,93,246,0.25)', boxShadow: 'var(--shadow-md)',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, background: 'var(--color-tidewater-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0, display: 'grid', placeItems: 'center',
+              background: 'linear-gradient(135deg, #7c6bff 0%, #5946f0 60%, #22d3ee 140%)',
+              boxShadow: '0 5px 18px rgba(109,93,246,0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
+              fontSize: 15, fontWeight: 800, color: '#fff', fontFamily: '"JetBrains Mono", monospace',
+            }}>
               {walletAddress ? walletAddress.slice(ACTIVE.kind === 'evm' ? 2 : 0, ACTIVE.kind === 'evm' ? 4 : 2).toUpperCase() : '··'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace' }}>
                   {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Not connected'}
                 </span>
                 {walletAddress && (
-                  <button onClick={copyAddr} title="Copy address" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: copied ? 'var(--color-aurora-green)' : 'var(--color-pebble)' }}>
+                  <button onClick={copyAddr} title="Copy address" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: copied ? 'var(--up)' : 'var(--text-3)' }}>
                     {copied ? <Check size={13} /> : <Copy size={13} />}
                   </button>
                 )}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-aurora-green)', border: '1px solid var(--color-aurora-green)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.06em' }}>{WALLET_NAME.toUpperCase()}</span>
-                <span style={{ fontSize: 10, color: 'var(--color-pebble)', fontWeight: 600 }}>{ACTIVE.kind === 'evm' ? `${MONAD_MAINNET.chainName} · id ${MONAD_MAINNET.chainIdNum}` : `${ACTIVE.label} · mainnet-beta`}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 8.5, fontWeight: 800, color: 'var(--up)', background: 'var(--up-soft)', border: '1px solid rgba(47,230,168,0.35)', borderRadius: 100, padding: '1px 7px', letterSpacing: '0.08em' }}>{WALLET_NAME.toUpperCase()}</span>
+                <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{ACTIVE.kind === 'evm' ? `${MONAD_MAINNET.chainName} · id ${MONAD_MAINNET.chainIdNum}` : `${ACTIVE.label} · mainnet-beta`}</span>
               </div>
             </div>
+            {walletAddress && (
+              <a href={EXPLORER_ADDR_URL(walletAddress)} target="_blank" rel="noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: 'var(--text-2)', textDecoration: 'none', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--line-1)', padding: '7px 11px', borderRadius: 100, flexShrink: 0 }}>
+                Explorer <ExternalLink size={11} />
+              </a>
+            )}
           </div>
 
           {/* balance + chart */}
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-silver-lining)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <div>
-                <p style={LABEL}>Balance</p>
-                <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  <span style={{ fontFamily: '"averta standard", sans-serif', fontSize: 24, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>
-                    {monBalance != null ? monBalance.toFixed(3) : '—'}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-aurora-magenta)' }}>{ACTIVE.nativeSymbol}</span>
-                </div>
-                {balanceUsd != null && (
-                  <div style={{ fontSize: 11, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 1 }}>≈ ${balanceUsd.toFixed(2)} USD</div>
-                )}
-              </div>
-              {walletAddress && (
-                <a href={EXPLORER_ADDR_URL(walletAddress)} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--color-tidewater-navy)', textDecoration: 'none', background: 'var(--color-frost-shadow)', padding: '7px 12px', borderRadius: 10 }}>
-                  Explorer <ExternalLink size={12} />
-                </a>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line-2)' }}>
+            <p style={LABEL}>Balance</p>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-1)', lineHeight: 1 }}>
+                {monBalance != null ? monBalance.toFixed(3) : '—'}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--accent-2)', fontFamily: '"JetBrains Mono", monospace' }}>{ACTIVE.nativeSymbol}</span>
+              {balanceUsd != null && (
+                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>≈ ${balanceUsd.toFixed(2)}</span>
               )}
             </div>
             <BalanceChart history={balanceHistory} />
@@ -181,7 +187,7 @@ export default function ProfilePage({
         <div style={{ ...CARD, padding: '14px 4px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {STATS.map((s, i) => (
             <div key={s.label} style={{ textAlign: 'center', borderLeft: i === 0 ? 'none' : '1px solid var(--color-silver-lining)' }}>
-              <div style={{ fontFamily: '"averta standard", sans-serif', fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
+              <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-pebble)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}

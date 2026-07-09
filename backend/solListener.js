@@ -147,7 +147,7 @@ try { fs.watch(CURATED_PATH, () => { clearTimeout(rosterReloadTimer); rosterRelo
 
 // ── Periodic auto-discovery: deep historical scan in a child process (never
 // blocks the live poller), then hot-reload the fresh roster. Mirrors Monad. ──
-const DISCOVERY_HOURS = Number(process.env.SOL_DISCOVERY_HOURS || 6);
+const DISCOVERY_HOURS = Number(process.env.SOL_DISCOVERY_HOURS || 3); // same cadence as Monad
 let discoveryRunning = false;
 function runDiscovery(reason) {
   if (discoveryRunning) { console.log('[discovery] skip — a scan is already running'); return; }
@@ -569,3 +569,19 @@ const age = rosterAgeHours();
 if (age > DISCOVERY_HOURS) { console.log(`[discovery] roster age ${age === Infinity ? 'none' : age.toFixed(1) + 'h'} > ${DISCOVERY_HOURS}h — scanning now`); runDiscovery('boot'); }
 else console.log(`[discovery] roster age ${age.toFixed(1)}h — next scan in ≤${DISCOVERY_HOURS}h`);
 setInterval(() => runDiscovery('scheduled'), DISCOVERY_HOURS * 3600 * 1000);
+
+// GMGN smart-money sync: periodically pull GMGN's verified Smart Money + KOL
+// wallets into the PERMANENT registry (source 'gmgn'), then reload the roster
+// so the new whales go straight into live tracking. Same cadence as discovery.
+// Skips harmlessly when gmgn-cli isn't configured (e.g. cloud without the key).
+let gmgnRunning = false;
+function runGmgnSync(reason) {
+  if (gmgnRunning) return;
+  gmgnRunning = true;
+  console.log(`[gmgn-sync] launching (${reason})…`);
+  const child = spawn(process.execPath, [path.join(__d, 'gmgnSync.js')], { cwd: __d, env: process.env, stdio: 'inherit' });
+  child.on('exit', () => { gmgnRunning = false; loadRoster(); });
+  child.on('error', (e) => { gmgnRunning = false; console.warn('[gmgn-sync] spawn failed:', e.message); });
+}
+setTimeout(() => runGmgnSync('boot'), 90 * 1000); // after backfill settles
+setInterval(() => runGmgnSync('scheduled'), DISCOVERY_HOURS * 3600 * 1000);

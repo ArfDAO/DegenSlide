@@ -58,50 +58,51 @@ function positionMath(p, pair, monPrice) {
   return { amountMon, decimals, tokensHeld, investedUsd, price, currentValue, avgEntry, pnlUsd, pnlPct };
 }
 
-/* ── MON price banner ── */
-function MonPriceTicker({ data }) {
-  if (!data) return null;
-  const ch24 = data.priceChange?.h24 ?? 0;
-  const positive = ch24 >= 0;
-  return (
-    <div style={{ background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', borderRadius: 16, padding: '11px 14px', marginBottom: 10, boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--color-frost-shadow)', border: '1px solid var(--color-silver-lining)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: 'var(--color-midnight-ink)', flexShrink: 0 }}>◈</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>{ACTIVE.nativeSymbol}</div>
-        <div style={{ fontSize: 10, color: 'var(--color-pebble)', fontWeight: 600 }}>{ACTIVE.label} · DexScreener</div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${data.priceUsd?.toFixed(3)}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: positive ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)' }}>{positive ? '▲' : '▼'} {fmtPct(ch24)}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ── portfolio summary ── */
-function Summary({ rows }) {
+/* ── Portfolio hero: value + PnL + native ticker in one premium card ── */
+function Summary({ rows, monData }) {
   const invested = rows.reduce((s, r) => s + (r.m.investedUsd || 0), 0);
   const current = rows.reduce((s, r) => s + (r.m.currentValue ?? r.m.investedUsd ?? 0), 0);
   const priced = rows.filter((r) => r.m.pnlUsd != null);
   const pnl = current - invested;
   const pnlPct = invested ? (pnl / invested) * 100 : null;
   const wins = priced.filter((r) => r.m.pnlUsd >= 0).length;
-  const col = pnl >= 0 ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)';
+  const up = pnl >= 0;
+  const col = up ? 'var(--up)' : 'var(--down)';
+  const ch24 = monData?.priceChange?.h24 ?? null;
   return (
-    <div style={{ background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', borderRadius: 16, padding: '12px 14px', marginBottom: 10, boxShadow: 'var(--shadow-md)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
-      <div style={{ paddingRight: 10 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Invested</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>{fmtUsd(invested)}</div>
+    <div style={{
+      position: 'relative', overflow: 'hidden', borderRadius: 22, padding: '18px 18px 14px', marginBottom: 12,
+      background: `radial-gradient(130% 90% at 20% 0%, ${up ? 'rgba(47,230,168,0.09)' : 'rgba(255,93,125,0.09)'} 0%, transparent 55%), var(--surface-1)`,
+      border: '1px solid var(--line-1)', boxShadow: 'var(--shadow-md)',
+    }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>Portfolio value</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-1)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{fmtUsd(current)}</span>
+        {priced.length > 0 && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 100,
+            background: up ? 'var(--up-soft)' : 'var(--down-soft)',
+            border: `1px solid ${up ? 'rgba(47,230,168,0.35)' : 'rgba(255,93,125,0.35)'}`,
+            fontSize: 11.5, fontWeight: 800, color: col, fontFamily: '"JetBrains Mono", monospace',
+          }}>
+            {up ? '▲' : '▼'} {pnl >= 0 ? '+' : ''}{fmtUsd(pnl)} · {fmtPct(pnlPct)}
+          </span>
+        )}
       </div>
-      <div style={{ borderLeft: '1px solid var(--color-silver-lining)', paddingLeft: 10, paddingRight: 10 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Value / PnL</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>{fmtUsd(current)}</div>
-        {priced.length > 0 && <div style={{ fontSize: 10, fontWeight: 700, color: col, marginTop: 1 }}>{pnl >= 0 ? '+' : ''}{fmtUsd(pnl)} · {fmtPct(pnlPct)}</div>}
-      </div>
-      <div style={{ borderLeft: '1px solid var(--color-silver-lining)', paddingLeft: 10 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Win Rate</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: priced.length && wins ? 'var(--color-aurora-green)' : 'var(--color-pebble)' }}>{priced.length ? `${Math.round((wins / priced.length) * 100)}%` : '—'}</div>
-        <div style={{ fontSize: 10, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 1 }}>{wins}/{priced.length}</div>
+      <div style={{ display: 'flex', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-2)' }}>
+        {[
+          { k: 'Invested', v: fmtUsd(invested) },
+          { k: 'Win rate', v: priced.length ? `${Math.round((wins / priced.length) * 100)}% · ${wins}/${priced.length}` : '—' },
+          { k: `${ACTIVE.nativeSymbol} price`, v: monData?.priceUsd ? `$${monData.priceUsd.toFixed(3)}` : '—', accent: ch24 != null ? (ch24 >= 0 ? 'var(--up)' : 'var(--down)') : null, sub: ch24 != null ? `${ch24 >= 0 ? '▲' : '▼'}${fmtPct(ch24)}` : null },
+        ].map((s, i) => (
+          <div key={s.k} style={{ flex: 1, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--line-2)' : 'none' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{s.k}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace', marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              {s.v}
+              {s.sub && <span style={{ fontSize: 9, fontWeight: 700, color: s.accent }}>{s.sub}</span>}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -191,8 +192,31 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
         <Stat label="Liquidity" value={pair ? fmtUsd(pair.liquidity) : '—'} />
       </div>
 
+      {/* whale-exit mirror: the whale sells this token → your copy sells too */}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--color-silver-lining)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: p.sellOnWhaleExit ? 'var(--accent-2)' : 'var(--color-midnight-ink)' }}>
+            🐋 Sell when the whale sells
+          </div>
+          <div style={{ fontSize: 9.5, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 1, lineHeight: 1.4 }}>
+            {p.sellOnWhaleExit ? 'ON — this whale\'s next SELL of this token auto-closes your copy.' : 'Mirror the whale\'s exit automatically.'}
+          </div>
+        </div>
+        <button
+          onClick={() => onSetTargets(p.id, { sellOnWhaleExit: !p.sellOnWhaleExit })}
+          style={{
+            flexShrink: 0, padding: '7px 14px', borderRadius: 100, cursor: 'pointer', fontSize: 11, fontWeight: 800,
+            border: p.sellOnWhaleExit ? '1px solid rgba(34,211,238,0.5)' : '1px solid var(--color-silver-lining)',
+            background: p.sellOnWhaleExit ? 'rgba(34,211,238,0.12)' : 'transparent',
+            color: p.sellOnWhaleExit ? 'var(--accent-2)' : 'var(--color-pebble)',
+            boxShadow: p.sellOnWhaleExit ? '0 0 14px rgba(34,211,238,0.2)' : 'none',
+          }}>
+          {p.sellOnWhaleExit ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
       {/* stop-loss / take-profit */}
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--color-silver-lining)' }}>
+      <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--color-silver-lining)' }}>
         {!editTargets ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -297,7 +321,7 @@ export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, aut
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingBottom: 80, gap: 12 }}>
         <PieChart size={40} strokeWidth={1.5} color="var(--color-pebble)" style={{ opacity: 0.4 }} />
-        <div style={{ fontFamily: '"averta standard", sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-midnight-ink)' }}>No positions yet</div>
+        <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-midnight-ink)' }}>No positions yet</div>
         <div style={{ fontSize: 13, color: 'var(--color-pebble)', maxWidth: 230, fontWeight: 600 }}>Swipe right (or ALL IN) on a whale to open a position. Manage it here — buy more, set stop-loss / take-profit, track live PnL.</div>
       </div>
     );
@@ -316,8 +340,7 @@ export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, aut
         </div>
       </div>
 
-      <MonPriceTicker data={monData} />
-      <Summary rows={rows} />
+      <Summary rows={rows} monData={monData} />
 
       {lastUpdated && <div style={{ fontSize: 9, color: 'var(--color-pebble)', textAlign: 'right', marginBottom: 6, fontWeight: 600 }}>via DexScreener · auto-refresh 30s</div>}
 

@@ -74,25 +74,26 @@ const TOASTS = {
   sell_cancel: { msg: 'Sell cancelled',    kind: 'info', color: 'var(--color-midnight-ink)' },
   sell_fail:  { msg: 'Sell failed',        kind: 'err',  color: 'var(--color-obsidian)' },
   sell_nobal: { msg: 'No tokens to sell',  kind: 'err',  color: 'var(--color-obsidian)' },
+  whale_exit: { msg: 'Whale exited — closing your copy', kind: 'info', color: 'var(--color-tidewater-navy)' },
 };
 const TOAST_ICON = { ok: Check, err: AlertTriangle, info: Info };
 
 /* ── Nav icons ── */
 function IconDeck({ active }) {
-  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.15)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.08)' : 'none'}/></svg>);
+  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.14)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.07)' : 'none'}/></svg>);
 }
 function IconPortfolio({ active }) {
-  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
+  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
   return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="9" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="10" y="7" width="4" height="14" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="17" y="3" width="4" height="18" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/></svg>);
 }
 function IconLeaderboard({ active }) {
-  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(153,91,185,0.2)' : 'none'}/></svg>);
+  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(34,211,238,0.18)' : 'none'}/></svg>);
 }
 function IconProfile({ active }) {
-  const c = active ? 'var(--color-aurora-magenta)' : 'var(--color-pebble)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(153,91,185,0.15)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
+  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.14)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
 }
 const TABS = [
   { id: 'deck', Icon: IconDeck, label: 'Deck' },
@@ -100,10 +101,6 @@ const TABS = [
   { id: 'leaderboard', Icon: IconLeaderboard, label: 'Top' },
   { id: 'profile', Icon: IconProfile, label: 'Profile' },
 ];
-
-function SignalDots() {
-  return (<div className="flex items-end gap-[2px]">{[8, 12, 16, 20].map((h, i) => (<div key={i} className="w-1 rounded-sm" style={{ height: h, background: i < 3 ? 'var(--text-2)' : 'var(--text-3)' }} />))}</div>);
-}
 
 /* ── localStorage helpers ── */
 function loadLS(key, fallback) {
@@ -130,8 +127,8 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
   const maxCopy = monBalance != null ? Math.max(0, monBalance - GAS_BUFFER) : null;
   return (
     <>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(4px)', borderRadius: 'inherit' }} />
-      <div className="animate-slide-up-modal" style={{ position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 81, background: 'var(--color-paper-white)', borderRadius: 24, padding: 20, boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid var(--color-silver-lining)' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 80, background: 'rgba(2,4,10,0.55)', backdropFilter: 'blur(6px)', borderRadius: 'inherit' }} />
+      <div className="animate-slide-up-modal" style={{ position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 81, background: 'var(--surface-1)', borderRadius: 24, padding: 20, boxShadow: 'var(--shadow-lg)', border: '1px solid var(--line-1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>Copy Amount</span>
           <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 14, border: 'none', background: 'var(--color-frost-shadow)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-pebble)' }}><X size={15} /></button>
@@ -200,10 +197,10 @@ const STATIC_CURATED = ACTIVE.id === 'monad' ? (curatedWhalesData.whales || []) 
 // Deck size-tier filter (USD value of the trade) — thresholds are per-chain.
 const TIER_MIN_USD = ACTIVE.tiers;
 const DECK_TIERS = [
-  { id: 'all', label: 'All', color: 'var(--color-pebble)' },
-  { id: 'big', label: 'Big', color: '#0ea5e9' },
-  { id: 'shark', label: 'Shark', color: '#7c3aed' },
-  { id: 'whale', label: 'Whale', color: '#2563eb' },
+  { id: 'all', label: 'All', color: 'var(--text-3)' },
+  { id: 'big', label: 'Big', color: '#38bdf8' },
+  { id: 'shark', label: 'Shark', color: '#a78bfa' },
+  { id: 'whale', label: 'Whale', color: '#22d3ee' },
 ];
 
 export default function App() {
@@ -251,6 +248,7 @@ export default function App() {
   const settingsRef = useRef(settings);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
   const sellingRef = useRef(new Set());
+  const whaleExitRef = useRef(null); // "whale sold → close my copy" handler (wired below)
   const [leaderboard, setLeaderboard] = useState([]);
   const [lbMode, setLbMode] = useState('rankings');
   const [showTradeSettings, setShowTradeSettings] = useState(false);
@@ -341,6 +339,10 @@ export default function App() {
       .finally(() => { if (alive) setIsLoading(false); });
 
     const closeFeed = openWhaleFeed((card) => {
+      // Whale SELLs never become deck cards (you can't "copy" an exit you don't
+      // hold) — but they DO drive the per-position "sell when the whale sells"
+      // automation below.
+      if (card.side === 'SELL') { whaleExitRef.current?.(card); return; }
       if (!settingsRef.current.liveFeed) return; // live feed paused in settings
       setCards((prev) => (prev.find((c) => c.id === card.id) ? prev : [card, ...prev].slice(0, 60)));
     });
@@ -443,6 +445,7 @@ export default function App() {
           time: Date.now(),
           stopLossPct: null,
           takeProfitPct: null,
+          sellOnWhaleExit: false, // per-position "sell when the whale sells" toggle
         };
         return [entry, ...prev];
       });
@@ -503,6 +506,24 @@ export default function App() {
     }
   }, [walletAddress, slippageBps, doConnect, refreshBalance]);
 
+  // ── "Whale exited → close my copy": a live SELL from the whale you copied,
+  // in the token you copied, auto-closes the position (per-position opt-in). ──
+  useEffect(() => {
+    whaleExitRef.current = (card) => {
+      const norm = (s) => (ACTIVE.kind === 'evm' ? (s || '').toLowerCase() : (s || ''));
+      const matches = portfolio.filter((p) =>
+        p.sellOnWhaleExit &&
+        p.token?.address && norm(p.token.address) === norm(card.tokenAddress) &&
+        p.trader?.address && norm(p.trader.address) === norm(card.trader) &&
+        !sellingRef.current.has(p.id));
+      for (const p of matches) {
+        sellingRef.current.add(p.id); // guard against duplicate sells
+        showToast('whale_exit', `Whale sold $${p.token.symbol} — closing your copy…`);
+        sellPosition(p).catch(() => sellingRef.current.delete(p.id)); // allow retry on the whale's next sell
+      }
+    };
+  }, [portfolio, sellPosition]);
+
   // ── Auto stop-loss / take-profit: watch live token prices, sell when a target is crossed ──
   useEffect(() => {
     if (!walletAddress) return;
@@ -556,6 +577,7 @@ export default function App() {
   // Deck respects the pro settings + the size-tier filter (Whale / Shark / Big / All).
   const usdOf = (c) => (c.amountUsd != null ? c.amountUsd : (c.amountMon || 0) * (monPriceUsd || 0));
   const deckCards = cards.filter((c) =>
+    c.side !== 'SELL' && // exits aren't copyable — they only power per-position auto-close
     (!settings.hideStables || !c.isStable) &&
     (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) &&
     usdOf(c) >= (TIER_MIN_USD[deckTier] || 0)
@@ -575,28 +597,31 @@ export default function App() {
         </div>
       )}
 
-      <div className="status-bar">
-        <span>{clock}</span>
-        <div className="dynamic-island" />
-        <div className="flex items-center gap-1.5">
-          <SignalDots />
-          <svg width="14" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="2" y="2" width="10" height="8" rx="1" fill="currentColor"/></svg>
-        </div>
-      </div>
-
-      <header className="mobile-header">
-        <div>
-          <div className="mobile-header-subtitle">DEGENSLIDE</div>
-          <div className="mobile-header-title">{activeTab === 'deck' ? `Whales · ${ACTIVE.label}` : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}</div>
+      {/* ── App bar: brand identity + wallet ── */}
+      <header className="app-bar">
+        <div className="brand">
+          <div className="brand-mark">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L20 8.5V15.5L12 22L4 15.5V8.5L12 2Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" fill="rgba(255,255,255,0.14)" />
+              <path d="M8.5 12.5L11 15L15.5 9.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <div className="brand-word">DegenSlide</div>
+            <div className="brand-sub">
+              <span className={`live-dot ${indexerUp ? 'on' : ''}`} />
+              {indexerUp ? `${ACTIVE.label} live` : 'feed offline'} · {clock}
+            </div>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Network switcher — persists choice, reloads onto the selected chain's indexer */}
-          <div style={{ display: 'flex', background: 'var(--color-frost-shadow)', borderRadius: 100, padding: 3, border: '1px solid var(--color-silver-lining)' }}>
+          <div className="seg-track">
             {Object.values(CHAINS).map((c) => {
               const on = ACTIVE.id === c.id;
               return (
-                <button key={c.id} type="button" onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}
-                  style={{ padding: '5px 11px', borderRadius: 100, border: 'none', cursor: on ? 'default' : 'pointer', fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', background: on ? 'var(--color-tidewater-navy)' : 'transparent', color: on ? '#fff' : 'var(--color-pebble)' }}>
+                <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
+                  onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
                   {c.nativeSymbol}
                 </button>
               );
@@ -608,15 +633,28 @@ export default function App() {
         </div>
       </header>
 
+      {/* ── Contextual page head ── */}
+      <div className="page-head">
+        <h1 className="page-title">
+          {activeTab === 'deck' ? 'Whale Deck' : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
+        </h1>
+        <span className="page-meta">
+          {activeTab === 'deck' ? `${deckCards.length} live signals` :
+           activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
+           activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
+           (walletAddress ? `${walletAddress.slice(0, 5)}…${walletAddress.slice(-4)}` : 'not connected')}
+        </span>
+      </div>
+
       <main className="main-content">
         {activeTab === 'leaderboard' ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: '0 -16px' }}>
-            <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', flexShrink: 0 }}>
+            <div className="seg-track wide" style={{ margin: '0 16px 10px', flexShrink: 0 }}>
               {[{ id: 'rankings', label: 'Whales' }, { id: 'curated', label: 'Smart Money' }, { id: 'watchlist', label: 'Watchlist' }].map((m) => (
-                <button key={m.id} type="button" onClick={() => setLbMode(m.id)} style={{ flex: 1, padding: '8px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: lbMode === m.id ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', color: lbMode === m.id ? 'var(--color-paper-white)' : 'var(--color-midnight-ink)', boxShadow: lbMode === m.id ? 'none' : 'var(--shadow-md)' }}>
+                <button key={m.id} type="button" className={`seg-item ${lbMode === m.id ? 'on' : ''}`} onClick={() => setLbMode(m.id)}>
                   {m.label}
-                  {m.id === 'watchlist' && watchlistView.length > 0 && (<span style={{ marginLeft: 5, background: 'var(--color-aurora-magenta)', borderRadius: 8, padding: '1px 5px', fontSize: 9, color: 'var(--color-paper-white)' }}>{watchlistView.length}</span>)}
-                  {m.id === 'curated' && curatedWhalesList.length > 0 && (<span style={{ marginLeft: 5, background: 'var(--color-tidewater-navy)', borderRadius: 8, padding: '1px 5px', fontSize: 9, color: 'var(--color-paper-white)' }}>{curatedWhalesList.length}</span>)}
+                  {m.id === 'watchlist' && watchlistView.length > 0 && (<span className="seg-badge">{watchlistView.length}</span>)}
+                  {m.id === 'curated' && curatedWhalesList.length > 0 && (<span className="seg-badge">{curatedWhalesList.length}</span>)}
                 </button>
               ))}
             </div>
@@ -630,23 +668,22 @@ export default function App() {
           </div>
         ) : activeTab === 'deck' ? (
           <div className="flex flex-col h-full w-full relative">
-            <div style={{ display: 'flex', gap: 6, padding: '2px 2px 12px', flexShrink: 0 }}>
+            <div className="seg-track wide" style={{ marginBottom: 12, flexShrink: 0 }}>
               {DECK_TIERS.map((tier) => {
                 const active = deckTier === tier.id;
-                const cnt = cards.filter((c) => (!settings.hideStables || !c.isStable) && (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) && usdOf(c) >= TIER_MIN_USD[tier.id]).length;
+                const cnt = cards.filter((c) => c.side !== 'SELL' && (!settings.hideStables || !c.isStable) && (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) && usdOf(c) >= TIER_MIN_USD[tier.id]).length;
                 return (
-                  <button key={tier.id} type="button" onClick={() => setDeckTier(tier.id)}
-                    style={{ flex: 1, padding: '7px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', color: active ? '#fff' : 'var(--color-midnight-ink)', boxShadow: active ? 'none' : 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                    {tier.id !== 'all' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? '#fff' : tier.color }} />}
+                  <button key={tier.id} type="button" className={`seg-item ${active ? 'on' : ''}`} onClick={() => setDeckTier(tier.id)}>
+                    {tier.id !== 'all' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: active ? '#fff' : tier.color, display: 'inline-block', marginRight: 5 }} />}
                     {tier.label}
-                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.65 }}>{cnt}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6, marginLeft: 4 }}>{cnt}</span>
                   </button>
                 );
               })}
             </div>
             {isLoading ? (
               <div className="flex flex-col items-center justify-center h-full pb-20" style={{ gap: 16 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid transparent', borderTopColor: 'var(--color-tidewater-navy)', borderRightColor: 'var(--color-aurora-magenta)', animation: 'spin 0.8s linear infinite' }} />
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid transparent', borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent-2)', animation: 'spin 0.8s linear infinite' }} />
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-pebble)', margin: 0 }}>Scanning {ACTIVE.label} for whales…</p>
               </div>
             ) : deckCards.length > 0 ? (
@@ -700,7 +737,7 @@ export default function App() {
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <button key={tab.id} type="button" className={`nav-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)} style={isActive ? { background: 'rgba(255,255,255,0.06)' } : {}}>
+            <button key={tab.id} type="button" className={`nav-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
               <div className="nav-icon"><tab.Icon active={isActive} /></div>
               <span>{tab.label}</span>
               {isActive && <div className="nav-dot" />}

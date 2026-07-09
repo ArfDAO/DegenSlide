@@ -30,48 +30,71 @@ function alias(addr, i) {
   return `Whale #${i + 1}`;
 }
 
-function Row({ t, rank, monPriceUsd, onWatch, watched }) {
-  const volUsd = monPriceUsd ? t.volumeMon * monPriceUsd : null;
+const RANK_STYLE = {
+  1: { bg: 'linear-gradient(135deg, #f5b544, #d98e1f)', glow: '0 3px 12px rgba(245,181,68,0.4)' },
+  2: { bg: 'linear-gradient(135deg, #c7cede, #8d96ac)', glow: '0 3px 12px rgba(199,206,222,0.25)' },
+  3: { bg: 'linear-gradient(135deg, #d99e6d, #a96b3c)', glow: '0 3px 12px rgba(217,158,109,0.3)' },
+};
+
+function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol }) {
   const hasRealized = (t.closedTokens || 0) > 0;
   const realized = t.realizedMon || 0;
   const pnlUp = realized >= 0;
   const win = t.winRate != null ? Math.round(t.winRate * 100) : null;
+  const medal = RANK_STYLE[rank];
+  const volShare = maxVol > 0 ? Math.max(0.03, (t.volumeMon || 0) / maxVol) : 0;
   return (
-    <div className="flex items-center gap-3 rounded-[16px] px-3 py-3" style={{ background: rank <= 3 ? 'var(--color-paper-white)' : 'transparent', borderTop: rank <= 3 ? '1px solid var(--color-silver-lining)' : 'none', borderLeft: rank <= 3 ? '1px solid var(--color-silver-lining)' : 'none', borderRight: rank <= 3 ? '1px solid var(--color-silver-lining)' : 'none', borderBottom: '1px solid var(--color-silver-lining)', boxShadow: rank <= 3 ? 'var(--shadow-md)' : 'none' }}>
-      <div className="grid place-items-center rounded-xl flex-shrink-0" style={{ width: 32, height: 32, background: rank <= 3 ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', border: rank <= 3 ? 'none' : '1px solid var(--color-silver-lining)', color: rank <= 3 ? '#fff' : 'var(--color-midnight-ink)', fontSize: rank <= 3 ? 15 : 11, fontWeight: 700 }}>
-        {rank}
-      </div>
-      <div className="flex flex-col min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <a href={EXPLORER_ADDR_URL(t.address)} target="_blank" rel="noreferrer" className="text-xs font-mono truncate" style={{ color: 'var(--color-midnight-ink)', fontWeight: 700, textDecoration: 'none' }}>
-            {t.address.slice(0, 8)}…{t.address.slice(-4)}
-          </a>
-          {t.verified && (<span title="Verified whale (bot-filtered)" className="flex-shrink-0" style={{ display: 'inline-flex', alignItems: 'center', color: '#2563eb' }}><BadgeCheck size={13} /></span>)}
-          {t.lastToken && (<span className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[8px] uppercase" style={{ background: 'var(--color-frost-shadow)', color: 'var(--color-aurora-magenta)', fontWeight: 700 }}>${t.lastToken}</span>)}
+    <div style={{
+      position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '12px 14px 13px',
+      background: 'var(--surface-1)', border: '1px solid var(--line-2)',
+      boxShadow: medal ? 'var(--shadow-md)' : 'none',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+          background: medal ? medal.bg : 'var(--surface-2)',
+          boxShadow: medal?.glow || 'none',
+          color: medal ? '#0a0d16' : 'var(--text-3)', fontSize: medal ? 14 : 11, fontWeight: 800,
+          fontFamily: 'var(--font-display)',
+        }}>
+          {rank}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          {win != null && (
-            <span className="text-[10px]" style={{ color: win >= 50 ? 'var(--color-aurora-green)' : 'var(--color-pebble)', fontWeight: 700 }}>{win}% win</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <a href={EXPLORER_ADDR_URL(t.address)} target="_blank" rel="noreferrer"
+              style={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', fontWeight: 700, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t.address.slice(0, 7)}…{t.address.slice(-4)}
+            </a>
+            {t.verified && (<span title="Verified whale (bot-filtered)" style={{ display: 'inline-flex', alignItems: 'center', color: '#22d3ee', flexShrink: 0 }}><BadgeCheck size={13} /></span>)}
+            {t.lastToken && (<span style={{ flexShrink: 0, borderRadius: 100, padding: '1px 7px', fontSize: 8, textTransform: 'uppercase', background: 'var(--accent-soft)', color: 'var(--color-deep-iris)', fontWeight: 800, letterSpacing: '0.04em' }}>${t.lastToken}</span>)}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>
+            {win != null && (
+              <span style={{ fontSize: 9.5, color: win >= 50 ? 'var(--up)' : 'var(--text-3)', fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>{win}% win</span>
+            )}
+            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{t.trades} tx · {timeAgo(t.lastSeen)} ago</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
+          {hasRealized ? (
+            <>
+              <span style={{ fontSize: 12.5, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', color: pnlUp ? 'var(--up)' : 'var(--down)' }}>{pnlUp ? '+' : ''}{fmtMon(realized)} {ACTIVE.nativeSymbol}</span>
+              <span style={{ fontSize: 8.5, color: 'var(--text-3)', fontWeight: 600 }}>realized · {t.closedTokens} closed</span>
+            </>
+          ) : (
+            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 700 }}>no exits yet</span>
           )}
-          <span className="text-[10px]" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>{t.trades} trades</span>
-          <span className="text-[10px]" style={{ color: 'var(--color-pebble)' }}>·</span>
-          <span className="text-[10px]" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>{timeAgo(t.lastSeen)} ago</span>
+          <span style={{ fontSize: 8.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{fmtMon(t.volumeMon)} {ACTIVE.nativeSymbol} vol</span>
         </div>
+        <button onClick={() => onWatch?.(t.address)} disabled={watched} title="Add to watchlist"
+          style={{ background: 'none', border: 'none', cursor: watched ? 'default' : 'pointer', color: watched ? 'var(--up)' : 'var(--text-3)', padding: 4, flexShrink: 0 }}>
+          {watched ? <Check size={15} /> : <Eye size={15} />}
+        </button>
       </div>
-      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-        {hasRealized ? (
-          <>
-            <span className="text-xs" style={{ fontWeight: 800, color: pnlUp ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)' }}>{pnlUp ? '+' : ''}{fmtMon(realized)} {ACTIVE.nativeSymbol}</span>
-            <span className="text-[9px]" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>realized · {t.closedTokens} closed</span>
-          </>
-        ) : (
-          <span className="text-[10px]" style={{ color: 'var(--color-pebble)', fontWeight: 700 }}>no exits yet</span>
-        )}
-        <span className="text-[9px]" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>{fmtMon(t.volumeMon)} {ACTIVE.nativeSymbol} vol</span>
+      {/* relative volume bar — instantly shows who moves real size */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: 'rgba(255,255,255,0.03)' }}>
+        <div style={{ width: `${volShare * 100}%`, height: '100%', background: medal ? 'linear-gradient(90deg, var(--accent), var(--accent-2))' : 'rgba(109,93,246,0.35)' }} />
       </div>
-      <button onClick={() => onWatch?.(t.address)} disabled={watched} title="Add to watchlist" style={{ background: 'none', border: 'none', cursor: watched ? 'default' : 'pointer', fontSize: 14, color: watched ? 'var(--color-aurora-green)' : 'var(--color-pebble)', padding: 4 }}>
-        {watched ? <Check size={15} /> : <Eye size={15} />}
-      </button>
     </div>
   );
 }
@@ -110,7 +133,7 @@ export default function Leaderboard({ traders = [], monPriceUsd, onWatch, watchl
         {SORTS.map((s) => {
           const active = sort === s.id;
           return (
-            <button key={s.id} type="button" onClick={() => setSort(s.id)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px]" style={{ background: active ? 'var(--color-aurora-magenta)' : 'var(--color-paper-white)', border: active ? '1px solid var(--color-aurora-magenta)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', fontWeight: 600, boxShadow: active ? 'none' : 'var(--shadow-md)' }}>
+            <button key={s.id} type="button" onClick={() => setSort(s.id)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px]" style={{ background: active ? 'var(--accent)' : 'var(--color-paper-white)', border: active ? '1px solid var(--accent)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', fontWeight: 600, boxShadow: active ? 'none' : 'var(--shadow-md)' }}>
               {s.label}
             </button>
           );
@@ -130,10 +153,10 @@ export default function Leaderboard({ traders = [], monPriceUsd, onWatch, watchl
             <p className="text-xs" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>The indexer ranks wallets as live whale trades stream in.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {sorted.map((t, i) => (
-              <Row key={t.address} t={t} rank={i + 1} monPriceUsd={monPriceUsd} onWatch={onWatch} watched={watchlist.includes(t.address)} />
-            ))}
+          <div className="flex flex-col gap-2">
+            {(() => { const maxVol = Math.max(...sorted.map((x) => x.volumeMon || 0), 0); return sorted.map((t, i) => (
+              <Row key={t.address} t={t} rank={i + 1} monPriceUsd={monPriceUsd} onWatch={onWatch} watched={watchlist.includes(t.address)} maxVol={maxVol} />
+            )); })()}
           </div>
         )}
         <p className="text-center text-[10px] mt-4 mb-1" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>Realized PnL from observed on-chain buy/sell round-trips · Monad mainnet</p>
