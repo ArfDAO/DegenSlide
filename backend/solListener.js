@@ -29,6 +29,12 @@ const __d = path.dirname(fileURLToPath(import.meta.url));
 process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
 const db = await import('./db.js');
 
+// A single un-awaited RPC failure (e.g. an aborted fetch) must NOT kill the
+// whole indexer — log it and keep polling. The poll loops handle their own
+// errors; this is the last-resort net for anything that slips through.
+process.on('unhandledRejection', (e) => console.warn('[guard] unhandled rejection:', e?.message || e));
+process.on('uncaughtException', (e) => console.warn('[guard] uncaught exception:', e?.message || e));
+
 const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const PORT = Number(process.env.PORT || 8084);
 const server = await import('node:http').then(m => m.createServer());
@@ -114,9 +120,11 @@ const REGISTERED_WHALES = new Set(); // grows via live promotion (verified roste
 const LIVE_PROMOTED = new Set();      // fast-pass promotions, kept across roster reloads
 const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedSolWhales.json');
 
-// The discovery scan (solScanWhales.js) writes a bot-filtered curated file; load
-// it into the verified roster and hot-reload when the scan rewrites it. Live
-// promotions survive reloads. base58 addresses — NO lowercasing.
+// The discovery scan (solScanWhales.js) writes a bot-filtered curated file.
+// Every wallet from that file is upserted into the DURABLE whale_registry
+// (SQLite) — so a later rescan that misses a wallet can never erase it. The
+// live roster is the FULL registry: everything ever found keeps being tracked
+// forever. base58 addresses — NO lowercasing.
 function loadRoster() {
   const kept = new Set(LIVE_PROMOTED);
   REGISTERED_WHALES.clear();
@@ -124,9 +132,14 @@ function loadRoster() {
   let curatedCount = 0;
   try {
     const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
-    for (const w of curated.whales || []) if (w.address) { REGISTERED_WHALES.add(w.address); curatedCount += 1; }
+    for (const w of curated.whales || []) if (w.address) {
+      db.registerWhale(w.address, 'scan', { volumeUsd: w.volumeUsd ?? null, solBalance: w.solBalance ?? null, stats: w });
+      curatedCount += 1;
+    }
   } catch { /* file absent until first scan completes */ }
-  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (${curatedCount} scanned + ${LIVE_PROMOTED.size} live)`);
+  let registryCount = 0;
+  for (const r of db.loadWhaleRegistry()) { REGISTERED_WHALES.add(r.address); registryCount += 1; }
+  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size})`);
 }
 loadRoster();
 let rosterReloadTimer = null;
@@ -242,6 +255,7 @@ async function promoteWhales() {
     if (bal < MIN_SOL_BALANCE && (a.volumeUsd || 0) < BIG_VOLUME_USD) continue;
     REGISTERED_WHALES.add(a.address);
     LIVE_PROMOTED.add(a.address);
+    db.registerWhale(a.address, 'live', { volumeUsd: a.volumeUsd || 0, solBalance: bal }); // durable — survives restarts & rescans
     console.log(`[promote] +whale ${a.address.slice(0, 10)}… · $${Math.round(a.volumeUsd)} · ${bal.toFixed(1)} SOL · dir ${dir.toFixed(2)} · ${a.trades}tx`);
   }
 }
@@ -492,14 +506,20 @@ server.on('request', async (req, res) => {
     return sendJson(res, 200, { traders: board });
   }
   if (p === '/roster') {
-    // Verified Smart Money — the scanned curated file MERGED with this session's
-    // live-promoted whales, so the list grows over time (same model as Monad).
-    // Rich scan stats win; live promotions fill in from the running aggregate.
+    // Verified Smart Money — served from the DURABLE whale_registry, which holds
+    // every wallet ever confirmed (scans + live promotions + external seeds).
+    // Rows are never deleted, so the list only grows. Richest stats win:
+    // registry stats blob (scan output) first, live aggregate fills the gaps.
     const byAddr = new Map();
-    try {
-      const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
-      for (const w of curated.whales || []) if (w.address) byAddr.set(w.address, w);
-    } catch { /* file absent until first scan completes */ }
+    for (const r of db.loadWhaleRegistry()) {
+      const base = r.stats && typeof r.stats === 'object' ? r.stats : { address: r.address };
+      byAddr.set(r.address, {
+        ...base, address: r.address,
+        volumeUsd: Math.max(Number(base.volumeUsd) || 0, Number(r.volumeUsd) || 0),
+        solBalance: r.solBalance ?? base.solBalance ?? null,
+        source: r.source, firstSeen: r.firstSeen, lastSeen: r.lastSeen,
+      });
+    }
     for (const addr of REGISTERED_WHALES) {
       if (byAddr.has(addr)) continue;
       const a = traderAgg.get(addr);

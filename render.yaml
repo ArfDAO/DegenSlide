@@ -5,11 +5,22 @@ services:
     buildCommand: npm install
     startCommand: npm start
     rootDir: backend
+    # Persistent disk: the whale_registry (SQLite) must survive redeploys —
+    # discovered whales are permanent. Disks require a paid instance; on the
+    # free tier remove the disk block + WHALE_DB var (the roster still
+    # re-seeds from the curated JSON bundled in the repo on every boot, so
+    # nothing is lost as long as scans keep merging into src/data/*.json).
+    disk:
+      name: monad-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: MONAD_RPC
         value: https://rpc.monad.xyz
       - key: WHALE_MIN_USD
         value: 25
+      - key: WHALE_DB
+        value: /data/whales.db
 
   - type: web
     name: deepswap-solana-bot
@@ -17,8 +28,14 @@ services:
     buildCommand: npm install
     startCommand: npm run start:sol
     rootDir: backend
+    disk:
+      name: solana-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: SOLANA_RPC
         value: https://api.mainnet-beta.solana.com
       - key: WHALE_MIN_USD
         value: 500
+      - key: WHALE_DB
+        value: /data/solWhales.db

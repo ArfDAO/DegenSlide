@@ -339,14 +339,22 @@ async function main() {
   const outDir = path.join(__dirname, '..', 'src', 'data');
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, 'curatedWhales.json');
+  // MERGE with the previous file — discovery only ever ADDS whales. A wallet
+  // found by an earlier scan is still real even if this scan window missed it;
+  // overwriting would silently shrink the global roster on every rescan.
+  let prevWhales = [];
+  try { prevWhales = JSON.parse(fs.readFileSync(outFile, 'utf8')).whales || []; } catch { /* first run */ }
+  const mergedByAddr = new Map(prevWhales.filter((w) => w.address).map((w) => [w.address.toLowerCase(), w]));
+  for (const w of ranked) mergedByAddr.set(w.address.toLowerCase(), w); // fresh stats win
+  const mergedWhales = [...mergedByAddr.values()].sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
   fs.writeFileSync(outFile, JSON.stringify({
     source: 'Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)',
     scannedAt: new Date().toISOString(),
     scannedBlocks: scanned, minUsdPerSwap: SCAN_MIN_USD, minLiquidityUsd: MIN_LIQ_USD,
     botsRemoved: { contracts: dropContract, sameBlockArb: dropArb, churnMM: dropChurn },
-    count: ranked.length, whales: ranked,
+    count: mergedWhales.length, whales: mergedWhales,
   }, null, 2));
-  console.log(`[scan] DONE · ${ranked.length} verified EOA whales → ${outFile}`);
+  console.log(`[scan] DONE · ${ranked.length} fresh + ${mergedWhales.length - ranked.length} carried = ${mergedWhales.length} whales → ${outFile}`);
   console.log('[scan] top 5:', ranked.slice(0, 5).map((w) => `${w.address.slice(0, 10)}=$${Math.round(w.volumeUsd).toLocaleString()}`).join('  '));
   process.exit(0);
 }

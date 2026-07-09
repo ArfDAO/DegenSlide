@@ -299,14 +299,22 @@ async function main() {
   const outDir = path.join(__dirname, '..', 'src', 'data');
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, 'curatedSolWhales.json');
+  // MERGE with the previous file — discovery only ever ADDS whales. A wallet
+  // found last week is still a real whale even if this scan's tx budget missed
+  // it; deleting it would silently shrink the global roster on every rescan.
+  let prevWhales = [];
+  try { prevWhales = JSON.parse(fs.readFileSync(outFile, 'utf8')).whales || []; } catch { /* first run */ }
+  const mergedByAddr = new Map(prevWhales.filter((w) => w.address).map((w) => [w.address, w]));
+  for (const w of ranked) mergedByAddr.set(w.address, w); // fresh stats win for re-found wallets
+  const mergedWhales = [...mergedByAddr.values()].sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
   fs.writeFileSync(outFile, JSON.stringify({
     source: 'Solana mainnet — on-chain discovery + behavioural bot elimination (signer balance-delta parsing, one-quote pools)',
     scannedAt: new Date().toISOString(),
     txsScanned: processed, minUsdPerSwap: SCAN_MIN_USD, minLiquidityUsd: MIN_LIQ_USD,
     botsRemoved: { sameSlotArb: dropArb, churnMM: dropChurn },
-    count: ranked.length, whales: ranked,
+    count: mergedWhales.length, whales: mergedWhales,
   }, null, 2));
-  console.log(`[sol-scan] DONE · ${ranked.length} verified whales → ${outFile}`);
+  console.log(`[sol-scan] DONE · ${ranked.length} fresh + ${mergedWhales.length - ranked.length} carried = ${mergedWhales.length} whales → ${outFile}`);
   console.log('[sol-scan] top 5:', ranked.slice(0, 5).map((w) => `${w.address.slice(0, 8)}=$${Math.round(w.volumeUsd).toLocaleString()}`).join('  '));
   process.exit(0);
 }

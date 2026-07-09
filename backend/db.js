@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS positions (
   trader TEXT, token TEXT, boughtTok REAL, spentMon REAL, soldTok REAL,
   recvMon REAL, realizedMon REAL, PRIMARY KEY (trader, token)
 );
+CREATE TABLE IF NOT EXISTS whale_registry (
+  address TEXT PRIMARY KEY,
+  source TEXT,            -- 'scan' | 'live' | 'gmgn' | 'manual'
+  firstSeen INTEGER,      -- ms epoch, set once, never changes
+  lastSeen INTEGER,       -- ms epoch, refreshed on every re-sighting
+  volumeUsd REAL,
+  solBalance REAL,
+  stats TEXT              -- JSON blob of the richest stats we have for this wallet
+);
 `);
 
 const insTrade = db.prepare(`INSERT OR IGNORE INTO trades
@@ -90,9 +99,34 @@ export function loadRecentTrades(limit = 240) {
 export function tradesByAddress(addr, limit = 30) {
   return db.prepare('SELECT * FROM trades WHERE trader=? ORDER BY ts DESC LIMIT ?').all(addr, limit);
 }
+// ── Whale registry: every wallet ever confirmed as a whale, forever. ──
+// Rows are only inserted or enriched, NEVER deleted — a rescan that misses a
+// wallet must not erase it (the global app's roster has to be durable).
+const upWhale = db.prepare(`INSERT INTO whale_registry (address,source,firstSeen,lastSeen,volumeUsd,solBalance,stats)
+ VALUES (@address,@source,@now,@now,@volumeUsd,@solBalance,@stats)
+ ON CONFLICT(address) DO UPDATE SET
+   lastSeen=@now,
+   volumeUsd=MAX(COALESCE(volumeUsd,0), COALESCE(@volumeUsd,0)),
+   solBalance=COALESCE(@solBalance, solBalance),
+   stats=COALESCE(@stats, stats)`);
+
+export function registerWhale(address, source, { volumeUsd = null, solBalance = null, stats = null } = {}) {
+  upWhale.run({
+    address: address, source, now: Date.now(),
+    volumeUsd, solBalance,
+    stats: stats ? JSON.stringify(stats) : null,
+  });
+}
+export function loadWhaleRegistry() {
+  return db.prepare('SELECT * FROM whale_registry ORDER BY volumeUsd DESC').all().map((r) => ({
+    ...r, stats: r.stats ? JSON.parse(r.stats) : null,
+  }));
+}
+
 export function stats() {
   return {
     dbTrades: db.prepare('SELECT COUNT(*) c FROM trades').get().c,
     dbTraders: db.prepare('SELECT COUNT(*) c FROM traders').get().c,
+    dbRegistry: db.prepare('SELECT COUNT(*) c FROM whale_registry').get().c,
   };
 }
