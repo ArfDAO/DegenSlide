@@ -119,7 +119,7 @@ function sweepFeeds() {
 function sweepTrendingTraders() {
   const seen = new Set();
   const tokens = [];
-  for (const interval of ['1h', '24h']) {
+  for (const interval of ['1h', '6h', '24h']) {
     const data = cliJson(['market', 'trending', '--chain', 'sol', '--interval', interval,
       '--limit', '100', '--min-liquidity', String(MIN_TOKEN_LIQ), '--min-smart-degen-count', '2',
       '--filter', 'not_wash_trading', '--raw']);

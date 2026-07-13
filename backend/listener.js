@@ -34,7 +34,7 @@ const PORT = Number(process.env.PORT || 8082);
 const server = http.createServer();
 // Pro whale gating is USD-denominated: a trade only hits the deck if it moves
 // real money (WHALE_MIN_USD), OR it comes from a known/registered big wallet.
-const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 100);    // non-registered floor, in USD (Monad-scale)
+const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 150);    // non-registered floor, in USD (Monad-scale)
 const REGISTERED_MIN_MON = Number(process.env.REGISTERED_MIN_MON || 100); // dust floor for known whales
 const WHALE_MIN_MON = Number(process.env.WHALE_MIN_MON || 5);      // absolute pre-filter (cheap check)
 const INCLUDE_SELLS = process.env.INCLUDE_SELLS === '1'; // deck shows copyable BUYs only by default
@@ -57,7 +57,7 @@ const QUOTE_TOKENS = new Map([
 ]);
 // High-liquidity floor (USD) — only surface tokens with a real market; filters junk.
 const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 25000);
-const REGISTERED_MIN_USD = Number(process.env.REGISTERED_MIN_USD || 50); // dust floor for known whales — this is a WHALE app, no sub-$50 cards
+const REGISTERED_MIN_USD = Number(process.env.REGISTERED_MIN_USD || 100); // dust floor for known whales — this is a WHALE app, no sub-$100 cards
 
 // ── Manually-pinned VIP wallets (always tracked, regardless of discovery) ──
 const VIP_WHALES = new Set([
@@ -121,19 +121,24 @@ try {
 
 // ── Periodic auto-discovery: re-run the whale scan on a schedule in a child
 // process (so the live indexer never blocks), then hot-reload the fresh roster.
-const DISCOVERY_HOURS = Number(process.env.DISCOVERY_HOURS || 3);
+const DISCOVERY_HOURS = Number(process.env.DISCOVERY_HOURS || 2);
+const DISCOVERY_KILL_MIN = Number(process.env.DISCOVERY_KILL_MIN || 25); // watchdog: a hung scan must never block future scans
 let discoveryRunning = false;
+let lastScanAt = null;
 function runDiscovery(reason) {
   if (discoveryRunning) { console.log('[discovery] skip — a scan is already running'); return; }
   discoveryRunning = true;
   console.log(`[discovery] launching whale scan (${reason})…`);
   const child = spawn(process.execPath, [path.join(__d, 'scanWhales.js')], { cwd: __d, env: process.env, stdio: 'inherit' });
+  const killer = setTimeout(() => { console.warn(`[discovery] scan exceeded ${DISCOVERY_KILL_MIN}m — killing (watchdog)`); child.kill('SIGKILL'); }, DISCOVERY_KILL_MIN * 60 * 1000);
   child.on('exit', (code) => {
+    clearTimeout(killer);
     discoveryRunning = false;
+    lastScanAt = Date.now();
     console.log(`[discovery] scan finished (exit ${code}) — reloading roster`);
     loadRoster();
   });
-  child.on('error', (e) => { discoveryRunning = false; console.warn('[discovery] spawn failed:', e.message); });
+  child.on('error', (e) => { clearTimeout(killer); discoveryRunning = false; console.warn('[discovery] spawn failed:', e.message); });
 }
 
 function rosterAgeHours() {
@@ -145,7 +150,7 @@ function rosterAgeHours() {
 // aggregates and promotes any fresh, directional, non-bot EOA to the roster so
 // its trades reach the deck almost immediately.
 const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 3);
-const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 120); // cumulative USD to qualify as a whale
+const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 400); // cumulative USD to qualify as a whale — real size only, this is a whale app
 const codeCache = new Map();
 async function isEOA(addr) {
   if (codeCache.has(addr)) return codeCache.get(addr);
@@ -620,7 +625,9 @@ server.on('request', async (req, res) => {
     return sendJson(res, 200, {
       ok: true, lastBlock, whales: recentWhales.length,
       traders: traderAgg.size, whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD, monPriceUsd,
-      registered: REGISTERED_WHALES.size, deckRosterOnly: DECK_ROSTER_ONLY, ...db.stats(),
+      registered: REGISTERED_WHALES.size, deckRosterOnly: DECK_ROSTER_ONLY,
+      discovery: { engine: 'deep-scan + live-promote', scanEveryHours: DISCOVERY_HOURS, promoteEveryMinutes: PROMOTE_MINUTES, running: discoveryRunning, lastFinished: lastScanAt },
+      ...db.stats(),
     });
   }
   if (path === '/whales') {

@@ -39,6 +39,11 @@ const PORT = Number(process.env.PORT || 8084);
 const server = await import('node:http').then(m => m.createServer());
 const TRACK_MIN_USD = Number(process.env.TRACK_MIN_USD || 150);    // TRACKING floor: registered whales' trades shown down to this size (any token)
 const RPC_DELAY_MS = Number(process.env.RPC_DELAY_MS || 80);
+// GMGN discovery scheduling state (declared early — /health reads it)
+const GMGN_SYNC_MINUTES = Number(process.env.GMGN_SYNC_MINUTES || 30);
+const GMGN_KILL_MIN = Number(process.env.GMGN_KILL_MIN || 20); // watchdog: a hung sync must never block future syncs
+let gmgnRunning = false;
+let lastGmgnSyncAt = null;
 // SELLs are real signal (whale exits), so they're shown by default.
 // Set INCLUDE_SELLS=0 to hide.
 const INCLUDE_SELLS = process.env.INCLUDE_SELLS !== '0';
@@ -376,7 +381,9 @@ server.on('request', async (req, res) => {
     return sendJson(res, 200, {
       ok: true, chain: 'solana', lastBlock: lastSlot, whales: recentWhales.length,
       traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
-      monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size, ...db.stats(),
+      monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size,
+      discovery: { engine: 'gmgn', everyMinutes: GMGN_SYNC_MINUTES, running: gmgnRunning, lastFinished: lastGmgnSyncAt },
+      ...db.stats(),
     });
   }
   if (p === '/whales') {
@@ -449,15 +456,14 @@ slotPoll();
 // trending tokens' top traders) into the PERMANENT registry (source 'gmgn'),
 // then reload the roster so the new whales go straight into live tracking.
 // Skips harmlessly when gmgn-cli isn't configured (e.g. cloud without the key).
-const GMGN_SYNC_MINUTES = Number(process.env.GMGN_SYNC_MINUTES || 45);
-let gmgnRunning = false;
 function runGmgnSync(reason) {
   if (gmgnRunning) return;
   gmgnRunning = true;
   console.log(`[gmgn-sync] launching (${reason})…`);
   const child = spawn(process.execPath, [path.join(__d, 'gmgnSync.js')], { cwd: __d, env: process.env, stdio: 'inherit' });
-  child.on('exit', () => { gmgnRunning = false; loadRoster(); });
-  child.on('error', (e) => { gmgnRunning = false; console.warn('[gmgn-sync] spawn failed:', e.message); });
+  const killer = setTimeout(() => { console.warn(`[gmgn-sync] exceeded ${GMGN_KILL_MIN}m — killing (watchdog)`); child.kill('SIGKILL'); }, GMGN_KILL_MIN * 60 * 1000);
+  child.on('exit', () => { clearTimeout(killer); gmgnRunning = false; lastGmgnSyncAt = Date.now(); loadRoster(); });
+  child.on('error', (e) => { clearTimeout(killer); gmgnRunning = false; console.warn('[gmgn-sync] spawn failed:', e.message); });
 }
 setTimeout(() => runGmgnSync('boot'), 60 * 1000); // after backfill settles
 setInterval(() => runGmgnSync('scheduled'), GMGN_SYNC_MINUTES * 60 * 1000);

@@ -18,8 +18,8 @@ export const CHAINS = {
     indexerHttp: env2.VITE_INDEXER_HTTP || 'https://deepswap-monad-bot2.onrender.com',
     indexerWs: env2.VITE_INDEXER_WS || 'wss://deepswap-monad-bot2.onrender.com',
     // Deck size tiers (USD) — EXCLUSIVE ranges (big < shark < whale); 'all' is
-    // the hard floor: nothing under $50 ever reaches the deck (whale app).
-    tiers: { all: 50, big: 50, shark: 150, whale: 300 },
+    // the hard floor: nothing under $100 ever reaches the deck (whale app).
+    tiers: { all: 100, big: 100, shark: 250, whale: 500 },
     copySupported: true,                               // MetaMask + PancakeSwap/Uniswap v3
     // Quick-pick copy amounts (native units) + gas headroom kept out of Max
     copyTiers: [{ label: '0.1', value: 0.1 }, { label: '1', value: 1 }, { label: '5', value: 5 }],
