@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Check, Eye, Waves, BadgeCheck } from 'lucide-react';
 import { EXPLORER_ADDR_URL, ACTIVE } from '../config/chain.js';
+import { whalePerf, fmtUsdSigned } from '../services/whaleStats.js';
 
-/* All values come from the on-chain whale indexer aggregate:
-   { address, trades, buys, sells, volumeMon, netMon, lastSeen, lastToken } */
+/* Rows come from the live indexer aggregate, ENRICHED with the registry's
+   authoritative stats (GMGN 7d on Solana, deep on-chain scan on Monad) via
+   whalePerf() — the live agg only fills the gaps. */
 
 function fmtMon(v) {
   if (v == null) return '—';
@@ -37,10 +39,9 @@ const RANK_STYLE = {
 };
 
 function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol }) {
-  const hasRealized = (t.closedTokens || 0) > 0;
-  const realized = t.realizedMon || 0;
-  const pnlUp = realized >= 0;
-  const win = t.winRate != null ? Math.round(t.winRate * 100) : null;
+  const perf = t.perf || whalePerf(t, monPriceUsd);
+  const pnlUp = (perf.pnlUsd ?? 0) >= 0;
+  const win = perf.winRate != null ? Math.round(perf.winRate * 100) : null;
   const medal = RANK_STYLE[rank];
   const volShare = maxVol > 0 ? Math.max(0.03, (t.volumeMon || 0) / maxVol) : 0;
   return (
@@ -72,17 +73,17 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol }) {
             {win != null && (
               <span style={{ fontSize: 9.5, color: win >= 50 ? 'var(--up)' : 'var(--text-3)', fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>{win}% win</span>
             )}
-            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{t.trades} tx · {timeAgo(t.lastSeen)} ago</span>
+            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{(perf.trades ?? t.trades) || 0} tx · {timeAgo(t.lastSeen)} ago</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
-          {hasRealized ? (
+          {perf.pnlUsd != null ? (
             <>
-              <span style={{ fontSize: 12.5, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', color: pnlUp ? 'var(--up)' : 'var(--down)' }}>{pnlUp ? '+' : ''}{fmtMon(realized)} {ACTIVE.nativeSymbol}</span>
-              <span style={{ fontSize: 8.5, color: 'var(--text-3)', fontWeight: 600 }}>realized · {t.closedTokens} closed</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', color: pnlUp ? 'var(--up)' : 'var(--down)' }}>{fmtUsdSigned(perf.pnlUsd)}</span>
+              <span style={{ fontSize: 8.5, color: 'var(--text-3)', fontWeight: 600 }}>{perf.source === 'gmgn7d' ? '7d PnL · verified' : perf.source === 'scan' ? 'realized · scan' : `realized · ${perf.tokens} closed`}</span>
             </>
           ) : (
-            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 700 }}>no exits yet</span>
+            <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 700 }}>no closed trades</span>
           )}
           <span style={{ fontSize: 8.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{fmtMon(t.volumeMon)} {ACTIVE.nativeSymbol} vol</span>
         </div>
@@ -99,33 +100,44 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol }) {
   );
 }
 
-export default function Leaderboard({ traders = [], monPriceUsd, onWatch, watchlist = [] }) {
+export default function Leaderboard({ traders = [], roster = [], monPriceUsd, onWatch, watchlist = [] }) {
   const [sort, setSort] = useState('profit');
   const [verifiedOnly, setVerifiedOnly] = useState(true);
 
   const hasVerified = useMemo(() => traders.some((t) => t.verified), [traders]);
 
+  // Registry stats by address — the authoritative winrate/PnL source. The live
+  // trader aggregate only fills the gaps (recency, volume, last token).
+  const rosterByAddr = useMemo(() => {
+    const m = new Map();
+    for (const w of roster) if (w.address) m.set(w.address, w);
+    return m;
+  }, [roster]);
+
   const sorted = useMemo(() => {
-    let list = [...traders];
+    let list = traders.map((t) => {
+      const reg = rosterByAddr.get(t.address);
+      return { ...t, perf: whalePerf(reg && (reg.realizedUsd7d != null || reg.statsAt != null || reg.realizedUsd != null) ? reg : t, monPriceUsd) };
+    });
     if (verifiedOnly && hasVerified) list = list.filter((t) => t.verified);
     list.sort((a, b) => {
       if (sort === 'volume') return b.volumeMon - a.volumeMon;
-      if (sort === 'trades') return b.trades - a.trades;
+      if (sort === 'trades') return (b.perf.trades ?? b.trades ?? 0) - (a.perf.trades ?? a.trades ?? 0);
       if (sort === 'winrate') {
-        // rank real, proven win rates first; wallets with no closed trades sink
-        const aw = a.closedTokens > 0 ? a.winRate : -1;
-        const bw = b.closedTokens > 0 ? b.winRate : -1;
+        // rank real, proven win rates first; wallets without stats sink
+        const aw = a.perf.winRate ?? -1;
+        const bw = b.perf.winRate ?? -1;
         if (bw !== aw) return bw - aw;
-        return (b.closedTokens || 0) - (a.closedTokens || 0);
+        return (b.perf.pnlUsd ?? -Infinity) - (a.perf.pnlUsd ?? -Infinity);
       }
-      // profit (default): realized MON, closed-trade wallets ranked above open-only
-      const ap = a.closedTokens > 0 ? a.realizedMon : -Infinity;
-      const bp = b.closedTokens > 0 ? b.realizedMon : -Infinity;
+      // profit (default): unified USD PnL, wallets with real stats ranked above
+      const ap = a.perf.pnlUsd ?? -Infinity;
+      const bp = b.perf.pnlUsd ?? -Infinity;
       if (bp !== ap) return bp - ap;
       return b.volumeMon - a.volumeMon;
     });
     return list;
-  }, [traders, sort, verifiedOnly, hasVerified]);
+  }, [traders, rosterByAddr, sort, verifiedOnly, hasVerified, monPriceUsd]);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -159,7 +171,9 @@ export default function Leaderboard({ traders = [], monPriceUsd, onWatch, watchl
             )); })()}
           </div>
         )}
-        <p className="text-center text-[10px] mt-4 mb-1" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>Realized PnL from observed on-chain buy/sell round-trips · Monad mainnet</p>
+        <p className="text-center text-[10px] mt-4 mb-1" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>
+          {ACTIVE.kind === 'svm' ? 'Win rate & PnL from GMGN 7-day portfolio stats · live trades fill the gaps' : 'Win rate & PnL from the deep on-chain scan · live trades fill the gaps'}
+        </p>
       </div>
     </div>
   );

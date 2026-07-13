@@ -1,6 +1,5 @@
 import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
 import TinderCard from 'react-tinder-card';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Droplet, BarChart3, X, ChevronUp, ExternalLink, Heart } from 'lucide-react';
 import { fetchTokenPairData } from '../services/dexscreenerApi';
 import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, DEXSCREENER_CHAIN, ACTIVE } from '../config/chain.js';
@@ -203,7 +202,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     setTimeout(() => setSwipeDir(null), 350);
   };
   const handleCardClick = () => {
-    if (!isTopCard || isDragging.current) return;
+    if (!isTopCard || isDragging.current || showDeepDive) return;
     setShowDeepDive(true);
   };
 
@@ -269,20 +268,37 @@ const SwipeCard = forwardRef(function SwipeCard(
       swipeRequirementType="position" swipeThreshold={80} onSwipe={handleSwipe}>
 
       <article
-        className="relative flex h-full w-full flex-col overflow-hidden"
+        className="relative flex h-full w-full flex-col"
         onClick={handleCardClick}
         style={{
           zIndex: 30, borderRadius: 24,
-          border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
           pointerEvents: isTopCard ? 'auto' : 'none', userSelect: 'none', touchAction: 'none',
           cursor: isTopCard && !showDeepDive ? 'grab' : 'default',
           transform: showDeepDive ? 'none' : dragTransform,
           transition: firedSwipe.current ? 'transform 0.2s ease-out' : startPt.current || showDeepDive ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
           willChange: isTopCard ? 'transform' : undefined,
-          background: 'var(--color-paper-white)',
+          perspective: 1400,
+          background: 'transparent',
         }}
         onPointerDown={trackStart} onPointerMove={trackMove} onPointerUp={trackEnd} onPointerCancel={trackEnd}
       >
+        {/* ── 3D FLIPPER: front = trade card, back = deep-dive details.
+            Tapping the card rotates it 180° like flipping a real card over. ── */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          transformStyle: 'preserve-3d',
+          transition: 'transform 0.65s cubic-bezier(0.35,0.1,0.25,1)',
+          transform: showDeepDive ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}>
+
+        {/* ══ FRONT FACE ══ */}
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+          borderRadius: 24, overflow: 'hidden',
+          border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
+          background: 'var(--color-paper-white)',
+        }}>
         {!showDeepDive && <Stamp dir="right" op={stampOpacity.right} />}
         {!showDeepDive && <Stamp dir="left" op={stampOpacity.left} />}
         {!showDeepDive && <Stamp dir="up" op={stampOpacity.up} />}
@@ -424,18 +440,22 @@ const SwipeCard = forwardRef(function SwipeCard(
         {/* ══ AFFORDANCE ══ */}
         <div style={{ marginTop: 'auto', padding: '12px 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <ChevronUp size={13} color="var(--text-3)" className="animate-bounce" />
-          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap for details</span>
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap to flip</span>
+        </div>
         </div>
 
-        {/* DEEP DIVE — real data only */}
-        <AnimatePresence>
-          {showDeepDive && (
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              onClick={(e) => e.stopPropagation()}
-              style={{ position: 'absolute', inset: 0, zIndex: 100, background: 'var(--color-paper-white)', display: 'flex', flexDirection: 'column' }}
-            >
+        {/* ══ BACK FACE — deep dive, real data only ══ */}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            borderRadius: 24, overflow: 'hidden',
+            border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
+            background: 'var(--color-paper-white)',
+          }}
+        >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--color-frost-shadow)' }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${trader.tokenSymbol} · live data</span>
                 <button onClick={() => setShowDeepDive(false)} style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--color-frost-shadow)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-pebble)' }}>
@@ -480,9 +500,9 @@ const SwipeCard = forwardRef(function SwipeCard(
                   </a>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
+
+        </div>{/* /flipper */}
       </article>
     </TinderCard>
   );

@@ -659,9 +659,9 @@ export default function App() {
               ))}
             </div>
             {lbMode === 'rankings' ? (
-              <div style={{ flex: 1, overflow: 'hidden' }}><Leaderboard traders={leaderboard} monPriceUsd={monPriceUsd} onWatch={addWatchWallet} watchlist={watchlist} /></div>
+              <div style={{ flex: 1, overflow: 'hidden' }}><Leaderboard traders={leaderboard} roster={curatedWhalesList} monPriceUsd={monPriceUsd} onWatch={addWatchWallet} watchlist={watchlist} /></div>
             ) : lbMode === 'curated' ? (
-              <CuratedWhales whales={curatedWhalesList} favorites={favorites} onToggleFavorite={toggleFavorite} onSaveAll={saveAllCurated} />
+              <CuratedWhales whales={curatedWhalesList} favorites={favorites} onToggleFavorite={toggleFavorite} onSaveAll={saveAllCurated} monPriceUsd={monPriceUsd} />
             ) : (
               <WatchlistPanel wallets={watchlistView} onAdd={addWatchWallet} onRemove={removeFromWatchlist} />
             )}

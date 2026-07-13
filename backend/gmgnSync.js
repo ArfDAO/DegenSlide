@@ -150,28 +150,57 @@ function sweepTrendingTraders() {
   console.log(`[gmgn-sync] trader sweep done: cumulative candidates = ${candidates.size}`);
 }
 
-// ── Quality gate: GMGN 7d wallet stats (winrate / realized profit) ──
-// Returns { pass, stats } — stats kept for the registry blob when available.
-function statsGate(addr, cand) {
+// ── GMGN 7d wallet stats (winrate / realized profit) — the authoritative
+// performance numbers shown in the app. Fetched per wallet, timestamped. ──
+function fetchWalletStats(addr) {
   const data = cliJson(['portfolio', 'stats', '--chain', 'sol', '--wallet', addr, '--period', '7d', '--raw']);
   const s = Array.isArray(data) ? data[0] : (data?.wallet_address ? data : data?.data);
-  if (!s || !s.wallet_address) {
+  if (!s || !s.wallet_address) return null;
+  const winrate = Number(s.pnl_stat?.winrate);
+  return {
+    winRate: Number.isFinite(winrate) ? Math.round(winrate * 100) / 100 : null,
+    realizedUsd7d: Math.round((Number(s.realized_profit) || 0) * 100) / 100,
+    trades7d: (s.buy || 0) + (s.sell || 0),
+    tokens7d: s.pnl_stat?.token_num ?? null,
+    twitter: s.common?.twitter_username || null,
+    solBalanceGmgn: Number(s.native_balance) || null,
+    statsAt: Date.now(),
+  };
+}
+
+// ── Quality gate for NEW candidates ──
+function statsGate(addr, cand) {
+  const stats = fetchWalletStats(addr);
+  if (!stats) {
     // stats unavailable → only GMGN's own feed wallets (already vetted smart_degen/renowned) pass
     return { pass: cand.fromFeed && [...cand.tags].some((t) => GOOD_TAGS.has(t)), stats: null };
   }
-  const winrate = Number(s.pnl_stat?.winrate);
-  const profit = Number(s.realized_profit) || 0;
-  const pass = (Number.isFinite(winrate) && winrate >= MIN_WINRATE) || profit >= MIN_PROFIT_USD;
-  return {
-    pass,
-    stats: {
-      winRate: Number.isFinite(winrate) ? Math.round(winrate * 100) / 100 : null,
-      realizedUsd7d: Math.round(profit * 100) / 100,
-      trades7d: (s.buy || 0) + (s.sell || 0),
-      tokens7d: s.pnl_stat?.token_num ?? null,
-      twitter: s.common?.twitter_username || null,
-    },
-  };
+  const pass = (stats.winRate != null && stats.winRate >= MIN_WINRATE) || stats.realizedUsd7d >= MIN_PROFIT_USD;
+  return { pass, stats };
+}
+
+// ── Stats refresh: keep the WHOLE registry's winrate/PnL numbers accurate.
+// Refreshes wallets with missing stats first, then the stalest ones, capped
+// per run so the roster's performance data rolls over roughly daily. ──
+const STATS_TTL_MS = Number(process.env.GMGN_STATS_TTL_HOURS || 24) * 3600 * 1000;
+const STATS_REFRESH_CAP = Number(process.env.GMGN_STATS_REFRESH_CAP || 150);
+function refreshRegistryStats() {
+  const now = Date.now();
+  const due = db.loadWhaleRegistry()
+    .filter((r) => !r.stats?.statsAt || now - r.stats.statsAt > STATS_TTL_MS)
+    .sort((a, b) => (a.stats?.statsAt || 0) - (b.stats?.statsAt || 0))
+    .slice(0, STATS_REFRESH_CAP);
+  if (!due.length) { console.log('[gmgn-sync] stats refresh: all fresh'); return; }
+  console.log(`[gmgn-sync] stats refresh: updating ${due.length} wallets…`);
+  let ok = 0;
+  for (const r of due) {
+    const stats = fetchWalletStats(r.address);
+    if (!stats) continue;
+    const prev = r.stats && typeof r.stats === 'object' ? r.stats : { address: r.address };
+    db.registerWhale(r.address, r.source, { stats: { ...prev, ...stats } });
+    ok += 1;
+  }
+  console.log(`[gmgn-sync] stats refresh done · ${ok}/${due.length} updated`);
 }
 
 async function main() {
@@ -181,6 +210,7 @@ async function main() {
 
   sweepFeeds();
   sweepTrendingTraders();
+  refreshRegistryStats(); // keep existing whales' winrate/PnL accurate
   if (!candidates.size) { console.log('[gmgn-sync] no candidates returned — nothing to do'); return; }
 
   // register only NEW wallets (already-registered ones stay untouched — the
