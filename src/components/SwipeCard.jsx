@@ -329,7 +329,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ WHALE IDENTITY ══ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 0' }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <BlockieAvatar addr={trader.address} size={46} />
             <span style={{
@@ -374,7 +374,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ TOKEN HERO — the centerpiece ══ */}
-        <div style={{ padding: '18px 18px 0', textAlign: 'center' }}>
+        <div style={{ padding: 'min(18px, 2vh) 18px 0', textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {pair?.imageUrl ? (
               <img src={pair.imageUrl} alt="" style={{ width: 34, height: 34, borderRadius: '50%', boxShadow: '0 0 0 2px var(--line-1), 0 4px 14px rgba(0,0,0,0.5)' }} />
@@ -384,7 +384,7 @@ const SwipeCard = forwardRef(function SwipeCard(
             <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.035em', fontFamily: 'var(--font-display)' }}>${trader.tokenSymbol}</span>
           </div>
           {tradeUsd != null && (
-            <div style={{ marginTop: 8, fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', color: sideColor, fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: isBuy ? '0 0 34px rgba(47,230,168,0.35)' : '0 0 34px rgba(255,93,125,0.35)' }}>
+            <div style={{ marginTop: 8, fontSize: 'clamp(28px, 5vh, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: sideColor, fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: isBuy ? '0 0 34px rgba(47,230,168,0.35)' : '0 0 34px rgba(255,93,125,0.35)' }}>
               {fmtUsd(tradeUsd)}
             </div>
           )}
@@ -394,7 +394,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ LIVE MARKET WELL ══ */}
-        <div style={{ margin: '16px 18px 0', borderRadius: 16, border: '1px solid var(--line-2)', background: 'var(--surface-2)', padding: '11px 14px' }}>
+        <div style={{ margin: 'min(16px, 2vh) 18px 0', borderRadius: 16, border: '1px solid var(--line-2)', background: 'var(--surface-2)', padding: '11px 14px' }}>
           {pair ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div>
@@ -420,7 +420,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ STAT WELLS ══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '10px 18px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 'min(10px, 1.5vh) 18px 0' }}>
           {[
             { icon: <Droplet size={12} />, label: 'Liquidity', value: fmtUsd(pair?.liquidity) },
             { icon: <Activity size={12} />, label: 'FDV', value: fmtUsd(pair?.fdv) },
@@ -438,7 +438,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ AFFORDANCE ══ */}
-        <div style={{ marginTop: 'auto', padding: '12px 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        <div style={{ marginTop: 'auto', padding: 'min(12px, 1.5vh) 0 min(14px, 2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <ChevronUp size={13} color="var(--text-3)" className="animate-bounce" />
           <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap to flip</span>
         </div>
