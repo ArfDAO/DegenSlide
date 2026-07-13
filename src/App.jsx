@@ -683,9 +683,13 @@ export default function App() {
 
       {/* ── Contextual page head — deck: live-signal count + network switcher ── */}
       <div className="page-head">
-        <h1 className="page-title">
-          {activeTab === 'deck' ? `${deckCards.length} Live Signals` : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
-        </h1>
+        {activeTab === 'deck' ? (
+          <span className="page-meta">{deckCards.length} live signals</span>
+        ) : (
+          <h1 className="page-title">
+            {activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
+          </h1>
+        )}
         {activeTab === 'deck' ? (
           /* Network switcher — persists choice, reloads onto the selected chain's indexer */
           <div className="seg-track">

@@ -444,9 +444,10 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
         </div>
 
-        {/* ══ BACK FACE — deep dive, real data only ══ */}
+        {/* ══ BACK FACE — deep dive, real data only. Tap anywhere (except a
+            link) to flip back to the front. ══ */}
         <div
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); if (e.target.closest('a, button')) return; setShowDeepDive(false); }}
           style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
