@@ -157,7 +157,6 @@ export default function ProfilePage({
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <span style={{ fontSize: 8.5, fontWeight: 800, color: '#f5b544', background: 'rgba(245,181,68,0.12)', border: '1px solid rgba(245,181,68,0.4)', borderRadius: 100, padding: '1px 7px', letterSpacing: '0.08em' }}>⚡ TURBO</span>
                 <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{ACTIVE.kind === 'evm' ? `${MONAD_MAINNET.chainName} · id ${MONAD_MAINNET.chainIdNum}` : `${ACTIVE.label} · mainnet-beta`}</span>
               </div>
             </div>

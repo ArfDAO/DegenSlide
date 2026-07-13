@@ -672,7 +672,22 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Network switcher — persists choice, reloads onto the selected chain's indexer */}
+          {/* Turbo wallet IS the account — the button jumps to its home on the Profile page */}
+          <button onClick={() => setActiveTab('profile')} className={`connect-btn ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
+            {turboAddr
+              ? (<><span style={{ fontSize: 11 }}>⚡</span>{monBalance != null ? `${monBalance.toFixed(2)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`}</>)
+              : (<><span style={{ fontSize: 11 }}>⚡</span>Turbo</>)}
+          </button>
+        </div>
+      </header>
+
+      {/* ── Contextual page head — deck: live-signal count + network switcher ── */}
+      <div className="page-head">
+        <h1 className="page-title">
+          {activeTab === 'deck' ? `${deckCards.length} Live Signals` : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
+        </h1>
+        {activeTab === 'deck' ? (
+          /* Network switcher — persists choice, reloads onto the selected chain's indexer */
           <div className="seg-track">
             {Object.values(CHAINS).map((c) => {
               const on = ACTIVE.id === c.id;
@@ -684,26 +699,13 @@ export default function App() {
               );
             })}
           </div>
-          {/* Turbo wallet IS the account — the button jumps to its home on the Profile page */}
-          <button onClick={() => setActiveTab('profile')} className={`connect-btn ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
-            {turboAddr
-              ? (<><span style={{ fontSize: 11 }}>⚡</span>{monBalance != null ? `${monBalance.toFixed(2)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`}</>)
-              : (<><span style={{ fontSize: 11 }}>⚡</span>Turbo</>)}
-          </button>
-        </div>
-      </header>
-
-      {/* ── Contextual page head ── */}
-      <div className="page-head">
-        <h1 className="page-title">
-          {activeTab === 'deck' ? 'Whale Deck' : activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
-        </h1>
-        <span className="page-meta">
-          {activeTab === 'deck' ? `${deckCards.length} live signals` :
-           activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
-           activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
-           (turboAddr ? `⚡ ${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}` : 'turbo not set up')}
-        </span>
+        ) : (
+          <span className="page-meta">
+            {activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
+             activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
+             (turboAddr ? `⚡ ${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}` : 'turbo not set up')}
+          </span>
+        )}
       </div>
 
       <main className="main-content">
