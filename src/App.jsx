@@ -5,6 +5,8 @@ import Portfolio from './components/Portfolio';
 import WatchlistPanel from './components/WatchlistPanel';
 import CuratedWhales from './components/CuratedWhales';
 import ProfilePage from './components/ProfilePage';
+import TurboPanel from './components/TurboPanel';
+import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Copy, Zap, Settings, Check, AlertTriangle, Info, Layers, WifiOff } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
@@ -18,7 +20,6 @@ import { EXPLORER_URL, EXPLORER_ADDR_URL, DEFAULT_SLIPPAGE_BPS, ACTIVE, CHAINS, 
 import {
   connectWallet,
   getConnectedAccount,
-  copyBuy,
   sellToken,
   getMonBalance,
   isWalletAvailable,
@@ -262,6 +263,9 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [lbMode, setLbMode] = useState('rankings');
   const [showTradeSettings, setShowTradeSettings] = useState(false);
+  // Turbo 1-swipe trading: agreement + local trading wallet → no per-trade popups
+  const [turboOpen, setTurboOpen] = useState(false);
+  const pendingTradeRef = useRef(null); // swipe that triggered first-time Turbo setup — replayed after funding
   // USD scale differs per chain, so the tier choice is stored per chain too
   const DECKTIER_LS = LSK('deckTier', 'monad_deckTier');
   const [deckTier, setDeckTier] = useState(() => loadLS(DECKTIER_LS, 'all'));
@@ -407,8 +411,53 @@ export default function App() {
     } finally { setIsConnecting(false); }
   }, []);
 
-  // ── Copy execution: real swap of the whale's token on the ACTIVE chain
-  // (Monad: MetaMask + PancakeSwap/Uniswap v3 · Solana: Phantom + Jupiter) ──
+  // Record a confirmed buy into the portfolio (shared by every execution path).
+  // Turbo and wallet positions never merge — their tokens sit in different wallets.
+  const recordBuy = useCallback((trader, amountMon, action, { hash, expectedOut, dex, decimals: liveDecimals, turbo }) => {
+    setLastTxHash(hash);
+    showToast('tx_sent');
+    const addr = (trader.tokenAddress || '').toLowerCase();
+    const decimals = liveDecimals ?? trader.tokenDecimals ?? 18;
+    const invested = monPriceUsd ? amountMon * monPriceUsd : 0;
+    const gotTokens = (expectedOut || '0').toString();
+    // Upsert: buying the same token again averages into one position (real DCA).
+    setPortfolio((prev) => {
+      const i = prev.findIndex((p) => (p.token?.address || '').toLowerCase() === addr && !!p.turbo === !!turbo);
+      if (i >= 0) {
+        const p = prev[i];
+        const merged = {
+          ...p,
+          amountMon: (p.amountMon ?? p.amount ?? 0) + amountMon,
+          tokensRaw: (BigInt(p.tokensRaw || '0') + BigInt(gotTokens)).toString(),
+          investedUsd: (p.investedUsd ?? 0) + invested,
+          lastTime: Date.now(),
+        };
+        const copy = [...prev]; copy[i] = merged; return copy;
+      }
+      const entry = {
+        id: `${addr}-${Date.now()}`,
+        trader: { address: trader.address },
+        action,
+        token: { symbol: trader.tokenSymbol, address: trader.tokenAddress, decimals },
+        dex: dex || trader.dex || null,
+        amountMon,
+        tokensRaw: gotTokens,
+        investedUsd: invested,
+        monPriceUsd: monPriceUsd ?? null,
+        time: Date.now(),
+        stopLossPct: null,
+        takeProfitPct: null,
+        sellOnWhaleExit: false, // per-position "sell when the whale sells" toggle
+        turbo: !!turbo, // executed & held by the Turbo trading wallet
+      };
+      return [entry, ...prev];
+    });
+    setFavorites((prev) => (prev.find((f) => f.address === trader.address) ? prev : [{ address: trader.address, tokenSymbol: trader.tokenSymbol }, ...prev]));
+  }, [monPriceUsd]);
+
+  // ── Copy execution: TURBO 1-swipe — the swap is signed locally by the Turbo
+  // trading wallet and broadcast immediately. No wallet popup per trade; the
+  // one-time agreement + funding happen in TurboPanel. ──
   const sendCopy = useCallback(async (trader, amountMon, action = 'COPY') => {
     // Safety net for any future chain without in-app execution
     if (!ACTIVE.copySupported) {
@@ -416,64 +465,29 @@ export default function App() {
       showToast('copy', 'Opened on Jupiter — in-app copy not live on this chain yet');
       return;
     }
-    let from = walletAddress;
-    if (!from) { const ok = await doConnect(); if (!ok) return; from = await getConnectedAccount(); if (!from) return; }
+    // First swipe ever → run the one-time agreement + funding flow, then replay.
+    if (!hasTurboAgreement() || !turboWalletExists()) {
+      pendingTradeRef.current = { trader, amountMon, action };
+      setTurboOpen(true);
+      return;
+    }
     try {
-      // Honest status: nothing is "sent" until the wallet signs AND the chain confirms.
-      showToast('copy_pending');
-      const { hash, expectedOut, dex, decimals: liveDecimals } = await copyBuy(from, trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, slippageBps });
-      setLastTxHash(hash);
-      showToast('tx_sent');
-      const addr = (trader.tokenAddress || '').toLowerCase();
-      const decimals = liveDecimals ?? trader.tokenDecimals ?? 18;
-      const invested = monPriceUsd ? amountMon * monPriceUsd : 0;
-      const gotTokens = (expectedOut || '0').toString();
-      // Upsert: buying the same token again averages into one position (real DCA).
-      setPortfolio((prev) => {
-        const i = prev.findIndex((p) => (p.token?.address || '').toLowerCase() === addr);
-        if (i >= 0) {
-          const p = prev[i];
-          const merged = {
-            ...p,
-            amountMon: (p.amountMon ?? p.amount ?? 0) + amountMon,
-            tokensRaw: (BigInt(p.tokensRaw || '0') + BigInt(gotTokens)).toString(),
-            investedUsd: (p.investedUsd ?? 0) + invested,
-            lastTime: Date.now(),
-          };
-          const copy = [...prev]; copy[i] = merged; return copy;
-        }
-        const entry = {
-          id: `${addr}-${Date.now()}`,
-          trader: { address: trader.address },
-          action,
-          token: { symbol: trader.tokenSymbol, address: trader.tokenAddress, decimals },
-          dex: dex || trader.dex || null,
-          amountMon,
-          tokensRaw: gotTokens,
-          investedUsd: invested,
-          monPriceUsd: monPriceUsd ?? null,
-          time: Date.now(),
-          stopLossPct: null,
-          takeProfitPct: null,
-          sellOnWhaleExit: false, // per-position "sell when the whale sells" toggle
-        };
-        return [entry, ...prev];
-      });
-      setFavorites((prev) => (prev.find((f) => f.address === trader.address) ? prev : [{ address: trader.address, tokenSymbol: trader.tokenSymbol }, ...prev]));
-      refreshBalance(from);
+      showToast('copy_pending', `⚡ Copying $${trader.tokenSymbol}…`);
+      const res = await turboCopyBuy(trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, slippageBps });
+      recordBuy(trader, amountMon, action, res);
     } catch (err) {
-      const causeData = err.cause?.data;
-      console.error('[CopyTrade] failed:', err.message, '·', err.cause?.message || '', '· data:', JSON.stringify(causeData ?? null), err);
-      if (err.code === 4001) return;
-      const m = (err.message || '').toLowerCase();
-      if (err.message === 'NO_LIQUIDITY') showToast('no_liq');
-      else if (err.message === 'INSUFFICIENT_FUNDS') showToast('no_funds', `Need ${err.needMon.toFixed(3)} ${ACTIVE.nativeSymbol} · have ${err.haveMon.toFixed(3)}`);
-      else if (err.message === 'BALANCE_UNKNOWN') showToast('no_balance');
+      console.error('[Turbo] copy failed:', err.message, err);
+      if (err.message === 'INSUFFICIENT_FUNDS') {
+        showToast('no_funds', `Turbo balance low — deposit ${ACTIVE.nativeSymbol}`);
+        pendingTradeRef.current = { trader, amountMon, action };
+        setTurboOpen(true);
+      }
+      else if (err.message === 'NO_LIQUIDITY') showToast('no_liq');
       else if (err.message === 'TX_FAILED' || err.message === 'TX_TIMEOUT') showToast('tx_failed');
-      else if (m.includes('insufficient') || m.includes('exceeds balance')) showToast('no_funds');
+      else if (err.message === 'SWAP_REVERT') showToast('tx_failed', 'Swap reverted — try higher slippage');
       else showToast('tx_error');
     }
-  }, [walletAddress, monPriceUsd, doConnect, slippageBps, refreshBalance]);
+  }, [monPriceUsd, slippageBps, recordBuy]);
 
   const handleDisconnect = useCallback(() => {
     disconnectWallet();
@@ -495,8 +509,26 @@ export default function App() {
     sendCopy({ address: item.trader?.address, tokenAddress: item.token.address, tokenSymbol: item.token.symbol, tokenDecimals: item.token.decimals }, amount);
   }, [sendCopy]);
 
-  // Sell a position back to native MON (manual "Close" or auto SL/TP). Real on-chain swap.
+  // Sell a position back to native (manual "Close" or auto SL/TP). Real on-chain swap.
+  // Turbo positions are signed locally (no popup — SL/TP & whale-exit are fully
+  // automatic); wallet positions still go through the connected wallet.
   const sellPosition = useCallback(async (p) => {
+    if (p.turbo) {
+      showToast('sell_pending', `⚡ Closing $${p.token.symbol}…`);
+      try {
+        const { hash } = await turboSellToken(p.token.address, { slippageBps, preferredDex: p.dex, amountRaw: p.tokensRaw });
+        setLastTxHash(hash);
+        showToast('sell_sent');
+        setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+      } catch (err) {
+        const m = err.message;
+        if (m === 'NO_BALANCE') showToast('sell_nobal');
+        else if (m === 'NO_LIQUIDITY') showToast('no_liq');
+        else showToast('sell_fail');
+        throw err;
+      }
+      return;
+    }
     let from = walletAddress;
     if (!from) { const ok = await doConnect(); if (!ok) throw new Error('NO_WALLET'); from = await getConnectedAccount(); if (!from) throw new Error('NO_WALLET'); }
     showToast('sell_pending');
@@ -595,6 +627,20 @@ export default function App() {
 
   return (
     <div className="app-container">
+      <TurboPanel
+        open={turboOpen}
+        onClose={() => setTurboOpen(false)}
+        walletAddress={walletAddress}
+        onConnect={doConnect}
+        showToast={showToast}
+        onReady={() => {
+          // funded → replay the swipe that opened the setup, then close
+          const pending = pendingTradeRef.current;
+          pendingTradeRef.current = null;
+          setTurboOpen(false);
+          if (pending) sendCopy(pending.trader, pending.amountMon, pending.action);
+        }}
+      />
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
           <div className="animate-rocket flex flex-col items-center gap-3"><Zap size={72} strokeWidth={1.5} style={{ color: 'var(--color-tag-violet)' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--color-tag-violet)' }}>All In</span></div>
@@ -739,6 +785,7 @@ export default function App() {
             settings={settings} updateSetting={updateSetting}
             lastTxHash={lastTxHash} indexerUp={indexerUp}
             onDisconnect={handleDisconnect} onClearData={handleClearData}
+            onOpenTurbo={() => setTurboOpen(true)}
           />
         )}
       </main>

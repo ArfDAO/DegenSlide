@@ -98,7 +98,7 @@ export default function ProfilePage({
   portfolio, watchlistCount, balanceHistory,
   settings, updateSetting,
   lastTxHash, indexerUp,
-  onDisconnect, onClearData,
+  onDisconnect, onClearData, onOpenTurbo,
 }) {
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -254,6 +254,19 @@ export default function ProfilePage({
             <a href={`${EXPLORER_URL}/tx/${lastTxHash}`} target="_blank" rel="noreferrer" style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--color-tidewater-navy)', textDecoration: 'none' }}>
               View on MonadScan <ExternalLink size={12} />
             </a>
+          </div>
+        )}
+
+        {/* ── Turbo trading wallet ── */}
+        {onOpenTurbo && (
+          <div style={{ ...CARD, padding: '14px 16px' }}>
+            <SectionTitle icon={<span style={{ fontSize: 12 }}>⚡</span>} accent="#f5b544">Turbo · 1-Swipe Trading</SectionTitle>
+            <button onClick={onOpenTurbo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', marginTop: 12, padding: '11px 0', borderRadius: 12, border: '1px solid rgba(245,181,68,0.4)', background: 'rgba(245,181,68,0.08)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              Manage Turbo wallet
+            </button>
+            <p style={{ fontSize: 10, color: 'var(--color-pebble)', margin: '8px 0 0', fontWeight: 600, lineHeight: 1.5 }}>
+              Swipes execute instantly from your local Turbo wallet — deposit, withdraw or export its key here.
+            </p>
           </div>
         )}
 

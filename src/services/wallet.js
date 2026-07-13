@@ -266,6 +266,72 @@ function insufficient(valueWei, balanceWei, gasWei) {
   return Object.assign(new Error('INSUFFICIENT_FUNDS'), { needMon: need, haveMon: have, gasMon: Number(gasWei) / 1e18 });
 }
 
+// ── Signer-agnostic tx builders (used by the Turbo trading wallet, which signs
+// locally with its own key instead of prompting MetaMask). Same routing,
+// quoting and slippage math as the interactive path above. ──
+
+/** Build an unsigned MON→token buy tx. Returns { tx:{to,value,data}, meta }. */
+export async function buildBuyTx(from, tokenOut, amountMon, opts = {}) {
+  if (!tokenOut || !/^0x[0-9a-fA-F]{40}$/.test(tokenOut)) throw new Error('NO_TOKEN_ADDRESS');
+  const { routeKey, fee, amountOut, amountInWei, deadline } = await bestCopyQuote(tokenOut, amountMon, opts);
+  if (amountOut === 0n) throw new Error('NO_LIQUIDITY');
+  const slippageBps = opts.slippageBps || 1000;
+  const amountOutMin = (amountOut * BigInt(10000 - slippageBps)) / 10000n;
+  const route = ROUTES[routeKey];
+  const data = encodeExactInputSingle(route, {
+    tokenOut, fee, recipient: from, deadline, amountIn: amountInWei, amountOutMinimum: amountOutMin,
+  });
+  return {
+    tx: { to: route.router, value: amountInWei, data },
+    meta: { dex: routeKey, fee, expectedOut: amountOut.toString(), amountOutMin: amountOutMin.toString() },
+  };
+}
+
+/**
+ * Build an unsigned token→MON sell plan. Returns { approveTx|null, tx, meta }.
+ * approveTx (if present) must be mined before tx.
+ */
+export async function buildSellPlan(from, tokenIn, opts = {}) {
+  if (!tokenIn || !/^0x[0-9a-fA-F]{40}$/.test(tokenIn)) throw new Error('NO_TOKEN_ADDRESS');
+  const slippageBps = opts.slippageBps ?? DEFAULT_SLIPPAGE_BPS;
+  const { raw: balance } = await getTokenInfo(from, tokenIn);
+  if (balance <= 0n) throw new Error('NO_BALANCE');
+  let amountIn = balance;
+  if (opts.amountRaw) {
+    try { const want = BigInt(opts.amountRaw); if (want > 0n && want < balance) amountIn = want; } catch { /* full balance */ }
+  }
+  const deadline = Math.floor(Date.now() / 1000) + 600;
+  const order = opts.preferredDex && ROUTES[opts.preferredDex]
+    ? [opts.preferredDex, ...Object.keys(ROUTES).filter((k) => k !== opts.preferredDex)]
+    : Object.keys(ROUTES);
+  let chosen = null;
+  for (const routeKey of order) {
+    const route = ROUTES[routeKey];
+    let best = { fee: null, out: 0n };
+    for (const fee of route.feeTiers) {
+      const out = await quoteSell(route, from, tokenIn, amountIn, fee, deadline);
+      if (out > best.out) best = { fee, out };
+    }
+    if (best.out > 0n) { chosen = { routeKey, route, fee: best.fee, out: best.out }; break; }
+  }
+  if (!chosen) throw new Error('NO_LIQUIDITY');
+  const allowance = await getAllowance(tokenIn, from, chosen.route.router);
+  const approveTx = allowance < amountIn
+    ? { to: tokenIn, value: 0n, data: SEL_APPROVE + addr32(chosen.route.router) + pad32(hexBig(MAX_UINT)) }
+    : null;
+  const amountOutMin = (chosen.out * BigInt(10000 - slippageBps)) / 10000n;
+  const swapCall = encodeExactInputSingle(chosen.route, {
+    tokenIn, tokenOut: CONTRACTS.WMON, fee: chosen.fee, recipient: chosen.route.router,
+    deadline, amountIn, amountOutMinimum: amountOutMin,
+  });
+  const unwrapCall = SEL_UNWRAP + pad32(hexBig(amountOutMin)) + addr32(from);
+  return {
+    approveTx,
+    tx: { to: chosen.route.router, value: 0n, data: encodeMulticall([swapCall, unwrapCall]) },
+    meta: { dex: chosen.routeKey, fee: chosen.fee, amountIn: amountIn.toString(), expectedOut: chosen.out.toString(), amountOutMin: amountOutMin.toString() },
+  };
+}
+
 // ── SELL: close a position by swapping the token back to native MON ──
 
 const first32 = (res) => (res && res !== '0x' ? BigInt('0x' + strip(res).slice(0, 64)) : 0n);

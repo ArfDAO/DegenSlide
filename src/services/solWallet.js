@@ -34,9 +34,9 @@ export function isWalletAvailable() {
   return !!provider();
 }
 
-// ── raw JSON-RPC to Solana mainnet (read-only queries) ──
+// ── raw JSON-RPC to Solana mainnet (exported for the Turbo trading wallet) ──
 let rpcId = 0;
-async function rpc(method, params = []) {
+export async function rpc(method, params = []) {
   const res = await fetch(RPC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -96,7 +96,7 @@ export async function getMonBalance(address) {
 
 // ── Jupiter aggregator (live quotes + executable transactions) ──
 
-async function jupQuote(inputMint, outputMint, amountRaw, slippageBps) {
+export async function jupQuote(inputMint, outputMint, amountRaw, slippageBps) {
   const url = `${JUP}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountRaw}&slippageBps=${slippageBps}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
   const q = await res.json();
@@ -104,7 +104,7 @@ async function jupQuote(inputMint, outputMint, amountRaw, slippageBps) {
   return q;
 }
 
-async function jupSwapTx(quoteResponse, userPublicKey) {
+export async function jupSwapTx(quoteResponse, userPublicKey) {
   const res = await fetch(`${JUP}/swap`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -130,7 +130,7 @@ async function signAndSend(swapTxB64) {
  * a trade — only a confirmed one is. Throws TX_FAILED if it landed with an
  * error, TX_TIMEOUT if it never confirmed.
  */
-async function confirmOnChain(signature, timeoutMs = 60000) {
+export async function confirmOnChain(signature, timeoutMs = 60000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     try {
@@ -150,7 +150,7 @@ async function confirmOnChain(signature, timeoutMs = 60000) {
 }
 
 /** Real token amount the owner received/spent in a confirmed tx (raw units). */
-async function actualTokenDelta(signature, owner, mint) {
+export async function actualTokenDelta(signature, owner, mint) {
   try {
     const tx = await rpc('getTransaction', [signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0, commitment: 'confirmed' }]);
     if (!tx?.meta) return null;
@@ -164,12 +164,12 @@ async function actualTokenDelta(signature, owner, mint) {
   }
 }
 
-function dexLabel(quote) {
+export function dexLabel(quote) {
   const labels = [...new Set((quote.routePlan || []).map((r) => r.swapInfo?.label).filter(Boolean))];
   return labels.length ? labels.join('+') : 'Jupiter';
 }
 
-async function mintDecimals(mint) {
+export async function mintDecimals(mint) {
   try {
     const r = await rpc('getTokenSupply', [mint]);
     return r?.value?.decimals ?? null;

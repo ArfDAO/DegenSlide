@@ -12,6 +12,7 @@
     "@react-spring/web": "^9.7.5",
     "@solana/web3.js": "^1.98.4",
     "buffer": "^6.0.3",
+    "ethers": "^6.17.0",
     "framer-motion": "^12.42.2",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^1.22.0",
