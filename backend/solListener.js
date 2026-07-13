@@ -1,21 +1,21 @@
 /**
  * DegenSlide Whale Indexer — SOLANA MAINNET
  *
- * Same architecture as the Monad listener (listener.js), adapted to Solana:
- *  - Pool discovery: DexScreener top Solana pools anchored to SOL/USDC/USDT
- *    (exactly one quote side) with real liquidity ≥ MIN_LIQ_USD. No junk.
- *  - Live watch: getSignaturesForAddress per pool → getTransaction → parse the
- *    SIGNER's token-balance deltas (pre/post) + lamports. Quote leg gives the
- *    real USD size; the opposite leg is the traded token. Failed txs skipped.
- *  - Whale gate (USD), behavioural bot filtering + live promotion, avg-cost
- *    realized PnL, SQLite persistence — identical semantics to Monad.
+ * REGISTRY-ONLY model (no blanket transaction scanning):
+ *  1. Discovery: gmgnSync.js finds proven Smart Money wallets via the GMGN
+ *     OpenAPI and registers them PERMANENTLY into the durable whale_registry.
+ *  2. Tracking: this indexer follows ONLY the registered whale wallets —
+ *     getSignaturesForAddress per wallet → getTransaction → parse that
+ *     wallet's token-balance deltas (pre/post) + lamports. Quote leg gives
+ *     the real USD size; the opposite leg is the traded token, whatever it is.
+ *  3. Deck/WS/API surface the registered whales' buys and sells, avg-cost
+ *     realized PnL, SQLite persistence.
  *
  * NO mock / fabricated data. Every card is a real parsed mainnet transaction.
  *
  * Env: SOLANA_RPC (default public mainnet-beta — rate-limited; use a dedicated
- * RPC in production), WS_PORT(8083), HTTP_PORT(8084), WHALE_MIN_USD(1000),
- * MIN_LIQ_USD(150000), MAX_POOLS(12), POLL_MS(8000), TX_BUDGET(24),
- * PROMOTE_MIN_USD(3000), PROMOTE_MINUTES(2), WHALE_DB(backend/solWhales.db)
+ * RPC in production), PORT(8084), TRACK_MIN_USD(150), WHALE_POLL_MS(7000),
+ * WHALE_BATCH(8), GMGN_SYNC_MINUTES(45), WHALE_DB(backend/solWhales.db)
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -23,7 +23,6 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { discoverQualityPools } from './solPools.js';
 
 const __d = path.dirname(fileURLToPath(import.meta.url));
 process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
@@ -38,20 +37,11 @@ process.on('uncaughtException', (e) => console.warn('[guard] uncaught exception:
 const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const PORT = Number(process.env.PORT || 8084);
 const server = await import('node:http').then(m => m.createServer());
-const WHALE_MIN_USD = Number(process.env.WHALE_MIN_USD || 500);    // DISCOVERY floor: how big a swap must be to flag a NEW whale
-const TRACK_MIN_USD = Number(process.env.TRACK_MIN_USD || 150);    // TRACKING floor: known whales' trades shown down to this size (any token)
-const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 150000);
-const MAX_POOLS = Number(process.env.MAX_POOLS || 24);
-const MIN_MCAP_USD = Number(process.env.MIN_MCAP_USD || 20000000); // dynamic pools must clear this market cap
-const POLL_MS = Number(process.env.POLL_MS || 8000);
-const TX_BUDGET = Number(process.env.TX_BUDGET || 24);             // getTransaction calls per cycle (public RPC limits)
+const TRACK_MIN_USD = Number(process.env.TRACK_MIN_USD || 150);    // TRACKING floor: registered whales' trades shown down to this size (any token)
 const RPC_DELAY_MS = Number(process.env.RPC_DELAY_MS || 80);
-const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 3000);
-const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 2);
-// Solana v1 is a watch-only whale feed (no MON route to copy) — SELLs are real
-// signal there (whale exits), so they're shown by default. Set INCLUDE_SELLS=0 to hide.
+// SELLs are real signal (whale exits), so they're shown by default.
+// Set INCLUDE_SELLS=0 to hide.
 const INCLUDE_SELLS = process.env.INCLUDE_SELLS !== '0';
-const BACKFILL_SIGS_PER_POOL = Number(process.env.BACKFILL_SIGS_PER_POOL || 15);
 
 const WSOL = 'So11111111111111111111111111111111111111112';
 const QUOTE_TOKENS = new Map([
@@ -92,74 +82,37 @@ async function refreshSolPrice() {
   } catch { /* keep last */ }
 }
 
-// ── pool discovery: the QUALITY universe (well-known blue chips + high-liq/
-// high-mcap tokens), resolved live via solPools.js. Used only to DISCOVER new
-// whales; the deck itself follows whale wallets across ALL tokens. ──
-const pools = new Map(); // pairAddress -> {pool,dex,tokenMint,tokenSymbol,quoteMint,quote,liq,mcap,lastSig}
-async function refreshPools() {
-  let top = [];
-  try { top = await discoverQualityPools({ minLiq: MIN_LIQ_USD, minMcap: MIN_MCAP_USD, maxPools: MAX_POOLS }); }
-  catch { return; } // keep previous set on API hiccup
-  if (!top.length) return;
-  const next = new Map();
-  for (const p of top) next.set(p.pool, {
-    ...p, quote: QUOTE_TOKENS.get(p.quoteMint), lastSig: pools.get(p.pool)?.lastSig || null,
-  });
-  pools.clear();
-  for (const [k, v] of next) pools.set(k, v);
-  console.log(`[pools] watching ${pools.size} quality pools: ${top.slice(0, 8).map((p) => `${p.tokenSymbol}`).join(' ')}…`);
-}
-
 // ── state (same shapes as Monad listener) ──
 const recentWhales = [];
 const RECENT_CAP = 80;
 const traderAgg = new Map();
 const addressTrades = new Map();
 const traderPos = new Map();
-const REGISTERED_WHALES = new Set(); // grows via live promotion (verified roster)
-const LIVE_PROMOTED = new Set();      // fast-pass promotions, kept across roster reloads
+const REGISTERED_WHALES = new Set(); // the verified roster — grows via GMGN discovery only
 const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedSolWhales.json');
 
-// The discovery scan (solScanWhales.js) writes a bot-filtered curated file.
-// Every wallet from that file is upserted into the DURABLE whale_registry
-// (SQLite) — so a later rescan that misses a wallet can never erase it. The
-// live roster is the FULL registry: everything ever found keeps being tracked
-// forever. base58 addresses — NO lowercasing.
+// The curated file ships with the repo (exported from a grown registry via
+// exportSolRegistry.js) and is upserted into the DURABLE whale_registry
+// (SQLite) at boot — so a fresh container starts with the full roster even on
+// an ephemeral disk. The live roster is the FULL registry: everything ever
+// found keeps being tracked forever. base58 addresses — NO lowercasing.
 function loadRoster() {
-  const kept = new Set(LIVE_PROMOTED);
   REGISTERED_WHALES.clear();
-  for (const p of kept) REGISTERED_WHALES.add(p);
   let curatedCount = 0;
   try {
     const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
     for (const w of curated.whales || []) if (w.address) {
-      db.registerWhale(w.address, 'scan', { volumeUsd: w.volumeUsd ?? null, solBalance: w.solBalance ?? null, stats: w });
+      db.registerWhale(w.address, w.source || 'curated', { volumeUsd: w.volumeUsd ?? null, solBalance: w.solBalance ?? null, stats: w });
       curatedCount += 1;
     }
   } catch { /* file absent until first scan completes */ }
   let registryCount = 0;
   for (const r of db.loadWhaleRegistry()) { REGISTERED_WHALES.add(r.address); registryCount += 1; }
-  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size})`);
+  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · curated file ${curatedCount})`);
 }
 loadRoster();
 let rosterReloadTimer = null;
 try { fs.watch(CURATED_PATH, () => { clearTimeout(rosterReloadTimer); rosterReloadTimer = setTimeout(loadRoster, 1500); }); } catch { /* file may not exist yet */ }
-
-// ── Periodic auto-discovery: deep historical scan in a child process (never
-// blocks the live poller), then hot-reload the fresh roster. Mirrors Monad. ──
-const DISCOVERY_HOURS = Number(process.env.SOL_DISCOVERY_HOURS || 3); // same cadence as Monad
-let discoveryRunning = false;
-function runDiscovery(reason) {
-  if (discoveryRunning) { console.log('[discovery] skip — a scan is already running'); return; }
-  discoveryRunning = true;
-  console.log(`[discovery] launching Solana whale scan (${reason})…`);
-  const child = spawn(process.execPath, [path.join(__d, 'solScanWhales.js')], { cwd: __d, env: process.env, stdio: 'inherit' });
-  child.on('exit', (code) => { discoveryRunning = false; console.log(`[discovery] scan finished (exit ${code}) — reloading roster`); loadRoster(); });
-  child.on('error', (e) => { discoveryRunning = false; console.warn('[discovery] spawn failed:', e.message); });
-}
-function rosterAgeHours() {
-  try { return (Date.now() - fs.statSync(CURATED_PATH).mtimeMs) / 3600000; } catch { return Infinity; }
-}
 
 function scoreFromAgg(agg) {
   if (!agg) return null;
@@ -171,9 +124,8 @@ function scoreFromAgg(agg) {
   };
 }
 
-// Deck = registered whales only (real Smart Money), across ANY token. Pool
-// discovery still records unknown traders for promotion, but they don't reach
-// the deck until they're promoted. Set DECK_ROSTER_ONLY=0 to show every trade.
+// Deck = registered whales only (real Smart Money), across ANY token.
+// Set DECK_ROSTER_ONLY=0 to show every persisted trade (debug only).
 const DECK_ROSTER_ONLY = process.env.DECK_ROSTER_ONLY !== '0';
 function isDeckEligible(card) {
   if (DECK_ROSTER_ONLY && !card.isRegisteredWhale) return false;
@@ -229,49 +181,13 @@ function recordWhale(card) {
   return true;
 }
 
-// ── live promotion: a candidate discovered trading QUALITY tokens is promoted
-// only if it's a REAL whale — big SOL balance OR big volume — and passes the
-// behavioural bot filters (every Solana fee payer is a keypair, so no
-// contract check applies). ──
-const MIN_SOL_BALANCE = Number(process.env.MIN_SOL_BALANCE || 40);
-const BIG_VOLUME_USD = Number(process.env.BIG_VOLUME_USD || 25000);
-const balCache = new Map(); // addr -> { sol, at }
-async function solBalance(addr) {
-  const c = balCache.get(addr);
-  if (c && Date.now() - c.at < 5 * 60 * 1000) return c.sol;
-  let sol = 0;
-  try { sol = (await rpc('getBalance', [addr]))?.value / 1e9 || 0; } catch { return 0; }
-  balCache.set(addr, { sol, at: Date.now() });
-  return sol;
-}
-async function promoteWhales() {
-  for (const a of [...traderAgg.values()]) {
-    if (REGISTERED_WHALES.has(a.address)) continue;
-    if ((a.volumeUsd || 0) < PROMOTE_MIN_USD) continue;
-    const dir = a.trades ? Math.abs(a.buys - a.sells) / a.trades : 1;
-    if (a.trades >= 10 && dir < 0.25) continue;  // balanced churn = MM bot
-    if ((a.arbHits || 0) > 0) continue;          // atomic arb bot
-    const bal = await solBalance(a.address);      // real-whale confirmation
-    if (bal < MIN_SOL_BALANCE && (a.volumeUsd || 0) < BIG_VOLUME_USD) continue;
-    REGISTERED_WHALES.add(a.address);
-    LIVE_PROMOTED.add(a.address);
-    db.registerWhale(a.address, 'live', { volumeUsd: a.volumeUsd || 0, solBalance: bal }); // durable — survives restarts & rescans
-    console.log(`[promote] +whale ${a.address.slice(0, 10)}… · $${Math.round(a.volumeUsd)} · ${bal.toFixed(1)} SOL · dir ${dir.toFixed(2)} · ${a.trades}tx`);
-  }
-}
-
 // ── tx parsing: owner-scoped balance deltas (pool-INDEPENDENT).
-// Give it the wallet we care about (a tracked whale) and it detects that
-// wallet's swap in ANY token; omit owner and it falls back to the fee payer
-// (used by pool-based discovery to catch brand-new whales).
-// minUsd is the per-swap USD floor. DISCOVERY uses the big WHALE_MIN_USD (to
-// identify whales); once a wallet is a verified whale, TRACKING uses the small
-// TRACK_MIN_USD so we surface WHATEVER token that whale trades next — big or
-// small — instead of only their headline pool.
-function computeSwap(tx, owner, minUsd = WHALE_MIN_USD) {
+// Give it the tracked whale's wallet and it detects that wallet's swap in ANY
+// token. minUsd is the per-swap USD floor (TRACK_MIN_USD) so we surface
+// WHATEVER token that whale trades next — big or small.
+function computeSwap(tx, owner, minUsd = TRACK_MIN_USD) {
   if (!tx || tx.meta?.err) return null;
   const keys = tx.transaction?.message?.accountKeys || [];
-  if (!owner) owner = keys.find((k) => k.signer)?.pubkey;
   if (!owner) return null;
   const delta = new Map();
   for (const b of tx.meta.postTokenBalances || []) if (b.owner === owner) delta.set(b.mint, (delta.get(b.mint) || 0) + (Number(b.uiTokenAmount?.uiAmount) || 0));
@@ -353,9 +269,9 @@ function broadcast(card) {
 
 let lastSlot = null;
 
-// Fetch + parse one signature scoped to an owner (a tracked whale, or the fee
-// payer for pool discovery), surfacing whatever token they traded.
-async function processSig(sig, owner, minUsd = WHALE_MIN_USD) {
+// Fetch + parse one signature scoped to a tracked whale's wallet, surfacing
+// whatever token they traded.
+async function processSig(sig, owner, minUsd = TRACK_MIN_USD) {
   let tx = null;
   try { tx = await rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0, commitment: 'confirmed' }]); }
   catch { return; }
@@ -373,7 +289,7 @@ async function processSig(sig, owner, minUsd = WHALE_MIN_USD) {
 // Rotate through the roster in budgeted batches (public RPC honesty). Whatever
 // token a whale buys or sells surfaces — no fixed pool list. ──
 const WHALE_POLL_MS = Number(process.env.WHALE_POLL_MS || 7000);
-const WHALE_BATCH = Number(process.env.WHALE_BATCH || 6); // whales checked per cycle
+const WHALE_BATCH = Number(process.env.WHALE_BATCH || 10); // whales checked per cycle (all RPC budget is ours now)
 const walletCursor = new Map(); // whaleAddr -> newest signature already seen
 let whaleRing = 0;
 async function whalePoll() {
@@ -401,53 +317,22 @@ async function whalePoll() {
   }
 }
 
-// ── SECONDARY: pool sampling to DISCOVER brand-new whales (fee-payer parse →
-// promotion). Lighter than before; the deck itself comes from whalePoll. ──
-async function discoveryPoll() {
-  try {
-    // per-pool queues → round-robin so the busiest token can't hog the budget
-    const perPool = [];
-    for (const p of pools.values()) {
-      let sigs = [];
-      try { sigs = await rpc('getSignaturesForAddress', [p.pool, p.lastSig ? { limit: 25, until: p.lastSig } : { limit: 4 }]); }
-      catch { continue; }
-      await sleep(RPC_DELAY_MS);
-      if (sigs.length) p.lastSig = sigs[0].signature;
-      perPool.push(sigs.filter((s) => !s.err).map((s) => s.signature));
-    }
-    const jobs = [];
-    for (let i = 0, done = false; !done; i++) {
-      done = true;
-      for (const q of perPool) if (i < q.length) { jobs.push(q[i]); done = false; }
-    }
-    for (const sig of jobs.slice(0, TX_BUDGET)) {
-      await processSig(sig, null); // null owner → fee-payer parse (catches unknown whales)
-      await sleep(RPC_DELAY_MS);
-    }
-    try { lastSlot = await rpc('getSlot', []); } catch { /* keep */ }
-  } catch (e) {
-    console.error('[discoveryPoll] error:', e.message || e);
-  } finally {
-    setTimeout(discoveryPoll, POLL_MS);
-  }
+// ── slot heartbeat (for /health) ──
+async function slotPoll() {
+  try { lastSlot = await rpc('getSlot', []); } catch { /* keep */ }
+  setTimeout(slotPoll, 30000);
 }
 
 // ── boot backfill: seed the deck from the registered whales' recent trades
-// (their real swaps in whatever token), plus a pool pass to find fresh whales. ──
+// (their real swaps in whatever token). ──
 async function backfill() {
   const roster = [...REGISTERED_WHALES].slice(0, 30);
-  console.log(`[backfill] seeding from ${roster.length} whale wallets + ${pools.size} pools…`);
+  console.log(`[backfill] seeding from ${roster.length} whale wallets…`);
   for (const addr of roster) {
     let sigs = [];
     try { sigs = await rpc('getSignaturesForAddress', [addr, { limit: 6 }]); } catch { continue; }
     if (sigs.length) walletCursor.set(addr, sigs[0].signature);
     for (const s of sigs.filter((x) => !x.err).slice(0, 4)) { await processSig(s.signature, addr, TRACK_MIN_USD); await sleep(RPC_DELAY_MS); }
-  }
-  for (const p of pools.values()) {
-    let sigs = [];
-    try { sigs = await rpc('getSignaturesForAddress', [p.pool, { limit: 20 }]); } catch { continue; }
-    p.lastSig = sigs[0]?.signature || null;
-    for (const s of sigs.filter((x) => !x.err).slice(0, BACKFILL_SIGS_PER_POOL)) { await processSig(s.signature, null, WHALE_MIN_USD); await sleep(RPC_DELAY_MS); }
   }
   console.log(`[backfill] done · ${recentWhales.length} whale trades seeded`);
 }
@@ -490,8 +375,8 @@ server.on('request', async (req, res) => {
   if (p === '/health') {
     return sendJson(res, 200, {
       ok: true, chain: 'solana', lastBlock: lastSlot, whales: recentWhales.length,
-      traders: traderAgg.size, whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD,
-      monPriceUsd: solPriceUsd, pools: pools.size, registered: REGISTERED_WHALES.size, ...db.stats(),
+      traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
+      monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size, ...db.stats(),
     });
   }
   if (p === '/whales') {
@@ -553,27 +438,18 @@ server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 
 // ── boot ──
 await refreshSolPrice();
-console.log(`[price] SOL = $${solPriceUsd} · whale floor $${WHALE_MIN_USD}/swap · pool liq ≥ $${MIN_LIQ_USD}`);
+console.log(`[price] SOL = $${solPriceUsd} · tracking floor $${TRACK_MIN_USD}/swap · roster-only feed`);
 setInterval(refreshSolPrice, 60000);
-await refreshPools();
-setInterval(refreshPools, 10 * 60 * 1000); // pool set follows the market
 initFromDb();
 await backfill();
-promoteWhales();
-setInterval(promoteWhales, PROMOTE_MINUTES * 60 * 1000);
-whalePoll();      // primary: follow whale wallets across ALL tokens
-discoveryPoll();  // secondary: sample pools to discover new whales
+whalePoll();  // THE feed: follow registered whale wallets across ALL tokens
+slotPoll();
 
-// Deep discovery: run now if the curated file is missing/stale, then on a schedule.
-const age = rosterAgeHours();
-if (age > DISCOVERY_HOURS) { console.log(`[discovery] roster age ${age === Infinity ? 'none' : age.toFixed(1) + 'h'} > ${DISCOVERY_HOURS}h — scanning now`); runDiscovery('boot'); }
-else console.log(`[discovery] roster age ${age.toFixed(1)}h — next scan in ≤${DISCOVERY_HOURS}h`);
-setInterval(() => runDiscovery('scheduled'), DISCOVERY_HOURS * 3600 * 1000);
-
-// GMGN smart-money sync: periodically pull GMGN's verified Smart Money + KOL
-// wallets into the PERMANENT registry (source 'gmgn'), then reload the roster
-// so the new whales go straight into live tracking. Same cadence as discovery.
+// GMGN whale discovery: periodically sweep GMGN (smart-money feed + KOL feed +
+// trending tokens' top traders) into the PERMANENT registry (source 'gmgn'),
+// then reload the roster so the new whales go straight into live tracking.
 // Skips harmlessly when gmgn-cli isn't configured (e.g. cloud without the key).
+const GMGN_SYNC_MINUTES = Number(process.env.GMGN_SYNC_MINUTES || 45);
 let gmgnRunning = false;
 function runGmgnSync(reason) {
   if (gmgnRunning) return;
@@ -583,5 +459,5 @@ function runGmgnSync(reason) {
   child.on('exit', () => { gmgnRunning = false; loadRoster(); });
   child.on('error', (e) => { gmgnRunning = false; console.warn('[gmgn-sync] spawn failed:', e.message); });
 }
-setTimeout(() => runGmgnSync('boot'), 90 * 1000); // after backfill settles
-setInterval(() => runGmgnSync('scheduled'), DISCOVERY_HOURS * 3600 * 1000);
+setTimeout(() => runGmgnSync('boot'), 60 * 1000); // after backfill settles
+setInterval(() => runGmgnSync('scheduled'), GMGN_SYNC_MINUTES * 60 * 1000);

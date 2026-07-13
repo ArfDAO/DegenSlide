@@ -1,212 +1,5557 @@
 {
-  "source": "Solana mainnet — on-chain discovery + behavioural bot elimination (signer balance-delta parsing, one-quote pools)",
-  "scannedAt": "2026-07-09T18:15:25.722Z",
-  "txsScanned": 0,
-  "minUsdPerSwap": 300,
-  "minLiquidityUsd": 150000,
-  "botsRemoved": {
-    "sameSlotArb": 0,
-    "churnMM": 0
+ "source": "GMGN OpenAPI whale discovery (smart-money feed + KOL feed + trending-token top traders) — quality-gated (7d winrate/PnL) + on-chain verified",
+ "exportedAt": "2026-07-13T10:55:47.397Z",
+ "count": 352,
+ "whales": [
+  {
+   "address": "4M8ZPrUmaq3eTXy1SGwr2zd6mgFV9AFCikVevs12dnQf",
+   "volumeUsd": 508327,
+   "volumeMon": 401.55,
+   "solBalance": 0,
+   "trades": 3,
+   "buys": 1,
+   "sells": 2,
+   "directionality": 0.33,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "ai16z"
+   ],
+   "lastToken": "ai16z",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 1,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "scan",
+   "firstSeen": 1783606834723
   },
-  "count": 9,
-  "whales": [
-    {
-      "address": "4M8ZPrUmaq3eTXy1SGwr2zd6mgFV9AFCikVevs12dnQf",
-      "volumeUsd": 508327,
-      "volumeMon": 6592.23,
-      "solBalance": 0,
-      "trades": 24,
-      "buys": 2,
-      "sells": 22,
-      "directionality": 0.83,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "Fartcoin"
-      ],
-      "lastToken": "Fartcoin",
-      "realizedUsd": -3,
-      "realizedMon": -0.04,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "9fJmcpGctS9P8Mng2NNEAV5SDM59JahoeUQw78MTjmt3",
-      "volumeUsd": 110294.35,
-      "volumeMon": 1430.35,
-      "solBalance": 0.01,
-      "trades": 2,
-      "buys": 0,
-      "sells": 2,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "CARDS"
-      ],
-      "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "J5e2u47g3u2D5Eq66dnvrd2EnCkF8khLAisbuVHDxzt8",
-      "volumeUsd": 25451,
-      "volumeMon": 330.06,
-      "solBalance": 0,
-      "trades": 2,
-      "buys": 0,
-      "sells": 2,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "Fartcoin"
-      ],
-      "lastToken": "Fartcoin",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "BDfKjJ3FGMceYUYJERH6HTVEmPe3HzydTn7SbAprNVfy",
-      "volumeUsd": 25000,
-      "volumeMon": 324.21,
-      "solBalance": 0.35,
-      "trades": 1,
-      "buys": 1,
-      "sells": 0,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "CARDS"
-      ],
-      "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "EFGXNNS3ynP23uAFKuytENcffX8K6rtVJP5BT3fgP7o4",
-      "volumeUsd": 21424.5,
-      "volumeMon": 277.84,
-      "solBalance": 746.64,
-      "trades": 2,
-      "buys": 2,
-      "sells": 0,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "CARDS"
-      ],
-      "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "3naHZSWLo4LXpFv2iXi3S5DgXEsjQ31Ei5BwJ7G1vEFA",
-      "volumeUsd": 8794.38,
-      "volumeMon": 114.05,
-      "solBalance": 49.4,
-      "trades": 1,
-      "buys": 0,
-      "sells": 1,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "CARDS"
-      ],
-      "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "HHK3Q5jwNsUgFw9Mao6NtiA9Yfdw19UyBCop1QzfM7r5",
-      "volumeUsd": 4585.69,
-      "volumeMon": 59.47,
-      "solBalance": 68.19,
-      "trades": 2,
-      "buys": 1,
-      "sells": 1,
-      "directionality": 0,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "CARDS"
-      ],
-      "lastToken": "CARDS",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "FrhLfj81LRpMR3EwSSCGPzHmxsnoq8h628ne68vK5oMN",
-      "volumeUsd": 1978.2,
-      "volumeMon": 25.65,
-      "solBalance": 128.76,
-      "trades": 5,
-      "buys": 0,
-      "sells": 5,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "MOODENG"
-      ],
-      "lastToken": "MOODENG",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
-      "volumeUsd": 1363.93,
-      "volumeMon": 17.69,
-      "solBalance": 92.42,
-      "trades": 3,
-      "buys": 3,
-      "sells": 0,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "tokens": [
-        "MOODENG"
-      ],
-      "lastToken": "MOODENG",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    }
-  ]
+  {
+   "address": "4A1snSJmJyibf69mHVpzUBzeLTMrdzd88QgdQyv8SaFk",
+   "volumeUsd": 223032.28,
+   "volumeMon": 2865.27,
+   "solBalance": 1.85,
+   "trades": 21,
+   "buys": 10,
+   "sells": 11,
+   "directionality": 0.05,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "RENDER"
+   ],
+   "lastToken": "RENDER",
+   "realizedUsd": -21.34,
+   "realizedMon": -0.27,
+   "closedTokens": 1,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "live",
+   "firstSeen": 1783634367826
+  },
+  {
+   "address": "AVAZvHLR2PcWpDf8BXY4rVxNHYRBytycHkcB5z5QNXYm",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:drooling",
+    "token:CPX",
+    "token:Cupsey",
+    "token:UwU"
+   ],
+   "winRate": 0.33,
+   "realizedUsd7d": 45843.26,
+   "trades7d": 46,
+   "tokens7d": 73,
+   "twitter": "blknoiz06",
+   "volumeUsd": 163759.4,
+   "solBalance": 1.718999728,
+   "source": "gmgn",
+   "firstSeen": 1783939371082
+  },
+  {
+   "address": "DCPPhmYVucS8XdCKtARsUy62uEDyY3DfQxjDNTdpe2Hs",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:Jotchua",
+    "token:KINS",
+    "token:ZERO",
+    "token:MANIFEST",
+    "token:three",
+    "token:CPX",
+    "token:TripleT",
+    "token:Buttcoin",
+    "token:neet"
+   ],
+   "winRate": 0.68,
+   "realizedUsd7d": 1428.56,
+   "trades7d": 165,
+   "tokens7d": 42,
+   "twitter": null,
+   "volumeUsd": 156414,
+   "solBalance": 0.713318315,
+   "source": "gmgn",
+   "firstSeen": 1783939372318
+  },
+  {
+   "address": "6wBwDyJtbCQfzKSYtmWdpfU3pA4i4bDEeJ4M4dakfDhD",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:LEVI",
+    "token:MENSA",
+    "token:world",
+    "token:KINS",
+    "token:drooling",
+    "token:RKC",
+    "token:SOLANGELES",
+    "token:neet"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 1054.58,
+   "trades7d": 263,
+   "tokens7d": 107,
+   "twitter": null,
+   "volumeUsd": 150863.64,
+   "solBalance": 0.007593237,
+   "source": "gmgn",
+   "firstSeen": 1783939373541
+  },
+  {
+   "address": "5SFgzLhLpjGKcm3iMaG3jFJS4fUVruHYQiphiBrQd2Qb",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:manlet",
+    "token:MENSA",
+    "token:world",
+    "token:Jotchua",
+    "token:ZERO",
+    "token:CATWIF",
+    "token:CHANCE",
+    "token:drooling",
+    "token:SCAM",
+    "token:Cupsey",
+    "token:TROLL"
+   ],
+   "winRate": 0.83,
+   "realizedUsd7d": 6781.23,
+   "trades7d": 496,
+   "tokens7d": 120,
+   "twitter": null,
+   "volumeUsd": 137500.59,
+   "solBalance": 93.899555586,
+   "source": "gmgn",
+   "firstSeen": 1783939375184
+  },
+  {
+   "address": "hnu69n6P5CgYXCtUKii9wgamqtDeTVHY3TVJ6HKt7wC",
+   "tags": [
+    "padre",
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney",
+    "token:febu",
+    "token:LEVI",
+    "token:ZERO",
+    "token:CATWIF",
+    "token:SOLANGELES",
+    "token:Joby",
+    "token:UwU"
+   ],
+   "winRate": 0.82,
+   "realizedUsd7d": 7774.56,
+   "trades7d": 2775,
+   "tokens7d": 290,
+   "twitter": null,
+   "volumeUsd": 120973.06,
+   "solBalance": 20.713203114,
+   "source": "gmgn",
+   "firstSeen": 1783939376256
+  },
+  {
+   "address": "Gdaqp3ND6r3HVAWXpawkQU18EuQqwNxpaeeio8ASVAYd",
+   "tags": [
+    "kol",
+    "axiom",
+    "gmgn",
+    "pepeboost"
+   ],
+   "vectors": [
+    "token:Buttcoin"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -173.22,
+   "trades7d": 4,
+   "tokens7d": 5,
+   "twitter": "huigendeshen",
+   "volumeUsd": 115663.7,
+   "solBalance": 8.877058303,
+   "source": "gmgn",
+   "firstSeen": 1783939377380
+  },
+  {
+   "address": "9fJmcpGctS9P8Mng2NNEAV5SDM59JahoeUQw78MTjmt3",
+   "volumeUsd": 110294.35,
+   "volumeMon": 1430.35,
+   "solBalance": 0.01,
+   "trades": 2,
+   "buys": 0,
+   "sells": 2,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "C76rTqeaLvmhpra3ivxALpmLVyaa4ABQ93vNNfsKd8dQ",
+   "volumeUsd": 87473.5,
+   "volumeMon": 0,
+   "solBalance": 0.54,
+   "trades": 29,
+   "buys": 12,
+   "sells": 17,
+   "directionality": 0.17,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [],
+   "lastToken": null,
+   "realizedUsd": -6.81,
+   "realizedMon": 0,
+   "closedTokens": 1,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "scan",
+   "firstSeen": 1783791149714
+  },
+  {
+   "address": "9w31QPPhzK6J4jdhJ4GqW5znAyrqipypk21XTuYEFxEQ",
+   "volumeUsd": 75488.73,
+   "volumeMon": 969.79,
+   "solBalance": 1.42,
+   "trades": 2,
+   "buys": 2,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706075
+  },
+  {
+   "address": "7BV7Z8cVjzHgHSUQsGGXHaj73fbhxNqxvk9HmQRaUiAw",
+   "volumeUsd": 49985.710845,
+   "solBalance": 0.357354582,
+   "source": "live",
+   "firstSeen": 1783723261909
+  },
+  {
+   "address": "9yYya3F5EJoLnBNKW6z4bZvyQytMXzDcpU5D6yYr4jqL",
+   "tags": [
+    "kol",
+    "photon",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:KINS"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 1321.93,
+   "trades7d": 6,
+   "tokens7d": 19,
+   "twitter": "Loopierr",
+   "volumeUsd": 43761.64,
+   "solBalance": 3.279692051,
+   "source": "gmgn",
+   "firstSeen": 1783939380981
+  },
+  {
+   "address": "BieeZkdnBAgNYknzo3RH2vku7FcPkFZMZmRJANh2TpW",
+   "tags": [
+    "pump_smart",
+    "trojan"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:world",
+    "token:KINS",
+    "token:three"
+   ],
+   "winRate": 0.42,
+   "realizedUsd7d": -291.48,
+   "trades7d": 23,
+   "tokens7d": 25,
+   "twitter": null,
+   "volumeUsd": 42332.16,
+   "solBalance": 214.745643219,
+   "source": "gmgn",
+   "firstSeen": 1783939383533
+  },
+  {
+   "address": "Dv32u9mvSXGVNshf7xM7afuMoPRifQxzuzEjfmfMysZY",
+   "tags": [
+    "kol",
+    "trojan",
+    "padre"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:RKC",
+    "token:ASTEROID",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 107536.76,
+   "trades7d": 17,
+   "tokens7d": 18,
+   "twitter": "deecayz",
+   "volumeUsd": 41912.22,
+   "solBalance": 375.143634671,
+   "source": "gmgn",
+   "firstSeen": 1783939385002
+  },
+  {
+   "address": "765aJmzHN5ouE6VA9A4RFmv2iijZsW7gCAawoipRXLvm",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:MENSA",
+    "token:KINS",
+    "token:MANIFEST",
+    "token:TripleT"
+   ],
+   "winRate": 0.8,
+   "realizedUsd7d": 1721.9,
+   "trades7d": 111,
+   "tokens7d": 20,
+   "twitter": "Monkeshiter",
+   "volumeUsd": 41898.15,
+   "solBalance": 1.322682278,
+   "source": "gmgn",
+   "firstSeen": 1783939386112
+  },
+  {
+   "address": "AepD5U1tymnKqUU2HFHUju5CkBkBgyQVzAEBMPii3LU4",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:KINS",
+    "token:CATWIF",
+    "token:SOLANGELES",
+    "token:three",
+    "token:TROLL"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 1048.67,
+   "trades7d": 45,
+   "tokens7d": 18,
+   "twitter": null,
+   "volumeUsd": 41057.63,
+   "solBalance": 0.019008825,
+   "source": "gmgn",
+   "firstSeen": 1783939387700
+  },
+  {
+   "address": "CreQJ2t94QK5dsxUZGXfPJ8Nx7wA9LHr5chxjSMkbNft",
+   "volumeUsd": 38098.13,
+   "volumeMon": 460.9,
+   "solBalance": 498.45,
+   "trades": 34,
+   "buys": 13,
+   "sells": 21,
+   "directionality": 0.24,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "TRUMP",
+    "JUP",
+    "BOME",
+    "GOAT",
+    "POPCAT",
+    "MOODENG"
+   ],
+   "lastToken": "BOME",
+   "realizedUsd": -40.24,
+   "realizedMon": -0.49,
+   "closedTokens": 3,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "scan",
+   "firstSeen": 1783598940585
+  },
+  {
+   "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
+   "volumeUsd": 37286.49,
+   "volumeMon": 17.69,
+   "solBalance": 92.42,
+   "trades": 3,
+   "buys": 3,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "MOODENG"
+   ],
+   "lastToken": "MOODENG",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783598940586
+  },
+  {
+   "address": "GrDghnFDcbVHNrPrzspgB4FJb3PneLgyhfBnNGSCAzeH",
+   "volumeUsd": 37069.21246008763,
+   "solBalance": 5.433284996,
+   "source": "live",
+   "firstSeen": 1783599144847
+  },
+  {
+   "address": "BJG9c35ArqMKB2okGQGS2yg43WchTAp4EMTjY26cUY1c",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 31154.22,
+   "solBalance": 0.636590774,
+   "source": "gmgn",
+   "firstSeen": 1783666629189
+  },
+  {
+   "address": "CbpnbXAD9PUAwVcYjHY96qooq6eNnoLiZzif766gqLPH",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:Jotchua",
+    "token:ZERO",
+    "token:CHANCE",
+    "token:drooling",
+    "token:three",
+    "token:SCAM",
+    "token:ASTEROID",
+    "token:Cupsey"
+   ],
+   "winRate": 0.59,
+   "realizedUsd7d": 1586.31,
+   "trades7d": 422,
+   "tokens7d": 95,
+   "twitter": null,
+   "volumeUsd": 30273.34,
+   "solBalance": 35.588983285,
+   "source": "gmgn",
+   "firstSeen": 1783939391619
+  },
+  {
+   "address": "9VL5LaHxAj9irfBDDhikzFRB4qZLu8Xfce3w19rNnNYZ",
+   "tags": [
+    "smart_degen",
+    "photon"
+   ],
+   "vectors": [
+    "token:KINS",
+    "token:ZERO",
+    "token:RKC",
+    "token:SOLANGELES",
+    "token:SCAM",
+    "token:TripleT",
+    "token:UwU"
+   ],
+   "winRate": 0.85,
+   "realizedUsd7d": 5221.85,
+   "trades7d": 106,
+   "tokens7d": 52,
+   "twitter": null,
+   "volumeUsd": 30112.84,
+   "solBalance": 99.392039375,
+   "source": "gmgn",
+   "firstSeen": 1783939392932
+  },
+  {
+   "address": "AnFan663XTan3jvNM4bUWBVW2eNw4jmMrHSUPaiyCea3",
+   "volumeUsd": 29683.26,
+   "volumeMon": 359.1,
+   "solBalance": 2.99,
+   "trades": 1,
+   "buys": 1,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "mSOL"
+   ],
+   "lastToken": "mSOL",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783598940586
+  },
+  {
+   "address": "5MFYreCDC6jAHbrMimqhiX5rCHT5WiqwvZ5czByHgfjR",
+   "volumeUsd": 27822.56,
+   "volumeMon": 356.93,
+   "solBalance": 0,
+   "trades": 15,
+   "buys": 0,
+   "sells": 15,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "ANTFUN"
+   ],
+   "lastToken": "ANTFUN",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783679187166
+  },
+  {
+   "address": "JD6bugitAKPrMvSPngGbX62W1GUqTLA8v6BZeUWpGoF9",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "vectors": [
+    "token:ANSEM"
+   ],
+   "winRate": 0.75,
+   "realizedUsd7d": 1232.77,
+   "trades7d": 29,
+   "tokens7d": 9,
+   "twitter": null,
+   "volumeUsd": 27054.5,
+   "solBalance": 0.042718152,
+   "source": "gmgn",
+   "firstSeen": 1783939397250
+  },
+  {
+   "address": "73KJxyg31btRpS4gNTWKJjtWUPX1WH1mJYKYLwoLFv1P",
+   "volumeUsd": 26977.05,
+   "volumeMon": 346.08,
+   "solBalance": 0,
+   "trades": 18,
+   "buys": 18,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "ANTFUN"
+   ],
+   "lastToken": "ANTFUN",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783679187166
+  },
+  {
+   "address": "4U9s6ktkZVD6W9K5X1RRVG89Mm9ZGznrPhhPhXezNedm",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:manlet",
+    "token:MENSA",
+    "token:world",
+    "token:KINS",
+    "token:drooling",
+    "token:MANIFEST",
+    "token:SOLANGELES",
+    "token:Joby",
+    "token:CPX",
+    "token:ASTEROID",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.51,
+   "realizedUsd7d": 1060.62,
+   "trades7d": 715,
+   "tokens7d": 144,
+   "twitter": null,
+   "volumeUsd": 26962.73,
+   "solBalance": 0.004310161,
+   "source": "gmgn",
+   "firstSeen": 1783939398291
+  },
+  {
+   "address": "J5e2u47g3u2D5Eq66dnvrd2EnCkF8khLAisbuVHDxzt8",
+   "volumeUsd": 25451,
+   "volumeMon": 330.06,
+   "solBalance": 0,
+   "trades": 2,
+   "buys": 0,
+   "sells": 2,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "Fartcoin"
+   ],
+   "lastToken": "Fartcoin",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "93U65rT9tdPCwzpXVp4o6FUax7w4nmxtat44nmZtqV3x",
+   "volumeUsd": 25157.305024476565,
+   "solBalance": 2.904306554,
+   "source": "live",
+   "firstSeen": 1783697859360
+  },
+  {
+   "address": "FhaYN5TDH6JGdkAU1q3vvVeWa7Snbz4dAk53g2XMv9go",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:SOLANGELES",
+    "token:TROLL",
+    "token:neet"
+   ],
+   "winRate": 0.44,
+   "realizedUsd7d": 1315.31,
+   "trades7d": 63,
+   "tokens7d": 26,
+   "twitter": null,
+   "volumeUsd": 25071.53,
+   "solBalance": 162.979898503,
+   "source": "gmgn",
+   "firstSeen": 1783939399379
+  },
+  {
+   "address": "BDfKjJ3FGMceYUYJERH6HTVEmPe3HzydTn7SbAprNVfy",
+   "volumeUsd": 25000,
+   "volumeMon": 324.21,
+   "solBalance": 0.35,
+   "trades": 1,
+   "buys": 1,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "Bncwt7FrRYPfZ28ormc8ShmpRgM1nFq5eaj4U3sT5MLF",
+   "tags": [
+    "smart_degen",
+    "fomo"
+   ],
+   "vectors": [
+    "token:Cupsey",
+    "token:TripleT",
+    "token:TROLL"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 15339.23,
+   "trades7d": 42,
+   "tokens7d": 15,
+   "twitter": "wwayfboss",
+   "volumeUsd": 24107.02,
+   "solBalance": 0.189017555,
+   "source": "gmgn",
+   "firstSeen": 1783939400450
+  },
+  {
+   "address": "9n3SRU1zgHV3ZSvZc5igYDLivwM7RyRAZarctU8vaM9j",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:TROLL"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -341.14,
+   "trades7d": 4,
+   "tokens7d": 3,
+   "twitter": "mondoggg",
+   "volumeUsd": 22501.44,
+   "solBalance": 0.09092039,
+   "source": "gmgn",
+   "firstSeen": 1783939401781
+  },
+  {
+   "address": "EFGXNNS3ynP23uAFKuytENcffX8K6rtVJP5BT3fgP7o4",
+   "volumeUsd": 21424.5,
+   "volumeMon": 277.84,
+   "solBalance": 746.64,
+   "trades": 2,
+   "buys": 2,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "6EFtbAEdz9QGroK996yLvLeHNdooaaozSxniU37bnBJQ",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:KINS",
+    "token:CATWIF"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 4608.57,
+   "trades7d": 49,
+   "tokens7d": 24,
+   "twitter": null,
+   "volumeUsd": 17838.78,
+   "solBalance": 0.040232503,
+   "source": "gmgn",
+   "firstSeen": 1783939403430
+  },
+  {
+   "address": "NtzhuwVMgF2LoZsdFXSdLypVDUsh33zVZCAiafsb35y",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:MENSA",
+    "token:Jotchua",
+    "token:ZERO",
+    "token:SCAM",
+    "token:neet"
+   ],
+   "winRate": 0.41,
+   "realizedUsd7d": 1041.4,
+   "trades7d": 199,
+   "tokens7d": 46,
+   "twitter": null,
+   "volumeUsd": 16514.73,
+   "solBalance": 0.170246217,
+   "source": "gmgn",
+   "firstSeen": 1783939404541
+  },
+  {
+   "address": "6kQEpBbP7uU2gvmU1EWAncs3okjdVYx4eqkDYvo5dJDr",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:LEVI",
+    "token:world",
+    "token:Jotchua",
+    "token:ZERO",
+    "token:CATWIF",
+    "token:CHANCE",
+    "token:RKC",
+    "token:SOLANGELES",
+    "token:SCAM"
+   ],
+   "winRate": 0.9,
+   "realizedUsd7d": 1481.31,
+   "trades7d": 111,
+   "tokens7d": 30,
+   "twitter": null,
+   "volumeUsd": 16088.31,
+   "solBalance": 31.328255679,
+   "source": "gmgn",
+   "firstSeen": 1783939405693
+  },
+  {
+   "address": "6VxZ8Hq1YNY7czzBiAXRGrtiCzUyEC7S2xv7CiLQyziu",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:CHANCE",
+    "token:SOLANGELES"
+   ],
+   "winRate": 0.7,
+   "realizedUsd7d": 12264.85,
+   "trades7d": 186,
+   "tokens7d": 29,
+   "twitter": null,
+   "volumeUsd": 15486.71,
+   "solBalance": 24.870412772,
+   "source": "gmgn",
+   "firstSeen": 1783939407552
+  },
+  {
+   "address": "Hh51PcwzQjH5oJWEdhr9F42riCEeWKW2JfH7FJxeXjzn",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:LEVI",
+    "token:CHANCE",
+    "token:SOLANGELES",
+    "token:Joby"
+   ],
+   "winRate": 0.56,
+   "realizedUsd7d": 1432.31,
+   "trades7d": 299,
+   "tokens7d": 63,
+   "twitter": null,
+   "volumeUsd": 15090.99,
+   "solBalance": 2.084017218,
+   "source": "gmgn",
+   "firstSeen": 1783939410832
+  },
+  {
+   "address": "9haKJiniE7HR5im7b9a74VUGD7vHDu6waBwAdQegwqQm",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:LEVI",
+    "token:world",
+    "token:Joby"
+   ],
+   "winRate": 0.64,
+   "realizedUsd7d": 1160.78,
+   "trades7d": 2141,
+   "tokens7d": 190,
+   "twitter": null,
+   "volumeUsd": 15076.05,
+   "solBalance": 1.567699311,
+   "source": "gmgn",
+   "firstSeen": 1783939412018
+  },
+  {
+   "address": "92cwTJoGDFKSnp6Zr2taFr3sFWqs8jRvtU73qbut2win",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:world",
+    "token:KINS",
+    "token:ZERO",
+    "token:CATWIF",
+    "token:CHANCE",
+    "token:three",
+    "token:CPX",
+    "token:ASTEROID"
+   ],
+   "winRate": 0.25,
+   "realizedUsd7d": 2238.04,
+   "trades7d": 275,
+   "tokens7d": 72,
+   "twitter": null,
+   "volumeUsd": 14207.36,
+   "solBalance": 92.209495366,
+   "source": "gmgn",
+   "firstSeen": 1783939413212
+  },
+  {
+   "address": "9cxLzxjrTeodcbaEU3KCNGE1a4yFZEcdJ7uEXN378S4U",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "photon",
+    "bullx"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:NEST",
+    "token:RKC",
+    "token:SOLANGELES",
+    "token:ASTEROID",
+    "token:TROLL"
+   ],
+   "winRate": 0.6,
+   "realizedUsd7d": 1260.86,
+   "trades7d": 323,
+   "tokens7d": 87,
+   "twitter": null,
+   "volumeUsd": 13482.43,
+   "solBalance": 32.646251338,
+   "source": "gmgn",
+   "firstSeen": 1783939415930
+  },
+  {
+   "address": "BL9mJiRQkfB9i9tMGZX2tSRFqbZVyXdPRKLyiYxkZbGM",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:drooling",
+    "token:three",
+    "token:TripleT",
+    "token:UwU",
+    "token:Buttcoin",
+    "token:TROLL",
+    "token:neet"
+   ],
+   "winRate": 0.46,
+   "realizedUsd7d": 1930.79,
+   "trades7d": 572,
+   "tokens7d": 199,
+   "twitter": null,
+   "volumeUsd": 12982.01,
+   "solBalance": 30.248141793,
+   "source": "gmgn",
+   "firstSeen": 1783939417041
+  },
+  {
+   "address": "Fr8T2PhqPPXuhVYEuP4Bpaqw13xRJ5JPLa1vNE6rAUq6",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:SOLANGELES",
+    "token:three"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 2733.32,
+   "trades7d": 15,
+   "tokens7d": 10,
+   "twitter": null,
+   "volumeUsd": 11702.35,
+   "solBalance": 0,
+   "source": "gmgn",
+   "firstSeen": 1783939420026
+  },
+  {
+   "address": "D54nTSbfrsqZdnkNoqXhKwrYV4quEVnjfQ8HS7bSk452",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:Wukong",
+    "token:febu",
+    "token:manlet",
+    "token:LEVI",
+    "token:Jotchua",
+    "token:Cupsey"
+   ],
+   "winRate": 0.47,
+   "realizedUsd7d": 2732.63,
+   "trades7d": 211,
+   "tokens7d": 44,
+   "twitter": null,
+   "volumeUsd": 11399.96,
+   "solBalance": 0.070867031,
+   "source": "gmgn",
+   "firstSeen": 1783939421176
+  },
+  {
+   "address": "CSFjz4DQkZaEUeCM1TY5D17n43hCCSh7h2nz1Tw98UCN",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:manlet"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 0,
+   "trades7d": 0,
+   "tokens7d": 5,
+   "twitter": "HollanderAdam",
+   "volumeUsd": 10743.28,
+   "solBalance": 2.284391869,
+   "source": "gmgn",
+   "firstSeen": 1783939422930
+  },
+  {
+   "address": "gtfoTELAeEZHUgHetA6umfsCETiBMzJCN4tB2sqCgFL",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:drooling"
+   ],
+   "winRate": 0.84,
+   "realizedUsd7d": 8040.94,
+   "trades7d": 374,
+   "tokens7d": 85,
+   "twitter": null,
+   "volumeUsd": 10630.8,
+   "solBalance": 155.017026205,
+   "source": "gmgn",
+   "firstSeen": 1783939424221
+  },
+  {
+   "address": "DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm",
+   "tags": [
+    "kol",
+    "trojan"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:SOLANGELES",
+    "token:neet"
+   ],
+   "winRate": 0.7,
+   "realizedUsd7d": -10871.56,
+   "trades7d": 63,
+   "tokens7d": 302,
+   "twitter": "Ga__ke",
+   "volumeUsd": 9182.08,
+   "solBalance": 43.754862072,
+   "source": "gmgn",
+   "firstSeen": 1783939427659
+  },
+  {
+   "address": "FkaLnX17cXZGyeu3kZGdHCNdFMJJzBrPPYVvd18B3MZp",
+   "volumeUsd": 9157.27,
+   "volumeMon": 110.78,
+   "solBalance": 181.24,
+   "trades": 6,
+   "buys": 3,
+   "sells": 3,
+   "directionality": 0,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "ORCA",
+    "TRUMP"
+   ],
+   "lastToken": "ORCA",
+   "realizedUsd": -17.39,
+   "realizedMon": -0.21,
+   "closedTokens": 1,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "scan",
+   "firstSeen": 1783598940586
+  },
+  {
+   "address": "3naHZSWLo4LXpFv2iXi3S5DgXEsjQ31Ei5BwJ7G1vEFA",
+   "volumeUsd": 8794.38,
+   "volumeMon": 114.05,
+   "solBalance": 49.4,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "9XqwcSGu1bqf9wPNjaG22avEqtRa2RKmsShAw5sKoEjv",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:Cupsey",
+    "token:UwU"
+   ],
+   "winRate": 0.64,
+   "realizedUsd7d": 1619.37,
+   "trades7d": 468,
+   "tokens7d": 109,
+   "twitter": null,
+   "volumeUsd": 8706.88,
+   "solBalance": 1.627113657,
+   "source": "gmgn",
+   "firstSeen": 1783939429301
+  },
+  {
+   "address": "8gW5oJqmrDk7Ja8kpTcwba3tDFx4PuexgYg9QdCCZDiM",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:world",
+    "token:RKC",
+    "token:three",
+    "token:SCAM",
+    "token:ASTEROID",
+    "token:TripleT",
+    "token:TROLL"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 0.19,
+   "trades7d": 4,
+   "tokens7d": 9,
+   "twitter": "AlekssRG",
+   "volumeUsd": 8429.25,
+   "solBalance": 4.229367913,
+   "source": "gmgn",
+   "firstSeen": 1783939431663
+  },
+  {
+   "address": "BrT5kYQ125u6NaRKFKNiBnHak6X7MvcZSQ3LfQCB3sqg",
+   "tags": [
+    "kol",
+    "axiom"
+   ],
+   "vectors": [
+    "token:neet"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 1110.26,
+   "trades7d": 43,
+   "tokens7d": 14,
+   "twitter": "zoruuuuu",
+   "volumeUsd": 7911.64,
+   "solBalance": 0.041753712,
+   "source": "gmgn",
+   "firstSeen": 1783939433872
+  },
+  {
+   "address": "FKMrrPLEhCtBkrBFKnT6vE6ajSXVb9PYS69wvoYvv16i",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:SCAM"
+   ],
+   "winRate": 0.27,
+   "realizedUsd7d": 5780.75,
+   "trades7d": 164,
+   "tokens7d": 39,
+   "twitter": null,
+   "volumeUsd": 7885.14,
+   "solBalance": 23.482632924,
+   "source": "gmgn",
+   "firstSeen": 1783939434957
+  },
+  {
+   "address": "CRzpBtFwjGkYKjwPSBzC4mn8qF2eb7XpjfPemubT4dgE",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:three",
+    "token:UwU",
+    "token:neet"
+   ],
+   "winRate": 0.55,
+   "realizedUsd7d": 3570.79,
+   "trades7d": 602,
+   "tokens7d": 221,
+   "twitter": null,
+   "volumeUsd": 7871.58,
+   "solBalance": 41.80277109,
+   "source": "gmgn",
+   "firstSeen": 1783939435999
+  },
+  {
+   "address": "3Ycnj9RqQW3eEhhaxFPzbeDSzpeKRFytT9KHJLtd3RZm",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:KINS",
+    "token:CATWIF"
+   ],
+   "winRate": 0.54,
+   "realizedUsd7d": 1079.47,
+   "trades7d": 1931,
+   "tokens7d": 128,
+   "twitter": null,
+   "volumeUsd": 7785.66,
+   "solBalance": 5.47805449,
+   "source": "gmgn",
+   "firstSeen": 1783939437328
+  },
+  {
+   "address": "FrhLfj81LRpMR3EwSSCGPzHmxsnoq8h628ne68vK5oMN",
+   "volumeUsd": 7756.76,
+   "volumeMon": 25.65,
+   "solBalance": 128.76,
+   "trades": 5,
+   "buys": 0,
+   "sells": 5,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "MOODENG"
+   ],
+   "lastToken": "MOODENG",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783598940586
+  },
+  {
+   "address": "5QqkAkG65q4j2UABY7KA1HEKg43xjVYkDeUTncRsGx6L",
+   "volumeUsd": 7133.85,
+   "volumeMon": 91.65,
+   "solBalance": 373.59,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "FO"
+   ],
+   "lastToken": "FO",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706075
+  },
+  {
+   "address": "8g6ABtMuBdx2mm2UFixft2WNcLhYuYGKrrgnFEwi7Rxh",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:drooling",
+    "token:SOLANGELES",
+    "token:three",
+    "token:TROLL",
+    "token:neet"
+   ],
+   "winRate": 0.43,
+   "realizedUsd7d": 4047.78,
+   "trades7d": 1087,
+   "tokens7d": 261,
+   "twitter": null,
+   "volumeUsd": 7004.05,
+   "solBalance": 113.275869651,
+   "source": "gmgn",
+   "firstSeen": 1783939440155
+  },
+  {
+   "address": "4Qs4iKH8gnDUvhK57uYZ4Zy1cbvjTFJrkhsxhwpXYmUk",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 6923.42,
+   "solBalance": 44.491360829,
+   "source": "gmgn",
+   "firstSeen": 1783754890374
+  },
+  {
+   "address": "GfXQesPe3Zuwg8JhAt6Cg8euJDTVx751enp9EQQmhzPH",
+   "tags": [
+    "kol",
+    "photon",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:CHANCE"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": -7150.29,
+   "trades7d": 152,
+   "tokens7d": 39,
+   "twitter": "spunosounds",
+   "volumeUsd": 6612.51,
+   "solBalance": 0.048107481,
+   "source": "gmgn",
+   "firstSeen": 1783939441241
+  },
+  {
+   "address": "EzAN7Fuo6qdidfQeAcG9DEAD9DLwfkxo6bWMpL8habug",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:MANIFEST"
+   ],
+   "winRate": 0.64,
+   "realizedUsd7d": 2417.17,
+   "trades7d": 56,
+   "tokens7d": 18,
+   "twitter": null,
+   "volumeUsd": 6094.98,
+   "solBalance": 21.100971324,
+   "source": "gmgn",
+   "firstSeen": 1783939443853
+  },
+  {
+   "address": "7yd579zXmWPoxEE22BUYTzAo8nyMmQtPyEWS3g1BFhH4",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:world",
+    "token:NEST",
+    "token:OCCAM",
+    "token:ASTEROID",
+    "token:Cupsey",
+    "token:TROLL"
+   ],
+   "winRate": 0.41,
+   "realizedUsd7d": 2757.6,
+   "trades7d": 440,
+   "tokens7d": 116,
+   "twitter": null,
+   "volumeUsd": 5994.2,
+   "solBalance": 107.652340714,
+   "source": "gmgn",
+   "firstSeen": 1783939444874
+  },
+  {
+   "address": "FAicXNV5FVqtfbpn4Zccs71XcfGeyxBSGbqLDyDJZjke",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:world",
+    "token:neet"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 1404.57,
+   "trades7d": 63,
+   "tokens7d": 41,
+   "twitter": "radiancebrr",
+   "volumeUsd": 5941.29,
+   "solBalance": 64.144236176,
+   "source": "gmgn",
+   "firstSeen": 1783939445934
+  },
+  {
+   "address": "7fVBvXJfKTpbizX8LQzrxN5xK6SH49nc8tnaxZdAajGE",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:Cupsey"
+   ],
+   "winRate": 0.86,
+   "realizedUsd7d": 1647.27,
+   "trades7d": 45,
+   "tokens7d": 8,
+   "twitter": null,
+   "volumeUsd": 5846.08,
+   "solBalance": 1.846573618,
+   "source": "gmgn",
+   "firstSeen": 1783939447483
+  },
+  {
+   "address": "9Vvx19ziD6pB3xwktLYcLmDHdZ7BB11zyiWi6kPphsjd",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "bullx"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:drooling",
+    "token:TripleT",
+    "token:TROLL"
+   ],
+   "winRate": 0.46,
+   "realizedUsd7d": 1611.38,
+   "trades7d": 845,
+   "tokens7d": 107,
+   "twitter": null,
+   "volumeUsd": 5618.95,
+   "solBalance": 0.010923495,
+   "source": "gmgn",
+   "firstSeen": 1783939448530
+  },
+  {
+   "address": "34xr8uUhRkeB4LFCutLmpceq57tTDT7MDkBa6P3jRLJk",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 5598.6,
+   "solBalance": 89.002450822,
+   "source": "gmgn",
+   "firstSeen": 1783754891372
+  },
+  {
+   "address": "8ZgAmj7fSo2eTcwidgg4uUYLZRXi8vyeFuywmA8FBQAv",
+   "volumeUsd": 5594.002526000002,
+   "solBalance": 79.205997432,
+   "source": "live",
+   "firstSeen": 1783687825743
+  },
+  {
+   "address": "23GvFNJsRJ1csgBjbTu1C9gYhpRxwvUDMAcuxhqvB8C4",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 5553.16,
+   "solBalance": 1023.099110575,
+   "source": "gmgn",
+   "firstSeen": 1783721457129
+  },
+  {
+   "address": "ART5dr4bDic2sQVZoFheEmUxwQq5VGSx9he7JxHcXNQD",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:Jotchua",
+    "token:SOLANGELES",
+    "token:UwU"
+   ],
+   "winRate": 0.78,
+   "realizedUsd7d": -1427.49,
+   "trades7d": 147,
+   "tokens7d": 21,
+   "twitter": "solanapoet",
+   "volumeUsd": 5535.31,
+   "solBalance": 0.117149274,
+   "source": "gmgn",
+   "firstSeen": 1783939449597
+  },
+  {
+   "address": "9bZ9PyDDmSXMk3wc9cAf3TKJ5svvyC5Kde4soXbNknPB",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:Cupsey"
+   ],
+   "winRate": 0.32,
+   "realizedUsd7d": 2050.16,
+   "trades7d": 338,
+   "tokens7d": 86,
+   "twitter": null,
+   "volumeUsd": 5404.81,
+   "solBalance": 1.564551781,
+   "source": "gmgn",
+   "firstSeen": 1783939450751
+  },
+  {
+   "address": "HpLB9MPL7VoxQZQffFtTX5Lm5mdreykrwVP9omqK6k1P",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:Wukong",
+    "token:ZERO",
+    "token:CHANCE",
+    "token:drooling",
+    "token:Joby",
+    "token:three",
+    "token:SCAM",
+    "token:UwU"
+   ],
+   "winRate": 0.54,
+   "realizedUsd7d": 1429.74,
+   "trades7d": 273,
+   "tokens7d": 96,
+   "twitter": null,
+   "volumeUsd": 5394.46,
+   "solBalance": 11.082226155,
+   "source": "gmgn",
+   "firstSeen": 1783939453152
+  },
+  {
+   "address": "DvsVANJkMX3NmZYTVbCKhkZgr1FXYX5oHnhzN97o8hAM",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "trojan",
+    "padre",
+    "pepeboost"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:CHANCE"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 4776.83,
+   "trades7d": 313,
+   "tokens7d": 102,
+   "twitter": null,
+   "volumeUsd": 5393.57,
+   "solBalance": 76.974202988,
+   "source": "gmgn",
+   "firstSeen": 1783939454436
+  },
+  {
+   "address": "EBQMUWr7NHBchfLJmXiVXGzHHwr62k4evfgZuHsXitWk",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:LEVI",
+    "token:MENSA",
+    "token:CATWIF",
+    "token:drooling",
+    "token:three"
+   ],
+   "winRate": 0.62,
+   "realizedUsd7d": 2822.23,
+   "trades7d": 36,
+   "tokens7d": 21,
+   "twitter": null,
+   "volumeUsd": 5374.74,
+   "solBalance": 20.451440001,
+   "source": "gmgn",
+   "firstSeen": 1783939455679
+  },
+  {
+   "address": "Hsu75uJhEidV5Zkj21XBEYUBaFZmjb8Rd6qUpweWGbTo",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:world",
+    "token:KINS",
+    "token:RKC",
+    "token:SOLANGELES",
+    "token:tSpaceX"
+   ],
+   "winRate": 0.38,
+   "realizedUsd7d": 1380.94,
+   "trades7d": 81,
+   "tokens7d": 29,
+   "twitter": null,
+   "volumeUsd": 5065.18,
+   "solBalance": 8.180187403,
+   "source": "gmgn",
+   "firstSeen": 1783939458647
+  },
+  {
+   "address": "9rxYAy2Dx8hFJ8yRBbY1M21EwsXcdJG7cvFfegatfatj",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "photon"
+   ],
+   "vectors": [
+    "feed:smartmoney",
+    "token:Wukong",
+    "token:DUMP",
+    "token:SCAM"
+   ],
+   "winRate": 0.49,
+   "realizedUsd7d": 1818.64,
+   "trades7d": 188,
+   "tokens7d": 47,
+   "twitter": null,
+   "volumeUsd": 4957.7,
+   "solBalance": 0.009402557,
+   "source": "gmgn",
+   "firstSeen": 1783939459872
+  },
+  {
+   "address": "498g1rVnFcnjBjpfw1xyqA1WvgQXUU8RWuELjxkjAayQ",
+   "tags": [
+    "kol",
+    "fomo"
+   ],
+   "volumeUsd": 4915.1,
+   "solBalance": 0.357643811,
+   "source": "gmgn",
+   "firstSeen": 1783721459115
+  },
+  {
+   "address": "65paNEG8m7mCVoASVF2KbRdU21aKXdASSB9G3NjCSQuE",
+   "tags": [
+    "photon",
+    "kol",
+    "gmgn",
+    "axiom"
+   ],
+   "volumeUsd": 4874.44,
+   "solBalance": 0.476966677,
+   "source": "gmgn",
+   "firstSeen": 1783699862537
+  },
+  {
+   "address": "F1SyckKV9SrMiXwVkPo3Hyp6HZspQozXACsrpxjLeg1H",
+   "volumeUsd": 4823.94,
+   "volumeMon": 61.97,
+   "solBalance": 49.96,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706075
+  },
+  {
+   "address": "HHK3Q5jwNsUgFw9Mao6NtiA9Yfdw19UyBCop1QzfM7r5",
+   "volumeUsd": 4585.69,
+   "volumeMon": 59.47,
+   "solBalance": 68.19,
+   "trades": 2,
+   "buys": 1,
+   "sells": 1,
+   "directionality": 0,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 1,
+   "winTokens": 0,
+   "winRate": 0,
+   "source": "scan",
+   "firstSeen": 1783606834724
+  },
+  {
+   "address": "8r9GDrqXkTiow5PrLswQHWuBV6nidMQqZXH6hx3ds6m3",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:Jotchua"
+   ],
+   "winRate": 0.59,
+   "realizedUsd7d": 1022.18,
+   "trades7d": 442,
+   "tokens7d": 130,
+   "twitter": null,
+   "volumeUsd": 4518.05,
+   "solBalance": 25.009801273,
+   "source": "gmgn",
+   "firstSeen": 1783939462717
+  },
+  {
+   "address": "CwvYUDGo4x7TYonn9qLb1c9rnUu5k3s4FN5hT38rnbsq",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:manlet",
+    "token:Jotchua",
+    "token:MANIFEST"
+   ],
+   "winRate": 0.53,
+   "realizedUsd7d": 5142.58,
+   "trades7d": 478,
+   "tokens7d": 127,
+   "twitter": null,
+   "volumeUsd": 4504.01,
+   "solBalance": 123.619186312,
+   "source": "gmgn",
+   "firstSeen": 1783939463752
+  },
+  {
+   "address": "4Q74DXDgDGVNowJtFqo6sCGwiKWgnpVHyusXSv1oHkZa",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:Cupsey"
+   ],
+   "winRate": 0.86,
+   "realizedUsd7d": 2395.59,
+   "trades7d": 30,
+   "tokens7d": 11,
+   "twitter": null,
+   "volumeUsd": 4419.44,
+   "solBalance": 7.887515458,
+   "source": "gmgn",
+   "firstSeen": 1783939464807
+  },
+  {
+   "address": "CKTjVrGVEjGfjWD2eBqypMW2Tgpe9gUz9SsKdNmN9MAx",
+   "volumeUsd": 4402.5094296585,
+   "solBalance": 61.769050485,
+   "source": "live",
+   "firstSeen": 1783604544512
+  },
+  {
+   "address": "3kSUZ79VEfpy9Uw9sWnB1jG2GwmTQSCcn72NH57s1rCx",
+   "tags": [
+    "smart_degen",
+    "padre",
+    "fomo"
+   ],
+   "volumeUsd": 4371.89,
+   "solBalance": 0.116493015,
+   "source": "gmgn",
+   "firstSeen": 1783666630205
+  },
+  {
+   "address": "35W2aRQpsJNKdhucq4YJobra4D3GuVaoFKhkHVWi8R9G",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:Wukong",
+    "token:manlet",
+    "token:MENSA",
+    "token:TROLL"
+   ],
+   "winRate": 0.54,
+   "realizedUsd7d": 6523.67,
+   "trades7d": 172,
+   "tokens7d": 44,
+   "twitter": null,
+   "volumeUsd": 4334.62,
+   "solBalance": 105.486257673,
+   "source": "gmgn",
+   "firstSeen": 1783939465873
+  },
+  {
+   "address": "GaVqQQSX839yf53ePPS93h7LWFcxhCZsyjQvBCpkVxem",
+   "volumeUsd": 4142.76,
+   "volumeMon": 53.22,
+   "solBalance": 245,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706076
+  },
+  {
+   "address": "6QyMtDxcXzTtB8VngkrjMv4pbtG1Gj1XxTuKnyDh3MoS",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:LEVI"
+   ],
+   "winRate": 0.81,
+   "realizedUsd7d": 1256.01,
+   "trades7d": 288,
+   "tokens7d": 66,
+   "twitter": null,
+   "volumeUsd": 4098.06,
+   "solBalance": 5.84365684,
+   "source": "gmgn",
+   "firstSeen": 1783939467735
+  },
+  {
+   "address": "AkzMJ8k423z2b1Ye1j2G4ujynvVV6KMcL91FAhi5qpu5",
+   "volumeUsd": 4000,
+   "volumeMon": 51.39,
+   "solBalance": 680.1,
+   "trades": 1,
+   "buys": 1,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706076
+  },
+  {
+   "address": "AAMnoNo3TpezKcT7ah9puLFZ4D59muEhQHJJqpX16ccg",
+   "tags": [
+    "kol",
+    "trojan"
+   ],
+   "vectors": [
+    "token:RKC"
+   ],
+   "winRate": 0.57,
+   "realizedUsd7d": 15355.47,
+   "trades7d": 16,
+   "tokens7d": 16,
+   "twitter": "saracrypto_eth",
+   "volumeUsd": 3544.65,
+   "solBalance": 24.692713369,
+   "source": "gmgn",
+   "firstSeen": 1783939469832
+  },
+  {
+   "address": "EA4MXkyF8C2NzY8fw2acJPuarmoU271KRCCAYpLzMBJr",
+   "tags": [
+    "kol",
+    "axiom"
+   ],
+   "vectors": [
+    "token:ASTEROID"
+   ],
+   "winRate": 0.48,
+   "realizedUsd7d": 2280.04,
+   "trades7d": 444,
+   "tokens7d": 138,
+   "twitter": "naughtygrimace",
+   "volumeUsd": 3307.74,
+   "solBalance": 14.968322065,
+   "source": "gmgn",
+   "firstSeen": 1783939471649
+  },
+  {
+   "address": "67Nwfi9hgwqhxGoovT2JGLU67uxfomLwQAWncjXXzU6U",
+   "tags": [
+    "kol",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:Jotchua",
+    "token:ASTEROID"
+   ],
+   "winRate": 0.23,
+   "realizedUsd7d": 1998.15,
+   "trades7d": 86,
+   "tokens7d": 25,
+   "twitter": "0xLake",
+   "volumeUsd": 3128.09,
+   "solBalance": 63.557289229,
+   "source": "gmgn",
+   "firstSeen": 1783939473200
+  },
+  {
+   "address": "ENkZtLj1onzQRGnEeRkQfFzBeeY2dCeiQMXDzh8XbQbj",
+   "tags": [
+    "kol",
+    "gmgn",
+    "fomo"
+   ],
+   "vectors": [
+    "token:CPX"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -70.37,
+   "trades7d": 8,
+   "tokens7d": 7,
+   "twitter": "game_for_one",
+   "volumeUsd": 3041.89,
+   "solBalance": 0.328196241,
+   "source": "gmgn",
+   "firstSeen": 1783939474281
+  },
+  {
+   "address": "951wq3qDowjKHaycrNaiRB5WpovYVKXnqhnrcKPh46zt",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:Jotchua",
+    "token:NEST",
+    "token:ZERO"
+   ],
+   "winRate": 0.58,
+   "realizedUsd7d": 3266.66,
+   "trades7d": 598,
+   "tokens7d": 39,
+   "twitter": "savemejrus",
+   "volumeUsd": 2824.23,
+   "solBalance": 12.654218052,
+   "source": "gmgn",
+   "firstSeen": 1783939477391
+  },
+  {
+   "address": "GKuT7sm231TtcMMutTvmbyqgmBvpx8KvwgRcvjGBajF",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:ZERO",
+    "token:SCAM",
+    "token:ASTEROID"
+   ],
+   "winRate": 0.52,
+   "realizedUsd7d": 2378.86,
+   "trades7d": 1404,
+   "tokens7d": 104,
+   "twitter": null,
+   "volumeUsd": 2822.8,
+   "solBalance": 26.449776649,
+   "source": "gmgn",
+   "firstSeen": 1783939478459
+  },
+  {
+   "address": "4NtyFqqRzvHWsTmJZoT26H9xtL7asWGTxpcpCxiKax9a",
+   "tags": [
+    "kol",
+    "axiom",
+    "photon",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:Joby",
+    "token:TROLL"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -475.81,
+   "trades7d": 13,
+   "tokens7d": 10,
+   "twitter": "insidecalls",
+   "volumeUsd": 2777,
+   "solBalance": 104.704819582,
+   "source": "gmgn",
+   "firstSeen": 1783939479535
+  },
+  {
+   "address": "gWTmSBYYJhDf8kM9CKdej7pL96Jjq7rhTiBd6pyv2Yb",
+   "tags": [
+    "padre",
+    "smart_degen"
+   ],
+   "volumeUsd": 2694.79,
+   "solBalance": 2.762294516,
+   "source": "gmgn",
+   "firstSeen": 1783644538236
+  },
+  {
+   "address": "AvzzD7SnRHb8Kv8dRk1JFYdWVcNtYhTybk2KbDWKB5ki",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:Jotchua"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 102.89,
+   "trades7d": 16,
+   "tokens7d": 3,
+   "twitter": "0xweiqigaoshou",
+   "volumeUsd": 2483.22,
+   "solBalance": 20.175489014,
+   "source": "gmgn",
+   "firstSeen": 1783939480592
+  },
+  {
+   "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+   "tags": [
+    "bluechip_owner",
+    "kol",
+    "arbitrager",
+    "gmgn"
+   ],
+   "volumeUsd": 2393.28,
+   "solBalance": 249.621057882,
+   "source": "gmgn",
+   "firstSeen": 1783666632315
+  },
+  {
+   "address": "HZyJNKiMYYgpvd7xK36tGkdG1xf9SkNQjNy8koSDcGyA",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 2375.76,
+   "solBalance": 68.358654807,
+   "source": "gmgn",
+   "firstSeen": 1783689056138
+  },
+  {
+   "address": "AzWnNS9isJR9HZ6WAEAUwqVMu5SAwHsPNmrmEVCroyMS",
+   "tags": [
+    "gmgn",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 2243.03,
+   "solBalance": 28.246835629,
+   "source": "gmgn",
+   "firstSeen": 1783776570495
+  },
+  {
+   "address": "GCEWon5H2T736Qwz5Nhu9bMMoynozZxc69WYziYHMz8a",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:LEVI"
+   ],
+   "winRate": 0.59,
+   "realizedUsd7d": -327.36,
+   "trades7d": 15,
+   "tokens7d": 18,
+   "twitter": null,
+   "volumeUsd": 2215.18,
+   "solBalance": 0,
+   "source": "gmgn",
+   "firstSeen": 1783939481672
+  },
+  {
+   "address": "A2MwjTFz4jzT1mY4xrqkwm1vAbZDrqnA6QJoyTAU8Djw",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:Jotchua",
+    "token:drooling",
+    "token:MANIFEST",
+    "token:Cupsey"
+   ],
+   "winRate": 0.43,
+   "realizedUsd7d": 5656.54,
+   "trades7d": 781,
+   "tokens7d": 244,
+   "twitter": "dddemono7ogy",
+   "volumeUsd": 2198.61,
+   "solBalance": 44.969618134,
+   "source": "gmgn",
+   "firstSeen": 1783939482711
+  },
+  {
+   "address": "JCXdWz4aRo4qHJ1W867SVCQe1HRiP3J6gCWs27pUAXzG",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:Cupsey"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 1651.74,
+   "trades7d": 1600,
+   "tokens7d": 276,
+   "twitter": null,
+   "volumeUsd": 2129.26,
+   "solBalance": 10.541086058,
+   "source": "gmgn",
+   "firstSeen": 1783939483817
+  },
+  {
+   "address": "J8Mz1qEu8AVNp5Erh6d7JXijAyVDKYUvgBFwBhRTvDmM",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:SOLANGELES",
+    "token:Cupsey"
+   ],
+   "winRate": 0.41,
+   "realizedUsd7d": 1413.3,
+   "trades7d": 185,
+   "tokens7d": 63,
+   "twitter": null,
+   "volumeUsd": 2079.41,
+   "solBalance": 10.283849695,
+   "source": "gmgn",
+   "firstSeen": 1783939485037
+  },
+  {
+   "address": "signeraMNtVHUcVSAV9HCCCJUhQTLsbQneHZGmUQcWk",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 1960.06,
+   "solBalance": 75.264905451,
+   "source": "gmgn",
+   "firstSeen": 1783743748478
+  },
+  {
+   "address": "6VxMwNUVFheuo9iUHJbeVBjiucMi9vUyAXZ94cNUfWy7",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:CPX"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 0,
+   "trades7d": 0,
+   "tokens7d": 3,
+   "twitter": "BetmanJoe",
+   "volumeUsd": 1937.99,
+   "solBalance": 0.24352268,
+   "source": "gmgn",
+   "firstSeen": 1783939486774
+  },
+  {
+   "address": "4GQeEya6ZTwvXre4Br6ZfDyfe2WQMkcDz2QbkJZazVqS",
+   "volumeUsd": 1909.08,
+   "volumeMon": 23.1,
+   "solBalance": 45.36,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "ORCA"
+   ],
+   "lastToken": "ORCA",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783598940586
+  },
+  {
+   "address": "7nq9YGHwFSVJhQF3252fa7nY4auBvvWyUeupZVrjfg7J",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:KINS",
+    "token:drooling",
+    "token:TripleT",
+    "token:Buttcoin",
+    "token:TROLL"
+   ],
+   "winRate": 0.47,
+   "realizedUsd7d": 1383.96,
+   "trades7d": 185,
+   "tokens7d": 59,
+   "twitter": null,
+   "volumeUsd": 1883.08,
+   "solBalance": 47.871560549,
+   "source": "gmgn",
+   "firstSeen": 1783939487809
+  },
+  {
+   "address": "2Ry3PLS4yTvV2zH6VEGh9aD6QHR69D5z3N19KdLgMnkj",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "vectors": [
+    "token:CATWIF"
+   ],
+   "winRate": 0.67,
+   "realizedUsd7d": 1660.94,
+   "trades7d": 12,
+   "tokens7d": 6,
+   "twitter": null,
+   "volumeUsd": 1802.7,
+   "solBalance": 0.009659446,
+   "source": "gmgn",
+   "firstSeen": 1783939490804
+  },
+  {
+   "address": "9qcHMAe2TD1JXzztJrQdCCCcRoPM3CmGsZuP7zGJ3sdS",
+   "tags": [
+    "gmgn",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 1788.74,
+   "solBalance": 80.059634888,
+   "source": "gmgn",
+   "firstSeen": 1783633742595
+  },
+  {
+   "address": "Emy6gwEvLJMuXzrgXvUo4aKBB5tABEk3KcoaDP5WUNBc",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 1659.24,
+   "solBalance": 23.234371685,
+   "source": "gmgn",
+   "firstSeen": 1783689063766
+  },
+  {
+   "address": "AVwdHkXCmFa2vx3xaKNGpS33VtmnhAd3ewrsEKVTD85b",
+   "volumeUsd": 1566.6,
+   "volumeMon": 20.13,
+   "solBalance": 59.37,
+   "trades": 2,
+   "buys": 2,
+   "sells": 0,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706076
+  },
+  {
+   "address": "7vqbM1Lkbq2diGcwixUnDgcgvtKZnBttFZrtmfJbw8Ph",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:Jotchua"
+   ],
+   "winRate": 0.61,
+   "realizedUsd7d": 5411.37,
+   "trades7d": 383,
+   "tokens7d": 64,
+   "twitter": null,
+   "volumeUsd": 1535.55,
+   "solBalance": 91.174446561,
+   "source": "gmgn",
+   "firstSeen": 1783939494674
+  },
+  {
+   "address": "EtcypjU3iERqtNZGmTa5jQ1qSyQvTN6KX6Fet7m2KyAj",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 1488.23,
+   "solBalance": 68.478881818,
+   "source": "gmgn",
+   "firstSeen": 1783689061752
+  },
+  {
+   "address": "BLf852irUk6Nd9RggNxukNiXaADxeMRuAJbQgMHpEgyg",
+   "tags": [
+    "gmgn",
+    "smart_degen"
+   ],
+   "volumeUsd": 1457.29,
+   "solBalance": 17.539339949,
+   "source": "gmgn",
+   "firstSeen": 1783689055154
+  },
+  {
+   "address": "J23qr98GjGJJqKq9CBEnyRhHbmkaVxtTJNNxKu597wsA",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:Jotchua"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -458.5,
+   "trades7d": 38,
+   "tokens7d": 38,
+   "twitter": "gr3gor14n",
+   "volumeUsd": 1444.61,
+   "solBalance": 544.336209595,
+   "source": "gmgn",
+   "firstSeen": 1783939496752
+  },
+  {
+   "address": "HagBAc9gHuC3i8Abwom3UfRTTS6ACiJrv6tMKThccReZ",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:MENSA",
+    "token:SCAM"
+   ],
+   "winRate": 0.62,
+   "realizedUsd7d": 1162.47,
+   "trades7d": 935,
+   "tokens7d": 97,
+   "twitter": null,
+   "volumeUsd": 1326.96,
+   "solBalance": 14.22889724,
+   "source": "gmgn",
+   "firstSeen": 1783939498388
+  },
+  {
+   "address": "6BqTPZzgNZx7XYK2u1fdFSqGfAj6sFk9rMhznYY171qP",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:Jotchua"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 0,
+   "trades7d": 0,
+   "tokens7d": 4,
+   "twitter": "Hutflow",
+   "volumeUsd": 1227.93,
+   "solBalance": 0.004978999,
+   "source": "gmgn",
+   "firstSeen": 1783939499601
+  },
+  {
+   "address": "9uq9L47X4LPJjhcwH3VwFZDpsNPH6Wz24ewAxg46o427",
+   "tags": [
+    "pepeboost",
+    "smart_degen"
+   ],
+   "volumeUsd": 1161.49,
+   "solBalance": 31.582820039,
+   "source": "gmgn",
+   "firstSeen": 1783754889880
+  },
+  {
+   "address": "7cVyqNK6fEq6EGAw1UoyKLy8ni84BanEKkdfj5FvZQBh",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 1144.91,
+   "solBalance": 44.939473701,
+   "source": "gmgn",
+   "firstSeen": 1783689060260
+  },
+  {
+   "address": "HwoUch9dtBshU2ZvuxzNAWvtfeiUiXUJaLko8duWhHCg",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 1142.68,
+   "solBalance": 9.928442718,
+   "source": "gmgn",
+   "firstSeen": 1783699857219
+  },
+  {
+   "address": "G3g1CKqKWSVEVURZDNMazDBv7YAhMNTjhJBVRTiKZygk",
+   "tags": [
+    "kol",
+    "bullx",
+    "gmgn",
+    "axiom"
+   ],
+   "volumeUsd": 1122.36,
+   "solBalance": 44.132038524,
+   "source": "gmgn",
+   "firstSeen": 1783710659225
+  },
+  {
+   "address": "Ccsj3NxCJG8H6wtxBE5sY7dY3QpFhtz775826STLkSew",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:febu",
+    "token:CATWIF",
+    "token:TROLL"
+   ],
+   "winRate": 0.53,
+   "realizedUsd7d": 951.41,
+   "trades7d": 211,
+   "tokens7d": 38,
+   "twitter": null,
+   "volumeUsd": 1121.66,
+   "solBalance": 0,
+   "source": "gmgn",
+   "firstSeen": 1783939502665
+  },
+  {
+   "address": "B8HxhGFYp2QBCLThqgPwsKNc51UZT4xiCNSUfXJwiAYc",
+   "tags": [
+    "gmgn",
+    "trojan",
+    "kol"
+   ],
+   "volumeUsd": 1072.91,
+   "solBalance": 1.349457853,
+   "source": "gmgn",
+   "firstSeen": 1783699862050
+  },
+  {
+   "address": "CtPxvpWo1pk7HtL6KwpCLMMdsXHC6fdqAN1bPiracaQq",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "photon"
+   ],
+   "vectors": [
+    "token:febu"
+   ],
+   "winRate": 0.58,
+   "realizedUsd7d": 9444.27,
+   "trades7d": 346,
+   "tokens7d": 75,
+   "twitter": null,
+   "volumeUsd": 1071.31,
+   "solBalance": 341.072825235,
+   "source": "gmgn",
+   "firstSeen": 1783939504530
+  },
+  {
+   "address": "2k9Ho6YBqBXgjsFZRd7r2KjaeGUy6XS7GrjEUDiiastE",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 1048.89,
+   "solBalance": 71.042460104,
+   "source": "gmgn",
+   "firstSeen": 1783699854803
+  },
+  {
+   "address": "9Vk7pkBZ9KFJmzaPzNYjGedyz8qoKMQtnYyYi2AehNMT",
+   "tags": [
+    "bullx",
+    "kol",
+    "padre"
+   ],
+   "volumeUsd": 1047.41,
+   "solBalance": 0.857019032,
+   "source": "gmgn",
+   "firstSeen": 1783633755136
+  },
+  {
+   "address": "AeLaMjzxErZt4drbWVWvcxpVyo8p94xu5vrg41eZPFe3",
+   "tags": [
+    "kol",
+    "axiom",
+    "gmgn",
+    "padre"
+   ],
+   "vectors": [
+    "token:drooling",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.66,
+   "realizedUsd7d": 796.79,
+   "trades7d": 116,
+   "tokens7d": 36,
+   "twitter": "s1mple_s1mple",
+   "volumeUsd": 1042.57,
+   "solBalance": 186.124048196,
+   "source": "gmgn",
+   "firstSeen": 1783939505701
+  },
+  {
+   "address": "68dqds7Eo2uLHSwt4boLS4soEUHS6YYkwpuSN375zmy8",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:febu"
+   ],
+   "winRate": 0.64,
+   "realizedUsd7d": 1085.22,
+   "trades7d": 26,
+   "tokens7d": 12,
+   "twitter": null,
+   "volumeUsd": 1024.61,
+   "solBalance": 6.242234776,
+   "source": "gmgn",
+   "firstSeen": 1783939506961
+  },
+  {
+   "address": "5B52w1ZW9tuwUduueP5J7HXz5AcGfruGoX6YoAudvyxG",
+   "tags": [
+    "kol",
+    "app_smart_money",
+    "axiom",
+    "padre"
+   ],
+   "volumeUsd": 1015.74,
+   "solBalance": 83.325815187,
+   "source": "gmgn",
+   "firstSeen": 1783689065673
+  },
+  {
+   "address": "EeSx4wehRQhEbmbyFvfqA633v2P4C558bHh2ed7zgZh",
+   "tags": [
+    "kol",
+    "axiom",
+    "photon"
+   ],
+   "volumeUsd": 1015.29,
+   "solBalance": 15.934969406,
+   "source": "gmgn",
+   "firstSeen": 1783699861571
+  },
+  {
+   "address": "2W14ahXD3XBfWJchQ4K5NLXmguWWcTTUTuHDhEzeuvP3",
+   "tags": [
+    "kol",
+    "axiom",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:ASTEROID",
+    "token:TROLL"
+   ],
+   "winRate": 0.44,
+   "realizedUsd7d": 84.48,
+   "trades7d": 117,
+   "tokens7d": 39,
+   "twitter": "VeloceSVJ",
+   "volumeUsd": 1010.08,
+   "solBalance": 157.365626186,
+   "source": "gmgn",
+   "firstSeen": 1783939508109
+  },
+  {
+   "address": "56zoeCrehFaXAtJWLGRvdAkED6emPaAVf1Di4AQiJZpk",
+   "tags": [
+    "kol",
+    "arbitrager"
+   ],
+   "volumeUsd": 986.36,
+   "solBalance": 25.082396863,
+   "source": "gmgn",
+   "firstSeen": 1783721460649
+  },
+  {
+   "address": "EQaxqKT3N981QBmdSUGNzAGK5S26zUwAdRHhBCgn87zD",
+   "tags": [
+    "kol",
+    "padre",
+    "trojan",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 980.27,
+   "solBalance": 2.66548957,
+   "source": "gmgn",
+   "firstSeen": 1783743750263
+  },
+  {
+   "address": "4vw54BmAogeRV3vPKWyFet5yf8DTLcREzdSzx4rw9Ud9",
+   "tags": [
+    "photon",
+    "kol",
+    "padre",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 978.61,
+   "solBalance": 401.548761165,
+   "source": "gmgn",
+   "firstSeen": 1783699860110
+  },
+  {
+   "address": "AVjEtg2ECYKXYeqdRQXvaaAZBjfTjYuSMTR4WLhKoeQN",
+   "tags": [
+    "kol",
+    "launchpad_smart",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 976.67,
+   "solBalance": 77.035839594,
+   "source": "gmgn",
+   "firstSeen": 1783666634400
+  },
+  {
+   "address": "HvBtkDAB49KumCJtx5CygMYZzHcCrg5mRrQg1hNsruj1",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen"
+   ],
+   "volumeUsd": 947.76,
+   "solBalance": 23.092008313,
+   "source": "gmgn",
+   "firstSeen": 1783689055638
+  },
+  {
+   "address": "5vweNikgScdnGkZCC3ya2FoJrezJBrSrhZgp8kK8bbtg",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "vectors": [
+    "token:drooling"
+   ],
+   "winRate": 0.53,
+   "realizedUsd7d": 4358.25,
+   "trades7d": 33,
+   "tokens7d": 18,
+   "twitter": null,
+   "volumeUsd": 935.35,
+   "solBalance": 278.712282876,
+   "source": "gmgn",
+   "firstSeen": 1783939509839
+  },
+  {
+   "address": "6KuCbkFJxq7JinaiiQhsQWQHqty7U77neot7yKGVJm7v",
+   "tags": [
+    "padre",
+    "gmgn",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 934.05,
+   "solBalance": 7.953768737,
+   "source": "gmgn",
+   "firstSeen": 1783721456127
+  },
+  {
+   "address": "CyrBETDKGZBZYFYkttincx6TYDAKzarhbi32EQpV965F",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:febu"
+   ],
+   "winRate": 0.73,
+   "realizedUsd7d": 1019,
+   "trades7d": 34,
+   "tokens7d": 12,
+   "twitter": null,
+   "volumeUsd": 874.29,
+   "solBalance": 11.9397386,
+   "source": "gmgn",
+   "firstSeen": 1783939512300
+  },
+  {
+   "address": "4M5mWUecEGKzAMH5AYrm8gg9zyK7MNbCdxwB1nMfFHVG",
+   "tags": [
+    "padre",
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "feed:smartmoney",
+    "token:LEVI",
+    "token:TROLL"
+   ],
+   "winRate": 0.37,
+   "realizedUsd7d": 1536.33,
+   "trades7d": 1182,
+   "tokens7d": 245,
+   "twitter": null,
+   "volumeUsd": 837.91,
+   "solBalance": 17.902696819,
+   "source": "gmgn",
+   "firstSeen": 1783939513504
+  },
+  {
+   "address": "G4LFjeKUXeTFJteeSCLCdEmxdWr4nGKzKdXtK9u8N7MJ",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 829.79,
+   "solBalance": 19.659858316,
+   "source": "gmgn",
+   "firstSeen": 1783666631299
+  },
+  {
+   "address": "42YtP9yQveq3NJcLzhQjzSB4pWnS3cbJvyo1EmGtgF9d",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:three"
+   ],
+   "winRate": 0.47,
+   "realizedUsd7d": 2873.19,
+   "trades7d": 276,
+   "tokens7d": 53,
+   "twitter": null,
+   "volumeUsd": 822.55,
+   "solBalance": 61.050538139,
+   "source": "gmgn",
+   "firstSeen": 1783939515209
+  },
+  {
+   "address": "94yFK2TPMCUFy8yhhnUNBuBL5S1m8ieDEwxhedon9pfw",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:three"
+   ],
+   "winRate": 0.47,
+   "realizedUsd7d": 3328.27,
+   "trades7d": 277,
+   "tokens7d": 54,
+   "twitter": null,
+   "volumeUsd": 821.45,
+   "solBalance": 61.435530684,
+   "source": "gmgn",
+   "firstSeen": 1783939516339
+  },
+  {
+   "address": "4tc5a9ptT1uaAZtoXiF1ww3AuP39PnUWgSjD7ynVXCZ2",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:world",
+    "token:Cupsey"
+   ],
+   "winRate": 0.52,
+   "realizedUsd7d": 4490.48,
+   "trades7d": 336,
+   "tokens7d": 53,
+   "twitter": null,
+   "volumeUsd": 808.85,
+   "solBalance": 20.571257363,
+   "source": "gmgn",
+   "firstSeen": 1783939518161
+  },
+  {
+   "address": "8BZPRwUC8is9yGrdaiJ2mXxS3xPdiGqm6vEinCdgCeyv",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:three"
+   ],
+   "winRate": 0.47,
+   "realizedUsd7d": 3102.04,
+   "trades7d": 275,
+   "tokens7d": 55,
+   "twitter": null,
+   "volumeUsd": 793.21,
+   "solBalance": 60.741549779,
+   "source": "gmgn",
+   "firstSeen": 1783939519260
+  },
+  {
+   "address": "HGrCPFtZYantiVjTHqRUuf26TT2RWjfxd6Z9MA1RHFHT",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 786.15,
+   "solBalance": 30.467786277,
+   "source": "gmgn",
+   "firstSeen": 1783689061245
+  },
+  {
+   "address": "4BdKaxN8G6ka4GYtQQWk4G4dZRUTX2vQH9GcXdBREFUk",
+   "tags": [
+    "kol",
+    "photon",
+    "padre"
+   ],
+   "vectors": [
+    "token:ASTEROID"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 1329.82,
+   "trades7d": 10,
+   "tokens7d": 53,
+   "twitter": "jijo_exe",
+   "volumeUsd": 781.37,
+   "solBalance": 326.094980064,
+   "source": "gmgn",
+   "firstSeen": 1783939520482
+  },
+  {
+   "address": "75HPJgTte5iynyTUhAJwLKoBYE6AfAo57yjU3S5mAVtR",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:Cupsey"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 67304.04,
+   "trades7d": 58,
+   "tokens7d": 13,
+   "twitter": null,
+   "volumeUsd": 781.19,
+   "solBalance": 48.008875972,
+   "source": "gmgn",
+   "firstSeen": 1783939521518
+  },
+  {
+   "address": "4MKG5k49SeMtHXQbTUC254vxmxVgpiFrb5Q8iqksf6t2",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:febu"
+   ],
+   "winRate": 0.44,
+   "realizedUsd7d": 964.62,
+   "trades7d": 479,
+   "tokens7d": 127,
+   "twitter": null,
+   "volumeUsd": 776.04,
+   "solBalance": 17.413169853,
+   "source": "gmgn",
+   "firstSeen": 1783939522690
+  },
+  {
+   "address": "CoJpSpWChQoGSqAGzqHYZ6sRqxYsiz1QHn7rmS1pVLff",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 755.64,
+   "solBalance": 46.530607321,
+   "source": "gmgn",
+   "firstSeen": 1783809959101
+  },
+  {
+   "address": "EYDjJhT8tEQ2cgzNsLRp37EuMbr3iN9GUVn7475ZbCvw",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:CHANCE"
+   ],
+   "winRate": 0.46,
+   "realizedUsd7d": 1024.74,
+   "trades7d": 480,
+   "tokens7d": 146,
+   "twitter": null,
+   "volumeUsd": 749.56,
+   "solBalance": 6.077104435,
+   "source": "gmgn",
+   "firstSeen": 1783939525030
+  },
+  {
+   "address": "FAjy79ncahjN7kMQZsowwRK3mhXTnc3bPHkX3HxUv8y6",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "volumeUsd": 732.91,
+   "solBalance": 21.325592156,
+   "source": "gmgn",
+   "firstSeen": 1783666632836
+  },
+  {
+   "address": "CMEApKhfKaEgYBgSvcijDXbomZp36evvEwqpDDm3XHP1",
+   "tags": [
+    "gmgn",
+    "smart_degen"
+   ],
+   "volumeUsd": 721.7,
+   "solBalance": 1.764056494,
+   "source": "gmgn",
+   "firstSeen": 1783666629705
+  },
+  {
+   "address": "DYAn4XpAkN5mhiXkRB7dGq4Jadnx6XYgu8L5b3WGhbrt",
+   "tags": [
+    "kol",
+    "axiom",
+    "trojan",
+    "padre"
+   ],
+   "vectors": [
+    "token:Joby"
+   ],
+   "winRate": 0.48,
+   "realizedUsd7d": 4411.75,
+   "trades7d": 237,
+   "tokens7d": 71,
+   "twitter": "KayTheDoc",
+   "volumeUsd": 718.15,
+   "solBalance": 61.925083373,
+   "source": "gmgn",
+   "firstSeen": 1783939526090
+  },
+  {
+   "address": "AXPo3Y9XrvqwxDiHKh1uwcy5pbPbX61Yn7hkvRYd9qM6",
+   "volumeUsd": 712.8,
+   "volumeMon": 9.16,
+   "solBalance": 98.87,
+   "trades": 1,
+   "buys": 0,
+   "sells": 1,
+   "directionality": 1,
+   "lpAddedUsd": 0,
+   "lpEvents": 0,
+   "isMarketMaker": false,
+   "tokens": [
+    "CARDS"
+   ],
+   "lastToken": "CARDS",
+   "realizedUsd": 0,
+   "realizedMon": 0,
+   "closedTokens": 0,
+   "winTokens": 0,
+   "winRate": null,
+   "source": "scan",
+   "firstSeen": 1783778706076
+  },
+  {
+   "address": "VVV4C8wbLVU5Yw2JmdF7SPmoG2ubmJmmcjzHAJcdHgH",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 691.14,
+   "solBalance": 6.446125114,
+   "source": "gmgn",
+   "firstSeen": 1783721458620
+  },
+  {
+   "address": "4fZFcK8ms3bFMpo1ACzEUz8bH741fQW4zhAMGd5yZMHu",
+   "tags": [
+    "padre",
+    "axiom",
+    "kol",
+    "arbitrager",
+    "top_followed",
+    "gmgn"
+   ],
+   "volumeUsd": 681.9,
+   "solBalance": 6.363828347,
+   "source": "gmgn",
+   "firstSeen": 1783699861098
+  },
+  {
+   "address": "C9Qy5tGiVrSx5pX2VYctJgYgCUxPru71m561USh64h1c",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 666.35,
+   "solBalance": 0.009971689,
+   "source": "gmgn",
+   "firstSeen": 1783776570994
+  },
+  {
+   "address": "DJ5yi1s75qdEKahdCFekJnG8A2TRwLj3RB2HTRBXULxG",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 637.48,
+   "solBalance": 0.144985204,
+   "source": "gmgn",
+   "firstSeen": 1783666633865
+  },
+  {
+   "address": "5qWge4zUyQenk53EhAAQ5yP4LWxuvdqJpRBZZbGd4tv9",
+   "tags": [
+    "kol",
+    "top_followed",
+    "fomo"
+   ],
+   "vectors": [
+    "feed:kol"
+   ],
+   "winRate": 0.52,
+   "realizedUsd7d": 1816.84,
+   "trades7d": 189,
+   "tokens7d": 33,
+   "twitter": "Mystayor",
+   "volumeUsd": 637.25,
+   "solBalance": 2.699341269,
+   "source": "gmgn",
+   "firstSeen": 1783939529234
+  },
+  {
+   "address": "B9kJYdzb4gB9AC3aFChReDhJ2D5YDCaR4UrEoen2NcyC",
+   "tags": [
+    "gmgn",
+    "padre",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 630.62,
+   "solBalance": 80.304593232,
+   "source": "gmgn",
+   "firstSeen": 1783633741616
+  },
+  {
+   "address": "2J5827wzy2ZbtmwWQWGUxdbWVyc7rD8id6RaAphSqdjs",
+   "tags": [
+    "axiom",
+    "smart_degen"
+   ],
+   "volumeUsd": 603.43,
+   "solBalance": 12.324768679,
+   "source": "gmgn",
+   "firstSeen": 1783809960563
+  },
+  {
+   "address": "215nhcAHjQQGgwpQSJQ7zR26etbjjtVdW74NLzwEgQjP",
+   "tags": [
+    "axiom",
+    "gmgn",
+    "photon",
+    "kol",
+    "app_smart_money",
+    "padre"
+   ],
+   "volumeUsd": 593.09,
+   "solBalance": 0.211214217,
+   "source": "gmgn",
+   "firstSeen": 1783666635963
+  },
+  {
+   "address": "6FpZdYmBtbXCCAYUpAJ6qE812wz87tcEyRvTUa8U5Nsd",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 591.47,
+   "solBalance": 40.061189484,
+   "source": "gmgn",
+   "firstSeen": 1783666631829
+  },
+  {
+   "address": "HXC4ym2gevPBQLJrnjptiGMSK4vAjVyJLe2DJuvWVmb1",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:MANIFEST"
+   ],
+   "winRate": 0.35,
+   "realizedUsd7d": 2632.25,
+   "trades7d": 164,
+   "tokens7d": 46,
+   "twitter": null,
+   "volumeUsd": 581.78,
+   "solBalance": 40.914189357,
+   "source": "gmgn",
+   "firstSeen": 1783939530819
+  },
+  {
+   "address": "JxWaN3BDpkgnatJLDgLoZt6ysviL9uGd1LnspsJeVpX",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 571.71,
+   "solBalance": 40.007505776,
+   "source": "gmgn",
+   "firstSeen": 1783776571493
+  },
+  {
+   "address": "BQVz7fQ1WsQmSTMY3umdPEPPTm1sdcBcX9sP7o6kPRmB",
+   "tags": [
+    "kol",
+    "bullx",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 570.16,
+   "solBalance": 86.81046452,
+   "source": "gmgn",
+   "firstSeen": 1783689069843
+  },
+  {
+   "address": "D6goa47VQQK7ZV1fmEioz8ar33Vj3854xce7Vr4WKjLZ",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 569.18,
+   "solBalance": 23.232946113,
+   "source": "gmgn",
+   "firstSeen": 1783699856260
+  },
+  {
+   "address": "8LmuMPW5f6EKFPnAqXnzEmgQ52kaWoCna44SFTf1DMFQ",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ANSEM"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 0,
+   "trades7d": 0,
+   "tokens7d": 2,
+   "twitter": "0xParsaa",
+   "volumeUsd": 557.69,
+   "solBalance": 0,
+   "source": "gmgn",
+   "firstSeen": 1783939531906
+  },
+  {
+   "address": "GwZd3Ni1cTEUUNL8D6ftKyyrKwTJ5MzyvanQpQNvA5db",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:SOLANGELES",
+    "token:CPX",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.46,
+   "realizedUsd7d": -58.86,
+   "trades7d": 31,
+   "tokens7d": 18,
+   "twitter": "wwwhot11",
+   "volumeUsd": 557.32,
+   "solBalance": 48.807315426,
+   "source": "gmgn",
+   "firstSeen": 1783939532952
+  },
+  {
+   "address": "71PCu3E4JP5RDBoY6wJteqzxkKNXLyE1byg5BTAL9UtQ",
+   "tags": [
+    "bullx",
+    "photon",
+    "kol",
+    "app_smart_money",
+    "padre",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 548.08,
+   "solBalance": 119.432882384,
+   "source": "gmgn",
+   "firstSeen": 1783732855114
+  },
+  {
+   "address": "CNQHDwLNz7JeM8iSKkHFFZJ9xNt4cwEVhEsgQS1KdGn8",
+   "tags": [
+    "photon",
+    "smart_degen"
+   ],
+   "volumeUsd": 543.22,
+   "solBalance": 19.540491432,
+   "source": "gmgn",
+   "firstSeen": 1783721456633
+  },
+  {
+   "address": "C8WbCnc7ymERFNkXj3UyePoaivCYQkdcydkEvDVk9nx7",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 520.82,
+   "solBalance": 12.246534417,
+   "source": "gmgn",
+   "firstSeen": 1783754890887
+  },
+  {
+   "address": "5iFfo44ffJM1JA45QsdVWaP1UbK7U6sML3pjGk4hNn4E",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:Joby",
+    "token:SCAM",
+    "token:TripleT"
+   ],
+   "winRate": 0.73,
+   "realizedUsd7d": 1061.6,
+   "trades7d": 308,
+   "tokens7d": 53,
+   "twitter": null,
+   "volumeUsd": 519.07,
+   "solBalance": 26.589903205,
+   "source": "gmgn",
+   "firstSeen": 1783939534088
+  },
+  {
+   "address": "BAdJW3mmxSP77hvWmHXSXRQsgspmFn1LVnTh7d148bru",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:world"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": -32.22,
+   "trades7d": 15,
+   "tokens7d": 10,
+   "twitter": "New100xGems",
+   "volumeUsd": 516.1,
+   "solBalance": 2.754054744,
+   "source": "gmgn",
+   "firstSeen": 1783939535408
+  },
+  {
+   "address": "4fwAmLunU94rxHSjXt5rmHDvDgr6NHNP3DWw4Gp6WE5D",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 506.52,
+   "solBalance": 13.805253074,
+   "source": "gmgn",
+   "firstSeen": 1783689058718
+  },
+  {
+   "address": "EB1xVELxXxvEjwUJAmvKQnLwqRnHG8NV4BSgXA53bfrx",
+   "tags": [
+    "gmgn",
+    "padre",
+    "smart_degen"
+   ],
+   "volumeUsd": 503.51,
+   "solBalance": 12.313766211,
+   "source": "gmgn",
+   "firstSeen": 1783710657743
+  },
+  {
+   "address": "Bi4rd5FH5bYEN8scZ7wevxNZyNmKHdaBcvewdPFxYdLt",
+   "tags": [
+    "photon",
+    "kol",
+    "padre",
+    "axiom",
+    "top_followed",
+    "top_renamed",
+    "gmgn"
+   ],
+   "volumeUsd": 487.22,
+   "solBalance": 95.957619351,
+   "source": "gmgn",
+   "firstSeen": 1783633756165
+  },
+  {
+   "address": "5XQrQ9uAtHCAXzpNJvUEyrTkEYhndf8Zonk7uSN5MKHx",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ZERO"
+   ],
+   "winRate": 0.67,
+   "realizedUsd7d": 316.92,
+   "trades7d": 2,
+   "tokens7d": 3,
+   "twitter": "notsofast",
+   "volumeUsd": 479.83,
+   "solBalance": 0.994826473,
+   "source": "gmgn",
+   "firstSeen": 1783939540189
+  },
+  {
+   "address": "7JeFueKuHvAGMD23mWbJANxzBDA4V7NXcnzcZCE8JXkU",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 473.54,
+   "solBalance": 5.358441029,
+   "source": "gmgn",
+   "firstSeen": 1783644537741
+  },
+  {
+   "address": "5mtsAyL2tMzf9WX8ngheXyWPukniovLSvjD6LEFJ58vh",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 469.51,
+   "solBalance": 8.662588408,
+   "source": "gmgn",
+   "firstSeen": 1783633743072
+  },
+  {
+   "address": "9Wagwcs6HVtMHaaxBjUbE7AKmxeg9nzEDcvXhN8bydUG",
+   "tags": [
+    "photon",
+    "kol",
+    "padre"
+   ],
+   "volumeUsd": 463.96,
+   "solBalance": 50.40390587,
+   "source": "gmgn",
+   "firstSeen": 1783710659730
+  },
+  {
+   "address": "CQjYGzyCxwH7SmjRSpoZ4jWg481LAkuumyWRot9FcGmz",
+   "tags": [
+    "axiom",
+    "smart_degen"
+   ],
+   "volumeUsd": 453,
+   "solBalance": 42.647780683,
+   "source": "gmgn",
+   "firstSeen": 1783699858657
+  },
+  {
+   "address": "G2cFUTs8fSwVt1EsvdCRw9V7B5jgr3Qp3ExZK3ixFcEQ",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen"
+   ],
+   "volumeUsd": 442.27,
+   "solBalance": 0.007700887,
+   "source": "gmgn",
+   "firstSeen": 1783699856731
+  },
+  {
+   "address": "7gdo83WqcXvown8aHUrgma716BEwGdjRA9CtdUThBy5U",
+   "tags": [
+    "padre",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 442.18,
+   "solBalance": 9.282191713,
+   "source": "gmgn",
+   "firstSeen": 1783743749082
+  },
+  {
+   "address": "AnCkz86GTunuGTHAwa4utaeHud2T9dyufQ6S7Uheqisp",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 425.28,
+   "solBalance": 4.460051728,
+   "source": "gmgn",
+   "firstSeen": 1783689056632
+  },
+  {
+   "address": "GNrmKZCxYyNiSUsjduwwPJzhed3LATjciiKVuSGrsHEC",
+   "tags": [
+    "gmgn",
+    "padre",
+    "smart_degen",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 411.08,
+   "solBalance": 67.398414632,
+   "source": "gmgn",
+   "firstSeen": 1783633746203
+  },
+  {
+   "address": "D3C1Lh9x88kTBdysNiZ7QRfYZTC8T5u1Sjj7f7G64Bah",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:ASTEROID"
+   ],
+   "winRate": 0.17,
+   "realizedUsd7d": 1574.1,
+   "trades7d": 122,
+   "tokens7d": 19,
+   "twitter": null,
+   "volumeUsd": 408.41,
+   "solBalance": 121.813974229,
+   "source": "gmgn",
+   "firstSeen": 1783939543014
+  },
+  {
+   "address": "BNictjp8xritN6C5DKhGgrttZEFoksBVXJmzXMjqcsho",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 404.57,
+   "solBalance": 23.002093127,
+   "source": "gmgn",
+   "firstSeen": 1783699859151
+  },
+  {
+   "address": "zyncUiCSpP5zExdpvpRgx8twZ1AxTAqaeqtTVZ45ART",
+   "tags": [
+    "kol",
+    "padre"
+   ],
+   "vectors": [
+    "token:Jotchua"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -68.58,
+   "trades7d": 23,
+   "tokens7d": 7,
+   "twitter": "zyncxbt",
+   "volumeUsd": 399.65,
+   "solBalance": 0,
+   "source": "gmgn",
+   "firstSeen": 1783939544120
+  },
+  {
+   "address": "7tiRXPM4wwBMRMYzmywRAE6jveS3gDbNyxgRrEoU6RLA",
+   "tags": [
+    "kol",
+    "gmgn",
+    "padre",
+    "axiom"
+   ],
+   "volumeUsd": 397.36,
+   "solBalance": 22.915048433,
+   "source": "gmgn",
+   "firstSeen": 1783699863030
+  },
+  {
+   "address": "BUNCVYW7gUFBkwLxw4HKm2dTze3VCuefhxnrcYbha3Hd",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "volumeUsd": 389.9,
+   "solBalance": 6.769417818,
+   "source": "gmgn",
+   "firstSeen": 1783699855307
+  },
+  {
+   "address": "9iaawVBEsFG35PSwd4PahwT8fYNQe9XYuRdWm872dUqY",
+   "tags": [
+    "kol",
+    "padre",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 382.21,
+   "solBalance": 0.000900895,
+   "source": "gmgn",
+   "firstSeen": 1783809962040
+  },
+  {
+   "address": "XG4oz51SA6E9Hv14BhUeu898Tsvq5o91wYheESqdiU6",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 380.13,
+   "solBalance": 34.966244218,
+   "source": "gmgn",
+   "firstSeen": 1783633740117
+  },
+  {
+   "address": "HJqya6BH2e1Dz6DPeSGvvjngaG1WnSBYNAetu9s8vyR8",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:LEVI"
+   ],
+   "winRate": 0.48,
+   "realizedUsd7d": 2049.81,
+   "trades7d": 58,
+   "tokens7d": 32,
+   "twitter": null,
+   "volumeUsd": 377.28,
+   "solBalance": 7.569579275,
+   "source": "gmgn",
+   "firstSeen": 1783939546391
+  },
+  {
+   "address": "64ymeD9XTAkNJgHtXgrG6JCNZmBC9fSVcmgkL54pFikE",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "volumeUsd": 374.41,
+   "solBalance": 4.776788841,
+   "source": "gmgn",
+   "firstSeen": 1783699864006
+  },
+  {
+   "address": "5uez2R1fXyJ6YW1wVPqFoEq91WJufuWceVQy647qVYHF",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 361.24,
+   "solBalance": 487.0793323,
+   "source": "gmgn",
+   "firstSeen": 1783689062797
+  },
+  {
+   "address": "GBERKNpahPnBGmeUGWQVjGBDBj6CcJKpGz34FqegmTgu",
+   "tags": [
+    "bullx",
+    "kol",
+    "axiom",
+    "trojan",
+    "gmgn",
+    "padre"
+   ],
+   "volumeUsd": 349.96,
+   "solBalance": 0.0048164,
+   "source": "gmgn",
+   "firstSeen": 1783721460151
+  },
+  {
+   "address": "GWv65JohnkJgHVbqdjn4Z2BhFmBuwCTyTuUwWsspHBZ4",
+   "tags": [
+    "padre",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 348.53,
+   "solBalance": 64.867339267,
+   "source": "gmgn",
+   "firstSeen": 1783633745694
+  },
+  {
+   "address": "JXNpGnH1X971eACRX99TJzUJ8KWqBQb1YQgettg1boz",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 348,
+   "solBalance": 13.444058408,
+   "source": "gmgn",
+   "firstSeen": 1783721455631
+  },
+  {
+   "address": "B5L9BZDsUETWZCuPKkLpBHsqnR3n6Xrv7MM61vbKBWY6",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:Joby",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.45,
+   "realizedUsd7d": 1149.46,
+   "trades7d": 404,
+   "tokens7d": 126,
+   "twitter": null,
+   "volumeUsd": 346.42,
+   "solBalance": 21.443172495,
+   "source": "gmgn",
+   "firstSeen": 1783939549524
+  },
+  {
+   "address": "mW4PZB45isHmnjGkLpJvjKBzVS5NXzTJ8UDyug4gTsM",
+   "tags": [
+    "photon",
+    "kol",
+    "padre",
+    "axiom"
+   ],
+   "volumeUsd": 341.41,
+   "solBalance": 14.76590078,
+   "source": "gmgn",
+   "firstSeen": 1783689066185
+  },
+  {
+   "address": "GLjnQ8VT9yFHs78N5CZWGGn22a3pm4XHih5WxUpozYnq",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 339.86,
+   "solBalance": 64.368552163,
+   "source": "gmgn",
+   "firstSeen": 1783633745150
+  },
+  {
+   "address": "2NLRxmyM2Te5ZaeLELh1k2B2pFETTT2kNtAGQSbbFajP",
+   "tags": [
+    "smart_degen",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:Joby",
+    "token:Buttcoin"
+   ],
+   "winRate": 0.54,
+   "realizedUsd7d": 1180.54,
+   "trades7d": 289,
+   "tokens7d": 94,
+   "twitter": null,
+   "volumeUsd": 334.48,
+   "solBalance": 6.357000787,
+   "source": "gmgn",
+   "firstSeen": 1783939550680
+  },
+  {
+   "address": "CxsJB94STV4ZyWqtN3YxvY277cQtcsNDngKZB8BvCAMY",
+   "tags": [
+    "kol",
+    "axiom",
+    "photon",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:ASTEROID"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": -282.1,
+   "trades7d": 12,
+   "tokens7d": 5,
+   "twitter": "Able777C",
+   "volumeUsd": 332.91,
+   "solBalance": 7.827619124,
+   "source": "gmgn",
+   "firstSeen": 1783939552405
+  },
+  {
+   "address": "FSUBrLxJ9rdRzWQFZG7TFyDtFxaYpibivTr4UMwvBYRj",
+   "tags": [
+    "axiom",
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 328.12,
+   "solBalance": 27.581096467,
+   "source": "gmgn",
+   "firstSeen": 1783633742101
+  },
+  {
+   "address": "9St6ETbe3CFitw6UNSd8kg7kZ6STXy71wEGiERqQj89U",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre",
+    "gmgn"
+   ],
+   "volumeUsd": 323.42,
+   "solBalance": 18.976258968,
+   "source": "gmgn",
+   "firstSeen": 1783809961568
+  },
+  {
+   "address": "E98Ear8xbvrYyCDwrs8gx4dM2P1aZ7jp8tMBLJTmm2rc",
+   "tags": [
+    "padre",
+    "smart_degen"
+   ],
+   "volumeUsd": 322.29,
+   "solBalance": 0.59707589,
+   "source": "gmgn",
+   "firstSeen": 1783699857689
+  },
+  {
+   "address": "DiWjszBgKWna1io9dRfcJY6gUuZfyTJdHXhYqnqPLkyG",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:febu"
+   ],
+   "winRate": 0.69,
+   "realizedUsd7d": 1039.96,
+   "trades7d": 742,
+   "tokens7d": 127,
+   "twitter": null,
+   "volumeUsd": 319.87,
+   "solBalance": 16.170205097,
+   "source": "gmgn",
+   "firstSeen": 1783939554243
+  },
+  {
+   "address": "EJhCBXeXWfuUCT2KPXLckm8PVm7fvkiQYMuVjZYJdB2y",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 316.44,
+   "solBalance": 26.061989651,
+   "source": "gmgn",
+   "firstSeen": 1783809958115
+  },
+  {
+   "address": "Edni57CyRhGbjDQFd9jYbBN8asjLDmxCXws2Qo248CRB",
+   "tags": [
+    "gmgn",
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.56,
+   "realizedUsd7d": 4348.4,
+   "trades7d": 605,
+   "tokens7d": 217,
+   "twitter": null,
+   "volumeUsd": 312.38,
+   "solBalance": 22.273766007,
+   "source": "gmgn",
+   "firstSeen": 1783939860289
+  },
+  {
+   "address": "GJA1HEbxGnqBhBifH9uQauzXSB53to5rhDrzmKxhSU65",
+   "tags": [
+    "kol",
+    "app_smart_money",
+    "photon",
+    "padre"
+   ],
+   "volumeUsd": 309,
+   "solBalance": 9.962204145,
+   "source": "gmgn",
+   "firstSeen": 1783689068787
+  },
+  {
+   "address": "2T5NgDDidkvhJQg8AHDi74uCFwgp25pYFMRZXBaCUNBH",
+   "tags": [
+    "photon",
+    "kol",
+    "top_followed",
+    "top_renamed",
+    "padre"
+   ],
+   "volumeUsd": 302.61,
+   "solBalance": 514.749485146,
+   "source": "gmgn",
+   "firstSeen": 1783633755645
+  },
+  {
+   "address": "D5ENBpxEyGKkcDu1rrFLkaCFakiBsFKs9q71j2LZpcoV",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 300.42,
+   "solBalance": 3.664152028,
+   "source": "gmgn",
+   "firstSeen": 1783666626638
+  },
+  {
+   "address": "ARARAw1AL4kKnuwFyU534yoGv5ytexxeVpbcuEvpqi89",
+   "tags": [
+    "padre",
+    "axiom",
+    "gmgn",
+    "smart_degen"
+   ],
+   "volumeUsd": 288.15,
+   "solBalance": 4.839073274,
+   "source": "gmgn",
+   "firstSeen": 1783689064261
+  },
+  {
+   "address": "Dz7ve2Tdzt58SCctoCkNKe4MdT1VZ5vMH3iAhynFxjec",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 281.57,
+   "solBalance": 50.983714334,
+   "source": "gmgn",
+   "firstSeen": 1783644539214
+  },
+  {
+   "address": "HG3rPoQR6SXEyHUrVmKR9rvzKgfQ1yqyeixJLxagbdty",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 279.04,
+   "solBalance": 14.043972067,
+   "source": "gmgn",
+   "firstSeen": 1783666627125
+  },
+  {
+   "address": "DMdJfZABEgJafuKur5YaMyfwpRrJHLFrBC8x99Kbougb",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 273.94,
+   "solBalance": 13.696117658,
+   "source": "gmgn",
+   "firstSeen": 1783710657256
+  },
+  {
+   "address": "4ET2AazzGBwZ5sRsQWoAFRFJPosRN3d4XkutTP3LZBtu",
+   "tags": [
+    "trojan",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 267.33,
+   "solBalance": 57.133749685,
+   "source": "gmgn",
+   "firstSeen": 1783644538715
+  },
+  {
+   "address": "2TBB6qz7QijkPWyEwwQrj24pF35yGd5Xkshwh96vxouc",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 267.28,
+   "solBalance": 0.018962,
+   "source": "gmgn",
+   "firstSeen": 1783666630718
+  },
+  {
+   "address": "2kv8X2a9bxnBM8NKLc6BBTX2z13GFNRL4oRotMUJRva9",
+   "tags": [
+    "kol",
+    "axiom",
+    "top_followed",
+    "top_renamed"
+   ],
+   "volumeUsd": 265.55,
+   "solBalance": 2.580817474,
+   "source": "gmgn",
+   "firstSeen": 1783710658245
+  },
+  {
+   "address": "AJsuoSYsSGrNsXa7E7DEmzxhDPVVsPTGDnnT5x2Wuyye",
+   "tags": [
+    "trojan",
+    "smart_degen",
+    "gmgn"
+   ],
+   "vectors": [
+    "feed:smartmoney",
+    "token:manlet",
+    "token:KINS"
+   ],
+   "winRate": 0.65,
+   "realizedUsd7d": 1515.54,
+   "trades7d": 111,
+   "tokens7d": 31,
+   "twitter": null,
+   "volumeUsd": 247.49,
+   "solBalance": 17.629341976,
+   "source": "gmgn",
+   "firstSeen": 1783939557104
+  },
+  {
+   "address": "CjZgBhLyJnzTWRzZs532Zf3ggnNoAGp4PHZBXYbjzy9W",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 239.58,
+   "solBalance": 0.099013931,
+   "source": "gmgn",
+   "firstSeen": 1783689062257
+  },
+  {
+   "address": "Ht2eZUGenKdmHnCfwFyWXPpu1Y5aBh5mNGXwTYvuR3GS",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:ZERO"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 0,
+   "trades7d": 0,
+   "tokens7d": 1,
+   "twitter": "winter4soldier",
+   "volumeUsd": 236.79,
+   "solBalance": 1.990677124,
+   "source": "gmgn",
+   "firstSeen": 1783939558437
+  },
+  {
+   "address": "8JiKqyTTMVQw7d4pTBrZHoiRbvtb2NpZsU6FxN9xQWgR",
+   "tags": [
+    "kol"
+   ],
+   "volumeUsd": 234.75,
+   "solBalance": 4.102135017,
+   "source": "gmgn",
+   "firstSeen": 1783689066696
+  },
+  {
+   "address": "8xbPnfWAV1sK2ybNCBEHdDhSKFATvsebw2NLAn15vfgH",
+   "tags": [
+    "smart_degen",
+    "trojan"
+   ],
+   "volumeUsd": 234.73,
+   "solBalance": 18.29217003,
+   "source": "gmgn",
+   "firstSeen": 1783721455121
+  },
+  {
+   "address": "312N1Mv3WpXpByNJ6nqZAwNdu1wdZaAeRLJxRpNfjarV",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 234.4,
+   "solBalance": 34.046917179,
+   "source": "gmgn",
+   "firstSeen": 1783689059253
+  },
+  {
+   "address": "69nz7kBYDf8yxhHtRERY6pMLEusVk3UiAxXnbqRaswA8",
+   "tags": [
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 232.9,
+   "solBalance": 74.404758414,
+   "source": "gmgn",
+   "firstSeen": 1783776569487
+  },
+  {
+   "address": "6X21Z6z4Awbfekhna746LgUmExaS1CgrhaypH69ats6X",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 232.64,
+   "solBalance": 16.109272014,
+   "source": "gmgn",
+   "firstSeen": 1783699855780
+  },
+  {
+   "address": "5SWEzzxJDDzvWGe3PF83PLA2WpNWFeAXWW3ezkT2tPue",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 231.27,
+   "solBalance": 45.958168297,
+   "source": "gmgn",
+   "firstSeen": 1783633741127
+  },
+  {
+   "address": "CAmNcBJ82xr1tzXrwZ6tZKwEFs26TG8kT6dJeR1bxjW9",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 230.62,
+   "solBalance": 29.670986801,
+   "source": "gmgn",
+   "firstSeen": 1783666627633
+  },
+  {
+   "address": "7PM8kWDqoTPnZ3mUxeexyisKYyFT6N7NDHc8WByPNgtU",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 229.6,
+   "solBalance": 8.825205925,
+   "source": "gmgn",
+   "firstSeen": 1783776572552
+  },
+  {
+   "address": "suqh5sHtr8HyJ7q8scBimULPkPpA557prMG47xCHQfK",
+   "tags": [
+    "kol",
+    "photon",
+    "axiom"
+   ],
+   "volumeUsd": 213.52,
+   "solBalance": 6.444190104,
+   "source": "gmgn",
+   "firstSeen": 1783666634951
+  },
+  {
+   "address": "BbHzAW4fXHkfkYxnmshtLmgPkcSCoaAsGnpzydEDiBEi",
+   "tags": [
+    "kol"
+   ],
+   "volumeUsd": 212.46,
+   "solBalance": 3.110822082,
+   "source": "gmgn",
+   "firstSeen": 1783809961061
+  },
+  {
+   "address": "J6TDXvarvpBdPXTaTU8eJbtso1PUCYKGkVtMKUUY8iEa",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:ANSEM",
+    "token:KINS",
+    "token:SOLANGELES",
+    "token:Buttcoin",
+    "token:TROLL",
+    "token:neet"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 34564.89,
+   "trades7d": 118,
+   "tokens7d": 70,
+   "twitter": null,
+   "volumeUsd": 194.91,
+   "solBalance": 125.54275889,
+   "source": "gmgn",
+   "firstSeen": 1783939561804
+  },
+  {
+   "address": "D64ajBtPfuuAGtnGnsiqsxwTXX2EDk8j1dHqMF7bi6YR",
+   "tags": [
+    "padre",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 193.35,
+   "solBalance": 45.567230892,
+   "source": "gmgn",
+   "firstSeen": 1783732853583
+  },
+  {
+   "address": "Hd5wMoiypHWRQmkus5SHu6ECH27fXVqkhg3d5rGhvLAL",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 190.35,
+   "solBalance": 0.239805481,
+   "source": "gmgn",
+   "firstSeen": 1783644537255
+  },
+  {
+   "address": "6kzsXq32zgmW1cEw9xKn9HyfE72oUX9b8PiPBZ8fWn9S",
+   "tags": [
+    "smart_degen",
+    "photon"
+   ],
+   "volumeUsd": 189.59,
+   "solBalance": 34.591960083,
+   "source": "gmgn",
+   "firstSeen": 1783710655767
+  },
+  {
+   "address": "DWThquom2yG6vdGtp3dtptfzzey3b1Sz72aTYX33NTpS",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ANSEM"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 3.19,
+   "trades7d": 3,
+   "tokens7d": 2,
+   "twitter": "ErenSignals",
+   "volumeUsd": 180.44,
+   "solBalance": 2.817583261,
+   "source": "gmgn",
+   "firstSeen": 1783939563924
+  },
+  {
+   "address": "FHo6jJkAUKqEsQBQeZvfSAXSkoPSxujgXuQgtzx3PNwD",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:manlet",
+    "token:world",
+    "token:Jotchua",
+    "token:KINS",
+    "token:ZERO",
+    "token:RKC",
+    "token:TripleT"
+   ],
+   "winRate": 0.65,
+   "realizedUsd7d": 11.93,
+   "trades7d": 126,
+   "tokens7d": 45,
+   "twitter": "imbilly88",
+   "volumeUsd": 179.79,
+   "solBalance": 1.625278207,
+   "source": "gmgn",
+   "firstSeen": 1783939565030
+  },
+  {
+   "address": "HiFeFPHdvs3WTydKLPKxVmgRbZmvGq3FJA3XKewmzrRE",
+   "tags": [
+    "axiom",
+    "smart_degen"
+   ],
+   "volumeUsd": 175.7,
+   "solBalance": 0.02002,
+   "source": "gmgn",
+   "firstSeen": 1783776572052
+  },
+  {
+   "address": "7QLMAJ4b8SrHMVCg1MFDB1UFcm8ugBfLVzTPoSkeptnK",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 174.05,
+   "solBalance": 22.796222137,
+   "source": "gmgn",
+   "firstSeen": 1783721457623
+  },
+  {
+   "address": "FnTpxwwaB1qtz8tJSUuDSTfv67cbRBEEcfBmSaXXoPqd",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 171.4,
+   "solBalance": 43.941093475,
+   "source": "gmgn",
+   "firstSeen": 1783732854091
+  },
+  {
+   "address": "CqgcYTqMeGW2TZAdcnfH8s5DuRMJ2M8eHAG6vRKDUfWC",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:SCAM"
+   ],
+   "winRate": 0.55,
+   "realizedUsd7d": 5789.57,
+   "trades7d": 2021,
+   "tokens7d": 350,
+   "twitter": null,
+   "volumeUsd": 170.56,
+   "solBalance": 0.256661224,
+   "source": "gmgn",
+   "firstSeen": 1783939566120
+  },
+  {
+   "address": "8iEEFpjBMkTFfaW1newtkScZfLYy7tJ3MWh4SZM3DQQC",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:SCAM"
+   ],
+   "winRate": 0.52,
+   "realizedUsd7d": 5756.23,
+   "trades7d": 2032,
+   "tokens7d": 354,
+   "twitter": null,
+   "volumeUsd": 170.28,
+   "solBalance": 0.355320557,
+   "source": "gmgn",
+   "firstSeen": 1783939567451
+  },
+  {
+   "address": "E3SDFiZYKVgx9sHNNSjjujb4FbvYeYz2MJD7XUhNjr1U",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:CATWIF",
+    "token:three",
+    "token:TripleT"
+   ],
+   "winRate": 0.44,
+   "realizedUsd7d": 37.89,
+   "trades7d": 23,
+   "tokens7d": 9,
+   "twitter": "dogstelegrameme",
+   "volumeUsd": 169.84,
+   "solBalance": 0.583564148,
+   "source": "gmgn",
+   "firstSeen": 1783939568550
+  },
+  {
+   "address": "AE4MPGvpMeCA7MwUakAxAQZTzcijPAXcFsoAQmtLrL4V",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 164.91,
+   "solBalance": 25.655350186,
+   "source": "gmgn",
+   "firstSeen": 1783666635457
+  },
+  {
+   "address": "2TE2F3CJDbDhN3MgqNmnUh1NR5nHSornaK5daq65Lejs",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 158.8,
+   "solBalance": 25.749234644,
+   "source": "gmgn",
+   "firstSeen": 1783710656761
+  },
+  {
+   "address": "DAckTbTMyCmTgRr5qH8kWVVrYiCDCKuqiKRtTnNWaUup",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 156.95,
+   "solBalance": 0.144370926,
+   "source": "gmgn",
+   "firstSeen": 1783689057147
+  },
+  {
+   "address": "2KbicpSJTJs7GFtsRZv2dvAZ5wDwViPewFyGzVCvPAU2",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 156.79,
+   "solBalance": 10.254092283,
+   "source": "gmgn",
+   "firstSeen": 1783689063289
+  },
+  {
+   "address": "2yAVPGXFQV9ZnqT4CQphXwXFpTtgZEwRq4JmbQN3HEdn",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 155.83,
+   "solBalance": 19.926658167,
+   "source": "gmgn",
+   "firstSeen": 1783689070353
+  },
+  {
+   "address": "FqDaouBkijm3hfdBqoj24J7n2fF5qzk1eQoU2oKdC5Qj",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 155.71,
+   "solBalance": 15.07488541,
+   "source": "gmgn",
+   "firstSeen": 1783689060762
+  },
+  {
+   "address": "89inMzwUK8NCGpV3uVXhigXKGbraa2ALKyZ4UZGx8HyV",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 153.64,
+   "solBalance": 38.297126865,
+   "source": "gmgn",
+   "firstSeen": 1783699858171
+  },
+  {
+   "address": "DoXTeHFphimLyLSvrAYMCy7AUGidrhe2A16M33amDG5T",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 152.37,
+   "solBalance": 12.038690508,
+   "source": "gmgn",
+   "firstSeen": 1783809960079
+  },
+  {
+   "address": "BCnqsPEtA1TkgednYEebRpkmwFRJDCjMQcKZMMtEdArc",
+   "tags": [
+    "photon",
+    "kol",
+    "padre",
+    "top_followed",
+    "top_renamed",
+    "axiom"
+   ],
+   "volumeUsd": 150.65,
+   "solBalance": 166.979907097,
+   "source": "gmgn",
+   "firstSeen": 1783710658721
+  },
+  {
+   "address": "2nhqxaPjXQM7jmGP4pk4D5gXdmPtAbZGnNBGDcyqHS73",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 143.89,
+   "solBalance": 20.640766409,
+   "source": "gmgn",
+   "firstSeen": 1783754891868
+  },
+  {
+   "address": "CMw7kj6ceqVqdj6XLc8FEJaZfPHBSUzubArqXjChfn11",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 128.29,
+   "solBalance": 33.924241816,
+   "source": "gmgn",
+   "firstSeen": 1783809957621
+  },
+  {
+   "address": "DaKSn9Vy7pbnwuTkW1LNsd5hXskjWbjNVuXjGpNsQCLb",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.58,
+   "realizedUsd7d": 3061.48,
+   "trades7d": 1898,
+   "tokens7d": 181,
+   "twitter": null,
+   "volumeUsd": 123.31,
+   "solBalance": 28.944197199,
+   "source": "gmgn",
+   "firstSeen": 1783939572696
+  },
+  {
+   "address": "456xjxMrRKcp5odo8B1McWiTbvTUffFi5iCV1Ky9Sft7",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 121.97,
+   "solBalance": 48.091628552,
+   "source": "gmgn",
+   "firstSeen": 1783710656265
+  },
+  {
+   "address": "CQTc3FxSukLQQUseN4RqxRCLRNWxuQXUyCNFH9GQsfKo",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "feed:smartmoney",
+    "token:MENSA"
+   ],
+   "winRate": 0.37,
+   "realizedUsd7d": 1921.43,
+   "trades7d": 1832,
+   "tokens7d": 260,
+   "twitter": null,
+   "volumeUsd": 115.61,
+   "solBalance": 11.716208363,
+   "source": "gmgn",
+   "firstSeen": 1783939573851
+  },
+  {
+   "address": "5wTqTAZSGWu9ra1a2kDUXfozUw4RHDsrQyTPquqwErkZ",
+   "tags": [
+    "smart_degen",
+    "padre",
+    "gmgn"
+   ],
+   "volumeUsd": 115.57,
+   "solBalance": 16.321042273,
+   "source": "gmgn",
+   "firstSeen": 1783743749666
+  },
+  {
+   "address": "2D1qfhoyvbFTTXS1xwe1RKVWCQifjvPqEpFqQXk1Veow",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:world"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 6.97,
+   "trades7d": 6,
+   "tokens7d": 4,
+   "twitter": "ThePrayasu",
+   "volumeUsd": 112.98,
+   "solBalance": 4.390149998,
+   "source": "gmgn",
+   "firstSeen": 1783939574955
+  },
+  {
+   "address": "B76zJYE97Z7UtP9LHySC3G2LTg5urxRxGd7E6YEYVivf",
+   "tags": [
+    "axiom",
+    "smart_degen"
+   ],
+   "volumeUsd": 101.26,
+   "solBalance": 5.066438291,
+   "source": "gmgn",
+   "firstSeen": 1783633740606
+  },
+  {
+   "address": "4Yon35NEu5L6B6Ya12hFS7ML79PaHENDZmb4QUb6MZmD",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 89.62,
+   "solBalance": 0.810177324,
+   "source": "gmgn",
+   "firstSeen": 1783721458122
+  },
+  {
+   "address": "4XBNWjgeNzYbsWE6YVHG8CSrptJJhUwhpHJdNY4ddGuS",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 81.93,
+   "solBalance": 31.5340843,
+   "source": "gmgn",
+   "firstSeen": 1783809959599
+  },
+  {
+   "address": "5zDYdttKY6zEUf2amuah5GtfdSXeyiWrSdGGvjU35YGT",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 81.66,
+   "solBalance": 68.405253184,
+   "source": "gmgn",
+   "firstSeen": 1783633744117
+  },
+  {
+   "address": "Fwdf5k79oYMQtwpJN5rRpFE39ZjQQaQyH3EUHZzj8vXs",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 78.24,
+   "solBalance": 0.28861527,
+   "source": "gmgn",
+   "firstSeen": 1783666628638
+  },
+  {
+   "address": "2rQP56mHC2wgM1p8iL5EKXrKt7h49n4CGE16Q3M1763B",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:KINS"
+   ],
+   "winRate": 0.58,
+   "realizedUsd7d": 1244.98,
+   "trades7d": 141,
+   "tokens7d": 34,
+   "twitter": null,
+   "volumeUsd": 76.66,
+   "solBalance": 345.715931144,
+   "source": "gmgn",
+   "firstSeen": 1783939578594
+  },
+  {
+   "address": "DY4tAwMkz6v1KrYkXZNAeyjPNubepmmUZnpPr1fLRoWe",
+   "tags": [
+    "padre",
+    "smart_degen",
+    "gmgn"
+   ],
+   "volumeUsd": 75.97,
+   "solBalance": 7.212820762,
+   "source": "gmgn",
+   "firstSeen": 1783666628154
+  },
+  {
+   "address": "7K7itu678xAaUcuPQ2f3c2DcjirRjBY4HMTW1dx6hiL6",
+   "tags": [
+    "kol",
+    "axiom"
+   ],
+   "vectors": [
+    "token:Wukong"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 23.71,
+   "trades7d": 5,
+   "tokens7d": 2,
+   "twitter": "pepeDRT",
+   "volumeUsd": 74.69,
+   "solBalance": 1.520946384,
+   "source": "gmgn",
+   "firstSeen": 1783939579645
+  },
+  {
+   "address": "4wWYacRGWT9u1qyB7VU3VWfjbidrCu14vn1cpwfnvdBV",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.48,
+   "realizedUsd7d": 2291.29,
+   "trades7d": 1487,
+   "tokens7d": 163,
+   "twitter": null,
+   "volumeUsd": 74.04,
+   "solBalance": 25.495481008,
+   "source": "gmgn",
+   "firstSeen": 1783939582170
+  },
+  {
+   "address": "8dgFUKXNvWYNhhd6k2exsQhHN144P3ePNcUTiAT55SFc",
+   "tags": [
+    "gmgn",
+    "kol"
+   ],
+   "volumeUsd": 62.31,
+   "solBalance": 19.215930461,
+   "source": "gmgn",
+   "firstSeen": 1783710660781
+  },
+  {
+   "address": "B48fNE4MPMCv6719Vnpbvv34FhUkhK6UbHq1rkWwZqH3",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ANSEM"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 8.51,
+   "trades7d": 3,
+   "tokens7d": 2,
+   "twitter": "jessimckingpin",
+   "volumeUsd": 56.19,
+   "solBalance": 0.007877045,
+   "source": "gmgn",
+   "firstSeen": 1783939586225
+  },
+  {
+   "address": "B2bohGo7B6qbkLZ2mZF9kde9Zp3sEjohyPUNfKfX5NsM",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 55.97,
+   "solBalance": 31.950409252,
+   "source": "gmgn",
+   "firstSeen": 1783689059748
+  },
+  {
+   "address": "G1qWu5n3GFph8ZvxRnFqKUG7yxJQyRpZAQtiVufBEtJ8",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:ANSEM"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -0.01,
+   "trades7d": 4,
+   "tokens7d": 2,
+   "twitter": "mintfaced",
+   "volumeUsd": 55.41,
+   "solBalance": 0.371998748,
+   "source": "gmgn",
+   "firstSeen": 1783939587461
+  },
+  {
+   "address": "4zujnGUcuzJ2XUAXDxwnHX9eAVeCqYkVMxZ1SZTYNqqF",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 54.85,
+   "solBalance": 5.247231691,
+   "source": "gmgn",
+   "firstSeen": 1783732854613
+  },
+  {
+   "address": "J3CuQHzVmSvrYSMhvUU2dTsZB9Z4R2UKENyhDiJ5W95K",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 54.59,
+   "solBalance": 0.550988491,
+   "source": "gmgn",
+   "firstSeen": 1783666633359
+  },
+  {
+   "address": "GSPJTDUrWCXg5LYZ5Qo2Y5fBbAWrL9G6f56KvvZM7jL9",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.42,
+   "realizedUsd7d": 1230.98,
+   "trades7d": 1638,
+   "tokens7d": 169,
+   "twitter": null,
+   "volumeUsd": 51.22,
+   "solBalance": 22.322040583,
+   "source": "gmgn",
+   "firstSeen": 1783939590431
+  },
+  {
+   "address": "RgaHiHXjVqDZ8vqNkK5aXHDLtT9eZXzUFqy4Ktoo1CH",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:LEVI",
+    "token:CHANCE",
+    "token:SCAM"
+   ],
+   "winRate": 0.52,
+   "realizedUsd7d": -0.07,
+   "trades7d": 2,
+   "tokens7d": 34,
+   "twitter": "Player1Taco",
+   "volumeUsd": 44.78,
+   "solBalance": 1.622935348,
+   "source": "gmgn",
+   "firstSeen": 1783939592400
+  },
+  {
+   "address": "3w3kDYZnyDpPZ5v6XoHtStWa5swtZehkjoY83TScXDUY",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:KINS"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": -1.85,
+   "trades7d": 23,
+   "tokens7d": 9,
+   "twitter": "_LuxkyBoy",
+   "volumeUsd": 41.8,
+   "solBalance": 1.144544778,
+   "source": "gmgn",
+   "firstSeen": 1783939593757
+  },
+  {
+   "address": "AEeJUPCiGR3yCoukTh1G58o4LYsUEyzrXtfmfMc2kJMX",
+   "tags": [
+    "kol",
+    "padre"
+   ],
+   "volumeUsd": 41.34,
+   "solBalance": 0.109808882,
+   "source": "gmgn",
+   "firstSeen": 1783689067215
+  },
+  {
+   "address": "9ZFAgg82Ud8qxWmwyrEar2t5NWaWstcRFoKKJZEYQndS",
+   "tags": [
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 40.5,
+   "solBalance": 0.006378344,
+   "source": "gmgn",
+   "firstSeen": 1783699863528
+  },
+  {
+   "address": "CeTxoWp1ToagyukMuHZ2eHWCMFckwSRBjGNPhGA5j59T",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 38.62,
+   "solBalance": 1.622611864,
+   "source": "gmgn",
+   "firstSeen": 1783809958608
+  },
+  {
+   "address": "2zbM47wNKDfkwYD7d7iaVApaPwof8DSTZJau9UHxuqXv",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 38.55,
+   "solBalance": 3.002153351,
+   "source": "gmgn",
+   "firstSeen": 1783776569993
+  },
+  {
+   "address": "CECxGSBzUEfL4TGiL5nJjtcg7ZdS5JvnXJiFdTwtcEE1",
+   "tags": [
+    "axiom",
+    "trojan",
+    "smart_degen",
+    "padre"
+   ],
+   "volumeUsd": 38.5,
+   "solBalance": 44.532255987,
+   "source": "gmgn",
+   "firstSeen": 1783633743589
+  },
+  {
+   "address": "gTgdTQ8yzgP3t4DrgD92uitLSS2zq8k9xLUtpwsxHAM",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.42,
+   "realizedUsd7d": 1873.1,
+   "trades7d": 3089,
+   "tokens7d": 296,
+   "twitter": null,
+   "volumeUsd": 38.21,
+   "solBalance": 1.795024691,
+   "source": "gmgn",
+   "firstSeen": 1783939595472
+  },
+  {
+   "address": "D1H83ueSw5Nxy5okxH7VBfV4jRnqAK5Mm1tm3JAj3m5t",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "volumeUsd": 36.73,
+   "solBalance": 14.371722615,
+   "source": "gmgn",
+   "firstSeen": 1783710660289
+  },
+  {
+   "address": "B3ZVbiVSmSbQ3MyPwJjqwrummRDfWjBcFcR9hnTt2adt",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 36.62,
+   "solBalance": 17.896480421,
+   "source": "gmgn",
+   "firstSeen": 1783699859634
+  },
+  {
+   "address": "yCZh8B1aDzYi7QLvbWGxSE3BdaPcnNrDtL9M65fMiLZ",
+   "tags": [
+    "fresh_wallet",
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.41,
+   "realizedUsd7d": 1890.35,
+   "trades7d": 3082,
+   "tokens7d": 296,
+   "twitter": null,
+   "volumeUsd": 36,
+   "solBalance": 2.220089933,
+   "source": "gmgn",
+   "firstSeen": 1783939596711
+  },
+  {
+   "address": "sAdNbe1cKNMDqDsa4npB3TfL62T14uAo2MsUQfLvzLT",
+   "tags": [
+    "kol",
+    "app_smart_money",
+    "axiom",
+    "gmgn",
+    "arbitrager",
+    "top_followed",
+    "top_renamed",
+    "padre"
+   ],
+   "volumeUsd": 35.3,
+   "solBalance": 86.503757664,
+   "source": "gmgn",
+   "firstSeen": 1783743750858
+  },
+  {
+   "address": "HV4cjkteGZ5g9HywDrM1HPC9f95PS9upzvH3MmgPfs53",
+   "tags": [
+    "gmgn",
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 31.26,
+   "solBalance": 3.561153898,
+   "source": "gmgn",
+   "firstSeen": 1783689057686
+  },
+  {
+   "address": "FakckxEr9U29sWK7s3PNiit8c23xTi7XspbvB4nfLQih",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 30.84,
+   "solBalance": 16.653476169,
+   "source": "gmgn",
+   "firstSeen": 1783689058213
+  },
+  {
+   "address": "7hh7iFNPqwuKEPWoRgqPLfASKauK6VSR8P4U8XbK6xq8",
+   "tags": [
+    "kol"
+   ],
+   "volumeUsd": 28.63,
+   "solBalance": 0.19142425,
+   "source": "gmgn",
+   "firstSeen": 1783689069337
+  },
+  {
+   "address": "5GwzpA6V5zrArHvWAiqpQhz3jubDQxThrX2nkZ2vd7P7",
+   "tags": [
+    "photon",
+    "kol",
+    "gmgn"
+   ],
+   "volumeUsd": 26.82,
+   "solBalance": 0.013496866,
+   "source": "gmgn",
+   "firstSeen": 1783689067764
+  },
+  {
+   "address": "EjAHxa6nfmmetEvYMwbNy8tSEctiyo55yKTUF9yzgr2r",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:KINS"
+   ],
+   "winRate": 0.55,
+   "realizedUsd7d": 2815.06,
+   "trades7d": 144,
+   "tokens7d": 32,
+   "twitter": null,
+   "volumeUsd": 24.22,
+   "solBalance": 357.170681569,
+   "source": "gmgn",
+   "firstSeen": 1783939598974
+  },
+  {
+   "address": "7KjC6pHMA3wjxnnTV5nGspGwTQm6TJjZTGLNi7wMWwo8",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "feed:smartmoney"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": 1748.51,
+   "trades7d": 399,
+   "tokens7d": 138,
+   "twitter": null,
+   "volumeUsd": 23.13,
+   "solBalance": 17.159527257,
+   "source": "gmgn",
+   "firstSeen": 1783939600107
+  },
+  {
+   "address": "CJ4ahxVD71ah4SD14P3wDjL9hfYibBLCDTnBfsEWnhBu",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "vectors": [
+    "token:manlet"
+   ],
+   "winRate": 0.83,
+   "realizedUsd7d": 1277.84,
+   "trades7d": 218,
+   "tokens7d": 36,
+   "twitter": null,
+   "volumeUsd": 19.81,
+   "solBalance": 0.084968711,
+   "source": "gmgn",
+   "firstSeen": 1783939601774
+  },
+  {
+   "address": "DWJVBEW6i7nSmRUfQqxCwGKi8U7NAB9WoM9YWTrECA76",
+   "tags": [
+    "kol",
+    "axiom",
+    "gmgn"
+   ],
+   "vectors": [
+    "token:RKC",
+    "token:Cupsey"
+   ],
+   "winRate": 0.75,
+   "realizedUsd7d": 35.74,
+   "trades7d": 10,
+   "tokens7d": 7,
+   "twitter": "0xstickman",
+   "volumeUsd": 15.7,
+   "solBalance": 326.445146842,
+   "source": "gmgn",
+   "firstSeen": 1783939604681
+  },
+  {
+   "address": "DZAa55HwXgv5hStwaTEJGXZz1DhHejvpb7Yr762urXam",
+   "tags": [
+    "bullx",
+    "kol",
+    "axiom"
+   ],
+   "volumeUsd": 15.58,
+   "solBalance": 145.321831992,
+   "source": "gmgn",
+   "firstSeen": 1783721459642
+  },
+  {
+   "address": "C5K9uXTb6aqnZyUQc39JRYBKMfTJ4BUHHrw33wYyu99",
+   "tags": [
+    "gmgn",
+    "kol",
+    "arbitrager"
+   ],
+   "volumeUsd": 7.76,
+   "solBalance": 0.150216509,
+   "source": "gmgn",
+   "firstSeen": 1783699860599
+  },
+  {
+   "address": "89HbgWduLwoxcofWpmn1EiF9wEdpgkNDEyPjzZ72mkDi",
+   "tags": [
+    "kol",
+    "gmgn",
+    "axiom",
+    "top_followed",
+    "top_renamed",
+    "padre"
+   ],
+   "volumeUsd": 6.09,
+   "solBalance": 281.906750173,
+   "source": "gmgn",
+   "firstSeen": 1783689064813
+  },
+  {
+   "address": "GaxVqiQyJKQDRu6H4pfy9V6Xq19pHGr6HQKDQDv911Y4",
+   "tags": [
+    "kol"
+   ],
+   "volumeUsd": 3.9,
+   "solBalance": 0.035929542,
+   "source": "gmgn",
+   "firstSeen": 1783689068281
+  },
+  {
+   "address": "41uh7g1DxYaYXdtjBiYCHcgBniV9Wx57b7HU7RXmx1Gg",
+   "tags": [
+    "bullx",
+    "kol",
+    "axiom"
+   ],
+   "volumeUsd": 2.29,
+   "solBalance": 0.003695038,
+   "source": "gmgn",
+   "firstSeen": 1783721461146
+  },
+  {
+   "address": "D2AMrLUWS1KX7nUTJdMfaxBmdXBTYUwCTadNJv7mrdN8",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "volumeUsd": 1.92,
+   "solBalance": 3.852135927,
+   "source": "gmgn",
+   "firstSeen": 1783633744659
+  },
+  {
+   "address": "2tgHjfZfZy3sab68xJQiCHinhy7Q5aVmcbpgeCVy8BzT",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:MANIFEST",
+    "token:three"
+   ],
+   "winRate": 0.54,
+   "realizedUsd7d": 1239.47,
+   "trades7d": 311,
+   "tokens7d": 56,
+   "twitter": null,
+   "volumeUsd": 0.85,
+   "solBalance": 31.49795572,
+   "source": "gmgn",
+   "firstSeen": 1783939613721
+  },
+  {
+   "address": "BBsnfSQye72osSGreeU8WZv2w5n3HrQjQCdVowduLbzm",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "vectors": [
+    "token:KINS"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": 1504.39,
+   "trades7d": 84,
+   "tokens7d": 21,
+   "twitter": null,
+   "volumeUsd": 0.43,
+   "solBalance": 5.103442665,
+   "source": "gmgn",
+   "firstSeen": 1783939614821
+  },
+  {
+   "address": "2fNPNJKE3ny6b5Vo1wdfa7J7KqYNjeyBM3PbGGSJ398r",
+   "tags": [
+    "smart_degen",
+    "padre"
+   ],
+   "vectors": [
+    "token:SOLANGELES"
+   ],
+   "winRate": 0.8,
+   "realizedUsd7d": 1010.62,
+   "trades7d": 614,
+   "tokens7d": 103,
+   "twitter": null,
+   "volumeUsd": 0.03,
+   "solBalance": 19.210004168,
+   "source": "gmgn",
+   "firstSeen": 1783939615949
+  },
+  {
+   "address": "SupRAxJybdbv68r1PDXDq9LWKgdzLsmPwiyj41RM5SF",
+   "tags": [
+    "smart_degen"
+   ],
+   "volumeUsd": 0.02,
+   "solBalance": 3.160987449,
+   "source": "gmgn",
+   "firstSeen": 1783809957127
+  },
+  {
+   "address": "xeEENXb3dFh18hMReKqD55PfUbZrXWPxpo6zgjbR3oy",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:CATWIF"
+   ],
+   "winRate": 0.44,
+   "realizedUsd7d": 1008.02,
+   "trades7d": 96,
+   "tokens7d": 21,
+   "twitter": null,
+   "volumeUsd": 0.02,
+   "solBalance": 0.559949779,
+   "source": "gmgn",
+   "firstSeen": 1783939617158
+  },
+  {
+   "address": "HW1wbyPSa7QTqjRzD4kCKZyBbXFzR8cA7sJqBrzrJ6o4",
+   "volumeUsd": null,
+   "solBalance": 5.624914839,
+   "source": "gmgn",
+   "firstSeen": 1783632605498
+  },
+  {
+   "address": "7NmPWoTUJdVAZgCKDs33CjmExfRuYy9sFBGJR2vtfc61",
+   "volumeUsd": null,
+   "solBalance": 57.380624744,
+   "source": "gmgn",
+   "firstSeen": 1783632605796
+  },
+  {
+   "address": "8LUtQLSVoKewkXXHSsWJA9sio9cH7Q4hSfKVm5cRk7QY",
+   "volumeUsd": null,
+   "solBalance": 308.604066655,
+   "source": "gmgn",
+   "firstSeen": 1783632606047
+  },
+  {
+   "address": "94iQuYjVgTwGXxtM7ywfpzfLvx3gN4oQRuc9osRE2pEm",
+   "volumeUsd": null,
+   "solBalance": 6.486554102,
+   "source": "gmgn",
+   "firstSeen": 1783632606322
+  },
+  {
+   "address": "4cfHZMUX1w2dzZh8u5pbAxJBNEiY959K63W6JGpeqZMr",
+   "volumeUsd": null,
+   "solBalance": 17.032336272,
+   "source": "gmgn",
+   "firstSeen": 1783632606571
+  },
+  {
+   "address": "CHEFwniRwGmfTsZztqNSUY9NjE8JPPoPPqFPDPxKDWzV",
+   "volumeUsd": null,
+   "solBalance": 10.415152994,
+   "source": "gmgn",
+   "firstSeen": 1783632606845
+  },
+  {
+   "address": "65otiBf5YmL7FyrrG8yuXVXmqjYMw2DvrpqWgwYC9SSx",
+   "volumeUsd": null,
+   "solBalance": 90.233698058,
+   "source": "gmgn",
+   "firstSeen": 1783632607121
+  },
+  {
+   "address": "7q15WZ4iSUDvqfs5Kdh9bfptkQhs6qKUyCUq6GY6PGxg",
+   "volumeUsd": null,
+   "solBalance": 5.638022403,
+   "source": "gmgn",
+   "firstSeen": 1783632607471
+  },
+  {
+   "address": "AgiGpUAF25B7NL9u8byDcptPcYWi4eFU4kjtcRtaMmdQ",
+   "volumeUsd": null,
+   "solBalance": 10.882577234,
+   "source": "gmgn",
+   "firstSeen": 1783632607728
+  },
+  {
+   "address": "FMrLCzfeRZLiawdoj7PRiAyo3kwbYWJ7XWQXgxmeHr8w",
+   "volumeUsd": null,
+   "solBalance": 42.862786513,
+   "source": "gmgn",
+   "firstSeen": 1783632607975
+  },
+  {
+   "address": "6X7Ln5KPurRfNiNroyZxxi7VstEzuhd4jMefNEqAu7uV",
+   "volumeUsd": null,
+   "solBalance": 18.16418419,
+   "source": "gmgn",
+   "firstSeen": 1783632608211
+  },
+  {
+   "address": "FskgHQ5a3H7cMLjkfAtzyb2UboQbF5iBx6qxTGWUqjF5",
+   "volumeUsd": null,
+   "solBalance": 56.019992967,
+   "source": "gmgn",
+   "firstSeen": 1783632608508
+  },
+  {
+   "address": "C7j9V4TnUDqFf4qCuMhbuEas22r7mwusQQUoMTjqjhJ2",
+   "volumeUsd": null,
+   "solBalance": 22.045253341,
+   "source": "gmgn",
+   "firstSeen": 1783632608754
+  },
+  {
+   "address": "G8d896csSR1SeTxpBi3GYFndceHFhkJdNRwriaqmG9eV",
+   "volumeUsd": null,
+   "solBalance": 0.131491417,
+   "source": "gmgn",
+   "firstSeen": 1783632609040
+  },
+  {
+   "address": "AyDZfBXqcUaashtLvquaiHgpwYL7eqRXgB3fexHGvf37",
+   "volumeUsd": null,
+   "solBalance": 3.843532793,
+   "source": "gmgn",
+   "firstSeen": 1783632609305
+  },
+  {
+   "address": "D36rVP4h6moJ1f41iyNXXRipxpJnuEZcfJDEYEFBDfSj",
+   "volumeUsd": null,
+   "solBalance": 3.334319175,
+   "source": "gmgn",
+   "firstSeen": 1783632609549
+  },
+  {
+   "address": "3ArHvdGs1v9gdwNEMRJihHfRUnwfFkYjtzcdSBD3cDdJ",
+   "volumeUsd": null,
+   "solBalance": 17.411984954,
+   "source": "gmgn",
+   "firstSeen": 1783632609789
+  },
+  {
+   "address": "8XaG4UZtnoYRmwNRoJLQkygL8zheojre48qrVijZMRsX",
+   "volumeUsd": null,
+   "solBalance": 3.274892793,
+   "source": "gmgn",
+   "firstSeen": 1783632610105
+  },
+  {
+   "address": "8jieEHAnQrSP2AWuLBTR3BgZYdAvGK6p3QKikJE58c82",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:manlet"
+   ],
+   "winRate": 0.58,
+   "realizedUsd7d": 1413.03,
+   "trades7d": 148,
+   "tokens7d": 42,
+   "twitter": null,
+   "volumeUsd": null,
+   "solBalance": 23.387677045,
+   "source": "gmgn",
+   "firstSeen": 1783939618906
+  },
+  {
+   "address": "CLwbq6qyQuM3osAf7N3VgmqzkPLZJF7cRiyMvur78ici",
+   "tags": [
+    "smart_degen",
+    "axiom"
+   ],
+   "vectors": [
+    "token:manlet"
+   ],
+   "winRate": 0.51,
+   "realizedUsd7d": 2488.62,
+   "trades7d": 525,
+   "tokens7d": 102,
+   "twitter": null,
+   "volumeUsd": null,
+   "solBalance": 4.058223244,
+   "source": "gmgn",
+   "firstSeen": 1783939619961
+  },
+  {
+   "address": "GKaUcVh1tP8S9sTQmhWgwsVZvDBDaEbTQHJuPr6ZeZoB",
+   "tags": [
+    "kol"
+   ],
+   "vectors": [
+    "token:manlet"
+   ],
+   "winRate": 0.5,
+   "realizedUsd7d": -3.63,
+   "trades7d": 2,
+   "tokens7d": 4,
+   "twitter": "tweetdeez757",
+   "volumeUsd": null,
+   "solBalance": 0.764578575,
+   "source": "gmgn",
+   "firstSeen": 1783939622200
+  },
+  {
+   "address": "26W5Tq8LUTWct7pWbAHsmvsxQkXxPghbdwXj6MYiwQLU",
+   "tags": [
+    "kol",
+    "fomo"
+   ],
+   "vectors": [
+    "token:MANIFEST"
+   ],
+   "winRate": 1,
+   "realizedUsd7d": 1407.92,
+   "trades7d": 10,
+   "tokens7d": 5,
+   "twitter": "vydamo_",
+   "volumeUsd": null,
+   "solBalance": 0.0018444,
+   "source": "gmgn",
+   "firstSeen": 1783939626255
+  },
+  {
+   "address": "HPkQu4osTzt3reYjYX8CHufGCGgHesc7PqG6WdhcY4p9",
+   "tags": [
+    "kol",
+    "axiom",
+    "photon"
+   ],
+   "vectors": [
+    "token:MANIFEST"
+   ],
+   "winRate": 0.4,
+   "realizedUsd7d": -10693.08,
+   "trades7d": 19,
+   "tokens7d": 22,
+   "twitter": "skid_eth",
+   "volumeUsd": null,
+   "solBalance": 0.304244512,
+   "source": "gmgn",
+   "firstSeen": 1783939627315
+  },
+  {
+   "address": "4s2WzRLa35FB58bZY1i4CN3WoywJeuYrGYHnTKFsT23z",
+   "tags": [
+    "kol",
+    "axiom",
+    "padre"
+   ],
+   "vectors": [
+    "token:SOLANGELES"
+   ],
+   "winRate": 0.72,
+   "realizedUsd7d": 17737.36,
+   "trades7d": 60,
+   "tokens7d": 29,
+   "twitter": "thejester",
+   "volumeUsd": null,
+   "solBalance": 0.100692933,
+   "source": "gmgn",
+   "firstSeen": 1783939628414
+  },
+  {
+   "address": "5pbLj3qgfnDgRUJuuztgnUFGdoRgwANJHPvQifXxffx3",
+   "tags": [
+    "smart_degen"
+   ],
+   "vectors": [
+    "token:TripleT"
+   ],
+   "winRate": 0.55,
+   "realizedUsd7d": 1992.52,
+   "trades7d": 404,
+   "tokens7d": 159,
+   "twitter": null,
+   "volumeUsd": null,
+   "solBalance": 42.449847274,
+   "source": "gmgn",
+   "firstSeen": 1783939629525
+  },
+  {
+   "address": "qd99TFsVwZGaiF59SyYWRi8yNDRuMjneFcqgN3qMMfc",
+   "volumeUsd": null,
+   "solBalance": 41.246119582,
+   "source": "gmgn",
+   "firstSeen": 1783632661991
+  },
+  {
+   "address": "G4SCFt8L4xXVyf8PnfXarURWLiKLVWdqvw7JMfwCVPUk",
+   "volumeUsd": null,
+   "solBalance": 30.87455041,
+   "source": "gmgn",
+   "firstSeen": 1783632663025
+  },
+  {
+   "address": "FUspPPn7mZGj1d8wsVGXp8VQXAKpRfmS9SAFuGzQmfsB",
+   "volumeUsd": null,
+   "solBalance": 300.61146092,
+   "source": "gmgn",
+   "firstSeen": 1783632664086
+  },
+  {
+   "address": "HeC2DERjGC8xZKKv5RWsSRmBbddxBxFADZEBrFiZhMQ6",
+   "volumeUsd": null,
+   "solBalance": 206.438060424,
+   "source": "gmgn",
+   "firstSeen": 1783632665137
+  },
+  {
+   "address": "4MyckGfCHqDUvGQDSFqsK21Z1ar9cLp165bg9kLHTmFj",
+   "volumeUsd": null,
+   "solBalance": 204.119082269,
+   "source": "gmgn",
+   "firstSeen": 1783632666168
+  },
+  {
+   "address": "48cgxNPA97ACEvKqHfx7XWWHtgU2eAkNHFqPe4xp6eBR",
+   "volumeUsd": null,
+   "solBalance": 16.23610533,
+   "source": "gmgn",
+   "firstSeen": 1783632667230
+  },
+  {
+   "address": "3HjedYMFbXhdMHxR6qkJfHuvZFmd2JaU1UaqMkdxqbPP",
+   "volumeUsd": null,
+   "solBalance": 22.333185102,
+   "source": "gmgn",
+   "firstSeen": 1783632668266
+  },
+  {
+   "address": "4FuaKCKfw9aAwsfMNyYAmzSqEJ13mFEBC7R21jqD9KN2",
+   "volumeUsd": null,
+   "solBalance": 5.097175679,
+   "source": "gmgn",
+   "firstSeen": 1783632669336
+  },
+  {
+   "address": "CaR3ZKSL23vLqPj8dRHB9om6wXoyPJvKwPodYkkW8eog",
+   "volumeUsd": null,
+   "solBalance": 23.587916292,
+   "source": "gmgn",
+   "firstSeen": 1783632670367
+  },
+  {
+   "address": "FL6Rn99Z9JhvdYPWNrZN2SmEgREfizHDzGUXRFqrhZRn",
+   "volumeUsd": null,
+   "solBalance": 30.85820484,
+   "source": "gmgn",
+   "firstSeen": 1783632671439
+  },
+  {
+   "address": "3kfEpwa8pKmhc7SDQNRGrrMFeUF7r88ewehPv99GSJcq",
+   "volumeUsd": null,
+   "solBalance": 38.370055008,
+   "source": "gmgn",
+   "firstSeen": 1783632672476
+  },
+  {
+   "address": "31iRQFxAApGY6LAXm16QDXmPFHSeY2mP4dW96P22iTBV",
+   "volumeUsd": null,
+   "solBalance": 36.044187653,
+   "source": "gmgn",
+   "firstSeen": 1783632673510
+  },
+  {
+   "address": "55msLm128tQdXLXCXLxd756H9SaCo7wPpdetEioe7D8d",
+   "volumeUsd": null,
+   "solBalance": 27.523237163,
+   "source": "gmgn",
+   "firstSeen": 1783632674574
+  },
+  {
+   "address": "J8UYG8eXiSXsXDqP1xLP8wMnbdBgqTvXWG4BTFo4Atos",
+   "volumeUsd": null,
+   "solBalance": 3.38133431,
+   "source": "gmgn",
+   "firstSeen": 1783632675618
+  },
+  {
+   "address": "5auBWLYNcTJUJTenRYiaHEhT4KCip5W59sxpwZsTqxGG",
+   "volumeUsd": null,
+   "solBalance": 3.208271861,
+   "source": "gmgn",
+   "firstSeen": 1783632676649
+  }
+ ]
 }

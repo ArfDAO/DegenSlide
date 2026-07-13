@@ -1,18 +1,36 @@
 /**
- * GMGN smart-money sync — pulls GMGN's verified Smart Money + KOL wallets for
- * Solana via the official gmgn-cli and registers them PERMANENTLY into the
- * durable whale_registry (source 'gmgn'). Every wallet is verified on-chain
- * (getBalance) before registering — no blind trust in any external list.
+ * GMGN whale-discovery engine — the ONLY discovery path for Solana.
  *
- * Designed to run periodically from solListener (same cadence as discovery).
- * Degrades gracefully: if gmgn-cli is missing or unconfigured it logs and
- * exits 0 so the indexer keeps running untouched.
+ * The system model: discovery finds proven Smart Money wallets via the GMGN
+ * OpenAPI (gmgn-cli) and registers them PERMANENTLY into the durable
+ * whale_registry. The live indexer (solListener.js) then tracks ONLY these
+ * registered wallets — no blanket transaction scanning anywhere.
+ *
+ * Discovery vectors (all real GMGN data, no fabrication):
+ *   A. track smartmoney  — GMGN's live Smart Money trade feed (smart_degen)
+ *   B. track kol         — GMGN's KOL/renowned trade feed
+ *   C. market trending → token traders — for each trending token with real
+ *      liquidity and smart-money presence, harvest its top traders tagged
+ *      smart_degen / renowned. This is the growth engine: every run sweeps
+ *      dozens of tokens × up to TRADERS_PER_TOKEN wallets each.
+ *
+ * Candidate filtering (GMGN tags): wash_trader / sandwich_bot / rat_trader /
+ * bundler / dex_bot / sniper and is_suspicious are rejected outright.
+ *
+ * Quality gate (GMGN 7d portfolio stats): a candidate must show winrate ≥
+ * MIN_WINRATE or realized profit ≥ MIN_PROFIT_USD. Feed wallets (vectors A/B)
+ * that GMGN itself already tags smart_degen/renowned pass if stats are
+ * unavailable. Every accepted wallet is verified on-chain (getBalance) before
+ * registering — no blind trust in any external list.
  *
  * Cloud (Render) bootstrap: if ~/.config/gmgn/.env is absent but the
  * GMGN_API_KEY + GMGN_PRIVATE_KEY env vars are set, the config file is
  * written from them so the CLI works in a fresh container.
  *
- * Env: SOLANA_RPC, GMGN_LIMIT(200), IMPORT_DELAY_MS(400)
+ * Env: SOLANA_RPC, GMGN_LIMIT(200), IMPORT_DELAY_MS(400),
+ *      GMGN_TREND_TOKENS(24 per interval), GMGN_TRADERS_PER_TOKEN(50),
+ *      GMGN_MIN_TOKEN_LIQ(100000), GMGN_MIN_WINRATE(0.4),
+ *      GMGN_MIN_PROFIT_USD(1000), GMGN_MAX_NEW(400)
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -27,7 +45,15 @@ const db = await import('./db.js');
 const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const GMGN_LIMIT = Number(process.env.GMGN_LIMIT || 200);
 const DELAY_MS = Number(process.env.IMPORT_DELAY_MS || 400);
+const TREND_TOKENS = Number(process.env.GMGN_TREND_TOKENS || 24);      // tokens swept per trending interval
+const TRADERS_PER_TOKEN = Number(process.env.GMGN_TRADERS_PER_TOKEN || 50);
+const MIN_TOKEN_LIQ = Number(process.env.GMGN_MIN_TOKEN_LIQ || 100000); // junk-token floor for the sweep
+const MIN_WINRATE = Number(process.env.GMGN_MIN_WINRATE || 0.4);
+const MIN_PROFIT_USD = Number(process.env.GMGN_MIN_PROFIT_USD || 1000);
+const MAX_NEW = Number(process.env.GMGN_MAX_NEW || 400);                // per-run registration cap
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const BAD_TAGS = new Set(['wash_trader', 'sandwich_bot', 'rat_trader', 'bundler', 'dex_bot', 'sniper']);
+const GOOD_TAGS = new Set(['smart_degen', 'renowned']);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── cloud bootstrap: materialise the CLI config from env vars if needed ──
@@ -43,7 +69,11 @@ function cli(args) {
   // prefer the locally-installed dependency; fall back to a global install
   const local = path.join(__d, 'node_modules', '.bin', 'gmgn-cli');
   const bin = fs.existsSync(local) ? local : 'gmgn-cli';
-  return execFileSync(bin, args, { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] });
+  return execFileSync(bin, args, { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 32 * 1024 * 1024 });
+}
+function cliJson(args) {
+  try { return JSON.parse(cli(args)); }
+  catch (e) { console.warn(`[gmgn-sync] ${args.slice(0, 3).join(' ')} failed:`, (e.message || '').split('\n')[0]); return null; }
 }
 
 async function rpcBalance(addr) {
@@ -57,53 +87,128 @@ async function rpcBalance(addr) {
   return (j.result?.value || 0) / 1e9;
 }
 
+// candidate pool: addr -> { volUsd, tags:Set, vector, fromFeed }
+const candidates = new Map();
+function addCandidate(addr, { volUsd = 0, tags = [], vector, fromFeed = false }) {
+  if (!addr || !B58.test(addr)) return;
+  if (tags.some((t) => BAD_TAGS.has(t))) return; // manipülatif cüzdanlar registry'ye giremez
+  const c = candidates.get(addr) || { volUsd: 0, tags: new Set(), vectors: new Set(), fromFeed: false };
+  c.volUsd += volUsd;
+  for (const t of tags) c.tags.add(t);
+  c.vectors.add(vector);
+  c.fromFeed = c.fromFeed || fromFeed;
+  candidates.set(addr, c);
+}
+
+// ── Vector A + B: Smart Money and KOL trade feeds ──
+function sweepFeeds() {
+  for (const list of ['smartmoney', 'kol']) {
+    const data = cliJson(['track', list, '--chain', 'sol', '--limit', String(GMGN_LIMIT), '--raw']);
+    if (!data) continue;
+    const trades = data.list || data.data?.list || [];
+    for (const t of trades) {
+      const tags = t.maker_info?.tags || [];
+      if (list === 'smartmoney' && !tags.includes('smart_degen')) continue;
+      addCandidate(t.maker, { volUsd: Number(t.amount_usd) || 0, tags, vector: `feed:${list}`, fromFeed: true });
+    }
+    console.log(`[gmgn-sync] feed ${list}: cumulative candidates = ${candidates.size}`);
+  }
+}
+
+// ── Vector C: trending tokens → top traders tagged smart_degen / renowned ──
+function sweepTrendingTraders() {
+  const seen = new Set();
+  const tokens = [];
+  for (const interval of ['1h', '24h']) {
+    const data = cliJson(['market', 'trending', '--chain', 'sol', '--interval', interval,
+      '--limit', '100', '--min-liquidity', String(MIN_TOKEN_LIQ), '--min-smart-degen-count', '2',
+      '--filter', 'not_wash_trading', '--raw']);
+    const list = data?.data?.rank || data?.rank || data?.data?.list || data?.list || [];
+    let took = 0;
+    for (const tk of list) {
+      if (took >= TREND_TOKENS) break;
+      if (!tk.address || seen.has(tk.address)) continue;
+      seen.add(tk.address);
+      tokens.push({ address: tk.address, symbol: tk.symbol });
+      took += 1;
+    }
+  }
+  console.log(`[gmgn-sync] trending sweep: ${tokens.length} quality tokens with smart-money presence`);
+  for (const tk of tokens) {
+    for (const tag of ['smart_degen', 'renowned']) {
+      const data = cliJson(['token', 'traders', '--chain', 'sol', '--address', tk.address,
+        '--limit', String(TRADERS_PER_TOKEN), '--tag', tag, '--order-by', 'profit', '--raw']);
+      const list = data?.data?.list || data?.list || [];
+      for (const tr of list) {
+        if (tr.is_suspicious) continue;
+        if ((tr.maker_token_tags || []).some((t) => BAD_TAGS.has(t))) continue;
+        const vol = (Number(tr.buy_volume_cur) || 0) + (Number(tr.sell_volume_cur) || 0);
+        addCandidate(tr.address, { volUsd: vol, tags: tr.tags || [tag], vector: `token:${tk.symbol}` });
+      }
+    }
+  }
+  console.log(`[gmgn-sync] trader sweep done: cumulative candidates = ${candidates.size}`);
+}
+
+// ── Quality gate: GMGN 7d wallet stats (winrate / realized profit) ──
+// Returns { pass, stats } — stats kept for the registry blob when available.
+function statsGate(addr, cand) {
+  const data = cliJson(['portfolio', 'stats', '--chain', 'sol', '--wallet', addr, '--period', '7d', '--raw']);
+  const s = Array.isArray(data) ? data[0] : (data?.wallet_address ? data : data?.data);
+  if (!s || !s.wallet_address) {
+    // stats unavailable → only GMGN's own feed wallets (already vetted smart_degen/renowned) pass
+    return { pass: cand.fromFeed && [...cand.tags].some((t) => GOOD_TAGS.has(t)), stats: null };
+  }
+  const winrate = Number(s.pnl_stat?.winrate);
+  const profit = Number(s.realized_profit) || 0;
+  const pass = (Number.isFinite(winrate) && winrate >= MIN_WINRATE) || profit >= MIN_PROFIT_USD;
+  return {
+    pass,
+    stats: {
+      winRate: Number.isFinite(winrate) ? Math.round(winrate * 100) / 100 : null,
+      realizedUsd7d: Math.round(profit * 100) / 100,
+      trades7d: (s.buy || 0) + (s.sell || 0),
+      tokens7d: s.pnl_stat?.token_num ?? null,
+      twitter: s.common?.twitter_username || null,
+    },
+  };
+}
+
 async function main() {
   // configured?
   try { cli(['config', '--check']); }
   catch { console.log('[gmgn-sync] gmgn-cli missing/unconfigured — skipping (set GMGN_API_KEY + GMGN_PRIVATE_KEY to enable)'); return; }
 
-  // collect wallets from both platform-tagged lists — real GMGN data only
-  const wallets = new Map(); // addr -> { volUsd, tags }
-  for (const list of ['smartmoney', 'kol']) {
-    let out;
-    try { out = cli(['track', list, '--chain', 'sol', '--limit', String(GMGN_LIMIT), '--raw']); }
-    catch (e) { console.warn(`[gmgn-sync] ${list} fetch failed:`, (e.message || '').split('\n')[0]); continue; }
-    let data;
-    try { data = JSON.parse(out); } catch { continue; }
-    const trades = data.list || data.data?.list || [];
-    for (const t of trades) {
-      if (!t.maker || !B58.test(t.maker)) continue;
-      const tags = t.maker_info?.tags || [];
-      if (tags.includes('wash_trader') || tags.includes('sandwich_bot')) continue; // manipülatif cüzdanlar registry'ye giremez
-      if (list === 'smartmoney' && !tags.includes('smart_degen')) continue;
-      const w = wallets.get(t.maker) || { volUsd: 0, tags: new Set() };
-      w.volUsd += Number(t.amount_usd) || 0;
-      for (const tag of tags) w.tags.add(tag);
-      wallets.set(t.maker, w);
-    }
-    console.log(`[gmgn-sync] ${list}: cumulative unique wallets = ${wallets.size}`);
-  }
-  if (!wallets.size) { console.log('[gmgn-sync] no wallets returned — nothing to do'); return; }
+  sweepFeeds();
+  sweepTrendingTraders();
+  if (!candidates.size) { console.log('[gmgn-sync] no candidates returned — nothing to do'); return; }
 
   // register only NEW wallets (already-registered ones stay untouched — the
-  // registry is permanent, and skipping them saves RPC budget)
+  // registry is permanent, and skipping them saves API + RPC budget)
   const known = new Set(db.loadWhaleRegistry().map((r) => r.address));
-  const fresh = [...wallets.entries()].filter(([a]) => !known.has(a));
-  console.log(`[gmgn-sync] ${wallets.size} wallets from GMGN · ${fresh.length} new`);
+  const fresh = [...candidates.entries()].filter(([a]) => !known.has(a))
+    .sort((x, y) => y[1].volUsd - x[1].volUsd) // biggest first — best use of the per-run cap
+    .slice(0, MAX_NEW);
+  console.log(`[gmgn-sync] ${candidates.size} candidates from GMGN · ${fresh.length} new to evaluate`);
 
-  let ok = 0;
-  for (const [addr, w] of fresh) {
+  let ok = 0, rejected = 0;
+  for (const [addr, c] of fresh) {
     try {
+      const { pass, stats } = statsGate(addr, c);
+      if (!pass) { rejected += 1; continue; }
       const bal = await rpcBalance(addr); // real on-chain confirmation
-      db.registerWhale(addr, 'gmgn', { volumeUsd: Math.round(w.volUsd * 100) / 100, solBalance: bal, stats: { address: addr, tags: [...w.tags] } });
+      db.registerWhale(addr, 'gmgn', {
+        volumeUsd: Math.round(c.volUsd * 100) / 100, solBalance: bal,
+        stats: { address: addr, tags: [...c.tags], vectors: [...c.vectors], ...(stats || {}) },
+      });
       ok += 1;
-      console.log(`[gmgn-sync] +${addr.slice(0, 10)}… · ${bal.toFixed(2)} SOL · [${[...w.tags].join(',')}]`);
+      console.log(`[gmgn-sync] +${addr.slice(0, 10)}… · ${bal.toFixed(2)} SOL · wr ${stats?.winRate ?? '—'} · $${Math.round(stats?.realizedUsd7d ?? 0)} 7d · [${[...c.tags].join(',')}]`);
     } catch (e) {
       console.warn(`[gmgn-sync] skip ${addr.slice(0, 10)}… — ${e.message}`);
     }
     await sleep(DELAY_MS);
   }
-  console.log(`[gmgn-sync] done · +${ok} new whales · registry now ${db.loadWhaleRegistry().length}`);
+  console.log(`[gmgn-sync] done · +${ok} new whales · ${rejected} failed quality gate · registry now ${db.loadWhaleRegistry().length}`);
 }
 
 main().catch((e) => { console.error('[gmgn-sync] fatal:', e.message || e); process.exit(0); /* never crash the caller */ });
