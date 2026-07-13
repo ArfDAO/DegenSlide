@@ -5,7 +5,6 @@ import Portfolio from './components/Portfolio';
 import WatchlistPanel from './components/WatchlistPanel';
 import CuratedWhales from './components/CuratedWhales';
 import ProfilePage from './components/ProfilePage';
-import TurboPanel from './components/TurboPanel';
 import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, getTurboAddress, getTurboBalance } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Copy, Zap, Settings, Check, AlertTriangle, Info, Layers, WifiOff } from 'lucide-react';
@@ -253,7 +252,10 @@ export default function App() {
     const id = setInterval(load, 60000); // live-promoted roster keeps growing
     return () => { alive = false; clearInterval(id); };
   }, []);
-  const [settings, setSettings] = useState(() => ({ liveFeed: true, hideStables: false, minWhaleMon: 0, autoSell: true, ...loadLS('monad_settings', {}) }));
+  // Settings are PER CHAIN — minWhaleMon is in native units (MON vs SOL differ
+  // ~100x), so sharing one key across chains silently filtered out every card.
+  const SETTINGS_LS = LSK('settings', 'monad_settings');
+  const [settings, setSettings] = useState(() => ({ liveFeed: true, hideStables: false, minWhaleMon: 0, autoSell: true, ...loadLS(SETTINGS_LS, {}) }));
   const [balanceHistory, setBalanceHistory] = useState(() => loadLS(BALHIST_LS, []));
   const settingsRef = useRef(settings);
   useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -265,9 +267,8 @@ export default function App() {
   // Turbo 1-swipe trading: agreement + local trading wallet → no per-trade popups.
   // The Turbo wallet IS the app's primary account on both chains — the external
   // wallet (MetaMask/Phantom) is only a funding source / withdraw destination.
-  const [turboOpen, setTurboOpen] = useState(false);
+  // Setup & management live in the Profile identity card (TurboActions).
   const [turboAddr, setTurboAddr] = useState(() => getTurboAddress());
-  const pendingTradeRef = useRef(null); // swipe that triggered first-time Turbo setup — replayed after funding
   // USD scale differs per chain, so the tier choice is stored per chain too
   const DECKTIER_LS = LSK('deckTier', 'monad_deckTier');
   const [deckTier, setDeckTier] = useState(() => loadLS(DECKTIER_LS, 'all'));
@@ -305,7 +306,7 @@ export default function App() {
   useEffect(() => { saveLS('monad_slippage', slippageBps); }, [slippageBps]);
   useEffect(() => { saveLS(FAV_KEY, favorites); }, [favorites]);
   useEffect(() => { saveLS(WATCH_KEY, watchlist); }, [watchlist]);
-  useEffect(() => { saveLS('monad_settings', settings); }, [settings]);
+  useEffect(() => { saveLS(SETTINGS_LS, settings); }, [settings]);
 
   const updateSetting = useCallback((key, value) => setSettings((s) => ({ ...s, [key]: value })), []);
 
@@ -466,10 +467,10 @@ export default function App() {
       showToast('copy', 'Opened on Jupiter — in-app copy not live on this chain yet');
       return;
     }
-    // First swipe ever → run the one-time agreement + funding flow, then replay.
+    // First swipe ever → Turbo setup lives on the Profile page; send them there.
     if (!hasTurboAgreement() || !turboWalletExists()) {
-      pendingTradeRef.current = { trader, amountMon, action };
-      setTurboOpen(true);
+      showToast('copy', '⚡ Set up Turbo in Profile to start 1-swipe trading');
+      setActiveTab('profile');
       return;
     }
     try {
@@ -480,9 +481,8 @@ export default function App() {
     } catch (err) {
       console.error('[Turbo] copy failed:', err.message, err);
       if (err.message === 'INSUFFICIENT_FUNDS') {
-        showToast('no_funds', `Turbo balance low — deposit ${ACTIVE.nativeSymbol}`);
-        pendingTradeRef.current = { trader, amountMon, action };
-        setTurboOpen(true);
+        showToast('no_funds', `Turbo balance low — deposit ${ACTIVE.nativeSymbol} in Profile`);
+        setActiveTab('profile');
       }
       else if (err.message === 'NO_LIQUIDITY') showToast('no_liq');
       else if (err.message === 'TX_FAILED' || err.message === 'TX_TIMEOUT') showToast('tx_failed');
@@ -614,6 +614,18 @@ export default function App() {
     sendCopy(t, tradeAmount * 5, 'APE');
   }, [removeCard, sendCopy, tradeAmount]);
 
+  // Self-heal a stale tier choice: if the saved tier filters out EVERY card
+  // while 'All' has cards, fall back to 'All' after the initial load — the
+  // deck must never look broken while the backend is streaming real trades.
+  const tierHealedRef = useRef(false);
+  useEffect(() => {
+    if (isLoading || tierHealedRef.current || deckTier === 'all' || !cards.length) return;
+    tierHealedRef.current = true;
+    const buys = cards.filter((c) => c.side !== 'SELL');
+    if (buys.some((c) => inTier(usdOf(c), 'all')) && !buys.some((c) => inTier(usdOf(c), deckTier))) setDeckTier('all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, cards]);
+
   const swipe = (dir) => topCardRef.current?.swipe(dir);
   const reloadDeck = useCallback(() => { setIsLoading(true); fetchWhaleDeck(40).then((d) => setCards(d)).finally(() => setIsLoading(false)); }, []);
 
@@ -630,22 +642,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <TurboPanel
-        open={turboOpen}
-        onClose={() => { setTurboOpen(false); setTurboAddr(getTurboAddress()); refreshBalance(); }}
-        walletAddress={walletAddress}
-        onConnect={doConnect}
-        showToast={showToast}
-        onReady={() => {
-          // funded → replay the swipe that opened the setup, then close
-          const pending = pendingTradeRef.current;
-          pendingTradeRef.current = null;
-          setTurboOpen(false);
-          setTurboAddr(getTurboAddress());
-          refreshBalance();
-          if (pending) sendCopy(pending.trader, pending.amountMon, pending.action);
-        }}
-      />
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
           <div className="animate-rocket flex flex-col items-center gap-3"><Zap size={72} strokeWidth={1.5} style={{ color: 'var(--color-tag-violet)' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--color-tag-violet)' }}>All In</span></div>
@@ -688,8 +684,8 @@ export default function App() {
               );
             })}
           </div>
-          {/* Turbo wallet IS the account — the button opens deposit/withdraw/manage */}
-          <button onClick={() => setTurboOpen(true)} className={`connect-btn ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
+          {/* Turbo wallet IS the account — the button jumps to its home on the Profile page */}
+          <button onClick={() => setActiveTab('profile')} className={`connect-btn ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
             {turboAddr
               ? (<><span style={{ fontSize: 11 }}>⚡</span>{monBalance != null ? `${monBalance.toFixed(2)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`}</>)
               : (<><span style={{ fontSize: 11 }}>⚡</span>Turbo</>)}
@@ -793,7 +789,8 @@ export default function App() {
             settings={settings} updateSetting={updateSetting}
             lastTxHash={lastTxHash} indexerUp={indexerUp}
             onDisconnect={handleDisconnect} onClearData={handleClearData}
-            onOpenTurbo={() => setTurboOpen(true)}
+            externalWallet={walletAddress} onConnect={doConnect} showToast={showToast}
+            onTurboChanged={() => { setTurboAddr(getTurboAddress()); refreshBalance(); }}
           />
         )}
       </main>

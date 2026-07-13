@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Copy, Radio, ExternalLink, Trash2, LogOut, Check, SlidersHorizontal, Filter } from 'lucide-react';
 import { MONAD_MAINNET, EXPLORER_URL, EXPLORER_ADDR_URL, INDEXER_HTTP, ACTIVE, CHAINS } from '../config/chain.js';
 import { WALLET_NAME } from '../services/activeWallet';
+import TurboActions from './TurboPanel';
 
 /* ── shared shells ── */
 const CARD = {
@@ -98,7 +99,8 @@ export default function ProfilePage({
   portfolio, watchlistCount, balanceHistory,
   settings, updateSetting,
   lastTxHash, indexerUp,
-  onDisconnect, onClearData, onOpenTurbo,
+  onDisconnect, onClearData,
+  externalWallet, onConnect, showToast, onTurboChanged,
 }) {
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -155,7 +157,7 @@ export default function ProfilePage({
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <span style={{ fontSize: 8.5, fontWeight: 800, color: 'var(--up)', background: 'var(--up-soft)', border: '1px solid rgba(47,230,168,0.35)', borderRadius: 100, padding: '1px 7px', letterSpacing: '0.08em' }}>{WALLET_NAME.toUpperCase()}</span>
+                <span style={{ fontSize: 8.5, fontWeight: 800, color: '#f5b544', background: 'rgba(245,181,68,0.12)', border: '1px solid rgba(245,181,68,0.4)', borderRadius: 100, padding: '1px 7px', letterSpacing: '0.08em' }}>⚡ TURBO</span>
                 <span style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>{ACTIVE.kind === 'evm' ? `${MONAD_MAINNET.chainName} · id ${MONAD_MAINNET.chainIdNum}` : `${ACTIVE.label} · mainnet-beta`}</span>
               </div>
             </div>
@@ -180,6 +182,9 @@ export default function ProfilePage({
               )}
             </div>
             <BalanceChart history={balanceHistory} />
+
+            {/* Turbo actions live right here — agreement once, then deposit/withdraw/export */}
+            <TurboActions externalWallet={externalWallet} onConnect={onConnect} showToast={showToast} onChanged={onTurboChanged} />
           </div>
         </div>
 
@@ -254,19 +259,6 @@ export default function ProfilePage({
             <a href={`${EXPLORER_URL}/tx/${lastTxHash}`} target="_blank" rel="noreferrer" style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--color-tidewater-navy)', textDecoration: 'none' }}>
               View on MonadScan <ExternalLink size={12} />
             </a>
-          </div>
-        )}
-
-        {/* ── Turbo trading wallet ── */}
-        {onOpenTurbo && (
-          <div style={{ ...CARD, padding: '14px 16px' }}>
-            <SectionTitle icon={<span style={{ fontSize: 12 }}>⚡</span>} accent="#f5b544">Turbo · 1-Swipe Trading</SectionTitle>
-            <button onClick={onOpenTurbo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', marginTop: 12, padding: '11px 0', borderRadius: 12, border: '1px solid rgba(245,181,68,0.4)', background: 'rgba(245,181,68,0.08)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              Manage Turbo wallet
-            </button>
-            <p style={{ fontSize: 10, color: 'var(--color-pebble)', margin: '8px 0 0', fontWeight: 600, lineHeight: 1.5 }}>
-              Swipes execute instantly from your local Turbo wallet — deposit, withdraw or export its key here.
-            </p>
           </div>
         )}
 

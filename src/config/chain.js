@@ -35,9 +35,10 @@ export const CHAINS = {
     indexerWs: env2.VITE_SOL_INDEXER_WS || 'wss://deepswap-solana-bot.onrender.com',
     rpcUrl: env2.VITE_SOL_RPC || 'https://api.mainnet-beta.solana.com',
     jupiterApi: 'https://lite-api.jup.ag/swap/v1', // live Jupiter aggregator (quote + swap tx)
-    // Solana-scale tiers (much bigger single swaps) — exclusive ranges; 'all'
-    // floor mirrors the indexer's TRACK_MIN_USD.
-    tiers: { all: 150, big: 1000, shark: 5000, whale: 20000 },
+    // Solana tiers — exclusive ranges calibrated to the REAL size distribution
+    // of tracked-whale swaps (most fall $150–1000); 'all' floor mirrors the
+    // indexer's TRACK_MIN_USD.
+    tiers: { all: 150, big: 300, shark: 1000, whale: 5000 },
     copySupported: true,                               // Phantom + Jupiter aggregator
     // SOL trades ~100x MON's unit value — quick picks scaled accordingly
     copyTiers: [{ label: '0.05', value: 0.05 }, { label: '0.25', value: 0.25 }, { label: '1', value: 1 }],
