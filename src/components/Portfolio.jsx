@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, PieChart } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from '../services/dexscreenerApi';
 import { ACTIVE } from '../config/chain.js';
-import { WALLET_NAME } from '../services/activeWallet';
 
 /* ── format helpers ── */
 function fmtUsd(val) {
@@ -129,10 +128,11 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
   const [confirmDel, setConfirmDel] = useState(false);
   const [selling, setSelling] = useState(false);
   const [confirmSell, setConfirmSell] = useState(false);
+  const [sellPct, setSellPct] = useState(100); // partial-close percentage
 
   const doSell = async () => {
     setConfirmSell(false); setSelling(true);
-    try { await onSell(p); } catch { /* toast handled upstream */ } finally { setSelling(false); }
+    try { await onSell(p, { fraction: (sellPct || 100) / 100 }); } catch { /* toast handled upstream */ } finally { setSelling(false); }
   };
 
   const isApe = p.action === 'APE';
@@ -246,7 +246,7 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
               <button onClick={() => { setSl(''); setTp(''); onSetTargets(p.id, { stopLossPct: null, takeProfitPct: null }); setEditTargets(false); }} style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'transparent', color: 'var(--color-pebble)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Clear</button>
             </div>
             <div style={{ fontSize: 9.5, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 6, lineHeight: 1.4 }}>
-              {autoSell ? `When PnL crosses a level the position auto-sells to ${ACTIVE.nativeSymbol} (${WALLET_NAME} confirms each sell). Toggle in Profile → Settings.` : 'Auto-sell is OFF — these only show a visual alert. Enable it in Profile → Settings.'}
+              {autoSell ? `When PnL crosses a level the position auto-sells to ${ACTIVE.nativeSymbol} from your Turbo wallet — instant, no confirmation. Toggle in Profile → Settings.` : 'Auto-sell is OFF — these only show a visual alert. Enable it in Profile → Settings.'}
             </div>
           </div>
         )}
@@ -265,23 +265,42 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
         >+ Buy</button>
       </div>
 
-      {/* actions row 2: close (sell to MON) + stop tracking */}
-      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-        {!confirmSell ? (
-          <button onClick={() => setConfirmSell(true)} disabled={selling} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid var(--color-aurora-green)', background: 'transparent', color: 'var(--color-aurora-green)', fontSize: 12, fontWeight: 700, cursor: selling ? 'default' : 'pointer', opacity: selling ? 0.6 : 1 }}>
-            {selling ? 'Selling…' : `↓ Close (sell → ${ACTIVE.nativeSymbol})`}
-          </button>
-        ) : (
-          <>
-            <button onClick={doSell} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'var(--color-aurora-green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Confirm sell all</button>
-            <button onClick={() => setConfirmSell(false)} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'transparent', color: 'var(--color-pebble)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          </>
-        )}
-        {!confirmDel ? (
-          <button onClick={() => setConfirmDel(true)} title="Stop tracking (no sell)" style={{ padding: '0 12px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'transparent', color: 'var(--color-aurora-magenta)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}><X size={15} /></button>
-        ) : (
-          <button onClick={() => onRemove(p.id)} style={{ padding: '0 12px', borderRadius: 10, border: 'none', background: 'var(--color-aurora-magenta)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Sure?</button>
-        )}
+      {/* actions row 2: close — choose how much to sell (partial close) */}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--color-silver-lining)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Close position</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-aurora-green)', fontFamily: '"JetBrains Mono", monospace' }}>
+            {sellPct}%{m.currentValue != null ? ` · ≈${fmtUsd(m.currentValue * (sellPct / 100))}` : ''}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          {[25, 50, 75, 100].map((pct) => {
+            const active = sellPct === pct;
+            return (
+              <button key={pct} onClick={() => { setSellPct(pct); setConfirmSell(false); }}
+                style={{ flex: 1, padding: '7px 0', borderRadius: 9, border: 'none', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-aurora-green)' : 'var(--color-frost-shadow)', color: active ? '#04120c' : 'var(--color-midnight-ink)' }}>
+                {pct === 100 ? 'MAX' : `${pct}%`}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!confirmSell ? (
+            <button onClick={() => setConfirmSell(true)} disabled={selling} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid var(--color-aurora-green)', background: 'transparent', color: 'var(--color-aurora-green)', fontSize: 12, fontWeight: 700, cursor: selling ? 'default' : 'pointer', opacity: selling ? 0.6 : 1 }}>
+              {selling ? 'Selling…' : `↓ Sell ${sellPct}% → ${ACTIVE.nativeSymbol}`}
+            </button>
+          ) : (
+            <>
+              <button onClick={doSell} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'var(--color-aurora-green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Confirm sell {sellPct}%</button>
+              <button onClick={() => setConfirmSell(false)} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'transparent', color: 'var(--color-pebble)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+            </>
+          )}
+          {!confirmDel ? (
+            <button onClick={() => setConfirmDel(true)} title="Stop tracking (no sell)" style={{ padding: '0 12px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'transparent', color: 'var(--color-aurora-magenta)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}><X size={15} /></button>
+          ) : (
+            <button onClick={() => onRemove(p.id)} style={{ padding: '0 12px', borderRadius: 10, border: 'none', background: 'var(--color-aurora-magenta)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Sure?</button>
+          )}
+        </div>
       </div>
       {m.pnlUsd == null && (
         <div style={{ fontSize: 9.5, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 8 }}>Live PnL appears once DexScreener has a price for this token.</div>
@@ -322,7 +341,7 @@ export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, aut
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingBottom: 80, gap: 12 }}>
         <PieChart size={40} strokeWidth={1.5} color="var(--color-pebble)" style={{ opacity: 0.4 }} />
         <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-midnight-ink)' }}>No positions yet</div>
-        <div style={{ fontSize: 13, color: 'var(--color-pebble)', maxWidth: 230, fontWeight: 600 }}>Swipe right (or ALL IN) on a whale to open a position. Manage it here — buy more, set stop-loss / take-profit, track live PnL.</div>
+        <div style={{ fontSize: 13, color: 'var(--color-pebble)', maxWidth: 230, fontWeight: 600 }}>Swipe right on a whale to copy it. Manage the position here — buy more, sell any % , set stop-loss / take-profit, track live PnL.</div>
       </div>
     );
   }

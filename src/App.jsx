@@ -5,7 +5,7 @@ import Portfolio from './components/Portfolio';
 import WatchlistPanel from './components/WatchlistPanel';
 import CuratedWhales from './components/CuratedWhales';
 import ProfilePage from './components/ProfilePage';
-import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, getTurboAddress, getTurboBalance } from './services/turboWallet';
+import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Heart } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
@@ -20,6 +20,7 @@ import {
   connectWallet,
   getConnectedAccount,
   sellToken,
+  getTokenInfo,
   isWalletAvailable,
   onAccountsChanged,
   disconnectWallet,
@@ -513,40 +514,79 @@ export default function App() {
   const removePosition = useCallback((id) => setPortfolio((prev) => prev.filter((p) => p.id !== id)), []);
   const setPositionTargets = useCallback((id, targets) =>
     setPortfolio((prev) => prev.map((p) => (p.id === id ? { ...p, ...targets } : p))), []);
+  // Shrink a position by a fraction (0–1) after a partial sell — scales the
+  // recorded token amount, cost basis and native size so PnL stays correct.
+  const reducePosition = useCallback((id, fraction) => {
+    const keep = Math.max(0, Math.min(1, 1 - fraction));
+    setPortfolio((prev) => prev.map((p) => {
+      if (p.id !== id) return p;
+      let tokensRaw = p.tokensRaw;
+      try { tokensRaw = ((BigInt(p.tokensRaw || '0') * BigInt(Math.round(keep * 1e6))) / 1000000n).toString(); } catch { /* keep */ }
+      return {
+        ...p, tokensRaw,
+        investedUsd: (p.investedUsd ?? 0) * keep,
+        amountMon: (p.amountMon ?? p.amount ?? 0) * keep,
+      };
+    }));
+  }, []);
   const buyMorePosition = useCallback((item, amount) => {
     if (!item?.token?.address || !(amount > 0)) { showToast('tx_error'); return; }
     sendCopy({ address: item.trader?.address, tokenAddress: item.token.address, tokenSymbol: item.token.symbol, tokenDecimals: item.token.decimals }, amount);
   }, [sendCopy]);
 
-  // Sell a position back to native (manual "Close" or auto SL/TP). Real on-chain swap.
-  // Turbo positions are signed locally (no popup — SL/TP & whale-exit are fully
-  // automatic); wallet positions still go through the connected wallet.
-  const sellPosition = useCallback(async (p) => {
-    if (p.turbo) {
-      showToast('sell_pending', `⚡ Closing $${p.token.symbol}…`);
+  // Sell a position back to native (manual "Close", partial close, or auto
+  // SL/TP / whale-exit). Real on-chain swap. Whenever a Turbo wallet exists the
+  // swap is signed locally (no popup, works identically on Monad + Solana);
+  // otherwise it falls back to the connected external wallet.
+  // opts.fraction (0–1, default 1) closes only part of the position.
+  const sellPosition = useCallback(async (p, opts = {}) => {
+    const fraction = Math.max(0, Math.min(1, opts.fraction ?? 1));
+    if (!(fraction > 0)) return;
+    const sellAll = fraction >= 0.999;
+    const useTurbo = p.turbo || turboWalletExists();
+
+    if (useTurbo) {
+      showToast('sell_pending', `⚡ ${sellAll ? 'Closing' : `Selling ${Math.round(fraction * 100)}% of`} $${p.token.symbol}…`);
       try {
-        const { hash } = await turboSellToken(p.token.address, { slippageBps, preferredDex: p.dex, amountRaw: p.tokensRaw });
+        // partial → sell a fraction of the ACTUAL on-chain balance (accurate)
+        let amountRaw;
+        if (!sellAll) {
+          const { raw } = await turboTokenInfo(p.token.address);
+          amountRaw = ((raw * BigInt(Math.round(fraction * 1e6))) / 1000000n).toString();
+          if (amountRaw === '0') throw new Error('NO_BALANCE');
+        }
+        const { hash } = await turboSellToken(p.token.address, { slippageBps, preferredDex: p.dex, amountRaw });
         setLastTxHash(hash);
-        showToast('sell_sent');
-        setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+        showToast('sell_sent', sellAll ? 'Position closed' : `Sold ${Math.round(fraction * 100)}%`);
+        if (sellAll) setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+        else reducePosition(p.id, fraction);
         refreshBalance();
       } catch (err) {
         const m = err.message;
         if (m === 'NO_BALANCE') showToast('sell_nobal');
         else if (m === 'NO_LIQUIDITY') showToast('no_liq');
+        else if (m === 'TX_FAILED' || m === 'TX_TIMEOUT') showToast('tx_failed');
         else showToast('sell_fail');
         throw err;
       }
       return;
     }
+
+    // legacy path: tokens live in the connected external wallet
     let from = walletAddress;
     if (!from) { const ok = await doConnect(); if (!ok) throw new Error('NO_WALLET'); from = await getConnectedAccount(); if (!from) throw new Error('NO_WALLET'); }
     showToast('sell_pending');
     try {
-      const { hash } = await sellToken(from, p.token.address, { slippageBps, preferredDex: p.dex, amountRaw: p.tokensRaw });
+      let amountRaw;
+      if (!sellAll) {
+        const { raw } = await getTokenInfo(from, p.token.address);
+        amountRaw = ((BigInt(raw) * BigInt(Math.round(fraction * 1e6))) / 1000000n).toString();
+      }
+      const { hash } = await sellToken(from, p.token.address, { slippageBps, preferredDex: p.dex, amountRaw });
       setLastTxHash(hash);
-      showToast('sell_sent');
-      setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+      showToast('sell_sent', sellAll ? 'Position closed' : `Sold ${Math.round(fraction * 100)}%`);
+      if (sellAll) setPortfolio((prev) => prev.filter((x) => x.id !== p.id));
+      else reducePosition(p.id, fraction);
       refreshBalance(from);
     } catch (err) {
       if (err.code === 4001) { showToast('sell_cancel'); throw err; }
@@ -556,7 +596,7 @@ export default function App() {
       else showToast('sell_fail');
       throw err;
     }
-  }, [walletAddress, slippageBps, doConnect, refreshBalance]);
+  }, [walletAddress, slippageBps, doConnect, refreshBalance, reducePosition]);
 
   // ── "Whale exited → close my copy": a live SELL from the whale you copied,
   // in the token you copied, auto-closes the position (per-position opt-in). ──
