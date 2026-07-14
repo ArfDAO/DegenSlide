@@ -35,13 +35,16 @@ export function isWalletAvailable() {
 }
 
 // ── raw JSON-RPC to Solana mainnet (exported for the Turbo trading wallet) ──
+// A hard timeout keeps a hung / rate-limited public RPC from freezing the app.
 let rpcId = 0;
 export async function rpc(method, params = []) {
   const res = await fetch(RPC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }),
+    signal: AbortSignal.timeout(15000),
   });
+  if (!res.ok) throw new Error(res.status === 403 ? 'RPC_FORBIDDEN' : `RPC_HTTP_${res.status}`);
   const j = await res.json();
   if (j.error) throw new Error(j.error.message || 'RPC_ERROR');
   return j.result;

@@ -33,7 +33,12 @@ export const CHAINS = {
     explorer: 'https://solscan.io', txPath: 'tx', addrPath: 'account',
     indexerHttp: env2.VITE_SOL_INDEXER_HTTP || 'https://deepswap-solana-bot.onrender.com',
     indexerWs: env2.VITE_SOL_INDEXER_WS || 'wss://deepswap-solana-bot.onrender.com',
-    rpcUrl: env2.VITE_SOL_RPC || 'https://api.mainnet-beta.solana.com',
+    // Browser-facing RPC: the official api.mainnet-beta.solana.com returns 403
+    // "Access forbidden" to browser origins for every method, which silently
+    // breaks Turbo balance checks, sends and confirmations. PublicNode is
+    // CORS-friendly and allows sendTransaction. Override with VITE_SOL_RPC for
+    // a dedicated (Helius/QuickNode) endpoint in production.
+    rpcUrl: env2.VITE_SOL_RPC || 'https://solana-rpc.publicnode.com',
     jupiterApi: 'https://lite-api.jup.ag/swap/v1', // live Jupiter aggregator (quote + swap tx)
     // Solana tiers — exclusive ranges calibrated to the REAL size distribution
     // of tracked-whale swaps (most fall $150–1000); 'all' floor mirrors the
