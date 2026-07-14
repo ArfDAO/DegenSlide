@@ -7,7 +7,7 @@ import CuratedWhales from './components/CuratedWhales';
 import ProfilePage from './components/ProfilePage';
 import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, getTurboAddress, getTurboBalance } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
-import { X, Zap, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Heart } from 'lucide-react';
+import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Heart } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
 import {
   fetchWhaleDeck,
@@ -616,10 +616,14 @@ export default function App() {
   const handleSwipeLeft = useCallback((t) => { removeCard(t); showToast('pass'); }, [removeCard]);
   // No optimistic "sent" toast — sendCopy reports real wallet/chain status only.
   const handleSwipeRight = useCallback((t) => { removeCard(t); sendCopy(t, tradeAmount); }, [removeCard, sendCopy, tradeAmount]);
+  // Swipe up = SAVE the whale to the watchlist (favorite), then advance.
   const handleSwipeUp = useCallback((t) => {
-    removeCard(t); setShowApe(true); setTimeout(() => setShowApe(false), 1200);
-    sendCopy(t, tradeAmount * 5, 'APE');
-  }, [removeCard, sendCopy, tradeAmount]);
+    const wasSaved = favorites.some((f) => (f.address || '').toLowerCase() === (t.address || '').toLowerCase());
+    if (!wasSaved) toggleFavorite({ address: t.address, tokenSymbol: t.tokenSymbol });
+    removeCard(t);
+    setShowApe(true); setTimeout(() => setShowApe(false), 900);
+    showToast('copy', wasSaved ? 'Already in watchlist' : 'Saved to watchlist');
+  }, [removeCard, favorites, toggleFavorite]);
 
   // Self-heal a stale tier choice: if the saved tier filters out EVERY card
   // while 'All' has cards, fall back to 'All' after the initial load — the
@@ -652,7 +656,7 @@ export default function App() {
     <div className="app-container">
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="animate-rocket flex flex-col items-center gap-3"><Zap size={72} strokeWidth={1.5} style={{ color: 'var(--color-tag-violet)' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--color-tag-violet)' }}>All In</span></div>
+          <div className="animate-rocket flex flex-col items-center gap-3"><Heart size={72} strokeWidth={1.5} fill="#ff5d7d" style={{ color: '#ff5d7d' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: '#ff5d7d' }}>Saved</span></div>
         </div>
       )}
 

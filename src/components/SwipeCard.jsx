@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
 import TinderCard from 'react-tinder-card';
-import { Activity, Droplet, BarChart3, X, ChevronUp, ExternalLink, Heart } from 'lucide-react';
+import { X, ChevronUp, ExternalLink } from 'lucide-react';
 import { fetchTokenPairData } from '../services/dexscreenerApi';
 import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, DEXSCREENER_CHAIN, ACTIVE } from '../config/chain.js';
 
@@ -144,6 +144,21 @@ const SwipeCard = forwardRef(function SwipeCard(
   const activePointerId = useRef(null);
   const firedSwipe = useRef(null);
   const isDragging = useRef(false);
+  const backTap = useRef(null); // tap-vs-scroll detection on the flipped (detail) side
+
+  // Back face: a tap (no scroll) flips to the front; a drag scrolls the details.
+  // Works on touch, where a plain onClick is unreliable under the card's gestures.
+  const backDown = (e) => { backTap.current = { x: e.clientX, y: e.clientY, moved: false }; };
+  const backMove = (e) => {
+    const s = backTap.current;
+    if (s && (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8)) s.moved = true;
+  };
+  const backUp = (e) => {
+    const s = backTap.current; backTap.current = null;
+    if (!s || s.moved) return;                       // it was a scroll, not a tap
+    if (e.target.closest?.('a, button')) return;     // let links / the X button act
+    setShowDeepDive(false);
+  };
 
   // Fetch REAL token market data for the visible cards only.
   useEffect(() => {
@@ -255,7 +270,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     const cfg = {
       right: { text: 'COPY', color: 'var(--up)', rot: -16 },
       left:  { text: 'SKIP', color: 'var(--down)', rot: 16 },
-      up:    { text: 'ALL IN', color: '#f5b544', rot: 0 },
+      up:    { text: 'SAVE', color: '#ff5d7d', rot: 0 },
     }[dir];
     const pos = dir === 'right' ? { top: 56, left: 24 } : dir === 'left' ? { top: 56, right: 24 } : { top: 56, left: '50%', transform: 'translateX(-50%)' };
     return (
@@ -269,7 +284,7 @@ const SwipeCard = forwardRef(function SwipeCard(
 
   return (
     <TinderCard ref={ref} className="absolute left-0 top-0 h-full w-full"
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: showDeepDive ? 'pan-y' : 'none' }}
       preventSwipe={isTopCard && !showDeepDive ? ['down'] : ['left','right','up','down']}
       swipeRequirementType="position" swipeThreshold={80} onSwipe={handleSwipe}>
 
@@ -278,7 +293,8 @@ const SwipeCard = forwardRef(function SwipeCard(
         onClick={handleCardClick}
         style={{
           zIndex: 30, borderRadius: 24,
-          pointerEvents: isTopCard ? 'auto' : 'none', userSelect: 'none', touchAction: 'none',
+          // when flipped, allow vertical touch-scrolling of the detail side
+          pointerEvents: isTopCard ? 'auto' : 'none', userSelect: 'none', touchAction: showDeepDive ? 'pan-y' : 'none',
           cursor: isTopCard && !showDeepDive ? 'grab' : 'default',
           transform: showDeepDive ? 'none' : dragTransform,
           transition: firedSwipe.current ? 'transform 0.2s ease-out' : startPt.current || showDeepDive ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
@@ -362,21 +378,6 @@ const SwipeCard = forwardRef(function SwipeCard(
               <WhaleScore score={trader.traderScore} />
             </div>
           </div>
-          <button
-            type="button"
-            data-no-drag="true"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(trader); }}
-            title={isFavorite ? 'Remove from favorites' : 'Save whale'}
-            style={{
-              width: 34, height: 34, borderRadius: 17, flexShrink: 0,
-              border: `1px solid ${isFavorite ? 'rgba(255,93,125,0.4)' : 'var(--line-1)'}`,
-              background: isFavorite ? 'var(--down-soft)' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
-            <Heart size={15} color={isFavorite ? 'var(--down)' : 'var(--text-3)'} fill={isFavorite ? '#ff5d7d' : 'none'} />
-          </button>
         </div>
 
         {/* ══ TOKEN HERO — the centerpiece ══ */}
@@ -425,40 +426,22 @@ const SwipeCard = forwardRef(function SwipeCard(
           )}
         </div>
 
-        {/* ══ STAT WELLS ══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 'min(10px, 1.5vh) 18px 0' }}>
-          {[
-            { icon: <Droplet size={12} />, label: 'Liquidity', value: fmtUsd(pair?.liquidity) },
-            { icon: <Activity size={12} />, label: 'FDV', value: fmtUsd(pair?.fdv) },
-            { icon: <BarChart3 size={12} />, label: 'Vol 24h', value: fmtUsd(pair?.volume?.h24) },
-            { icon: <Activity size={12} />, label: 'B/S 24h', value: pair ? `${pair.txns?.h24Buys ?? 0}/${pair.txns?.h24Sells ?? 0}` : '—' },
-          ].map((it, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, border: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.02)', padding: '8px 11px' }}>
-              <div style={{ color: 'var(--text-3)', display: 'flex' }}>{it.icon}</div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{it.label}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>{it.value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ══ AFFORDANCE ══ */}
-        <div style={{ marginTop: 'auto', padding: 'min(12px, 1.5vh) 0 min(14px, 2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        {/* ══ AFFORDANCE — full market stats live on the flip side (scrollable) ══ */}
+        <div style={{ marginTop: 'auto', padding: 'min(14px, 2vh) 0 min(16px, 2.2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <ChevronUp size={13} color="var(--text-3)" className="animate-bounce" />
-          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap to flip</span>
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap for full stats</span>
         </div>
         </div>
 
         {/* ══ BACK FACE — deep dive, real data only. Tap anywhere (except a
             link) to flip back to the front. ══ */}
         <div
-          onClick={(e) => { e.stopPropagation(); if (e.target.closest('a, button')) return; setShowDeepDive(false); }}
+          onPointerDown={backDown} onPointerMove={backMove} onPointerUp={backUp}
           style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            borderRadius: 24, overflow: 'hidden',
+            borderRadius: 24, overflow: 'hidden', touchAction: 'pan-y',
             border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
             background: 'var(--color-paper-white)',
           }}
@@ -470,7 +453,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                 </button>
               </div>
 
-              <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+              <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', padding: '20px' }}>
                 {/* real price changes */}
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Price change (DexScreener)</div>
                 <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 10, padding: '16px', marginBottom: 20 }}>
