@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
 import TinderCard from 'react-tinder-card';
-import { X, ChevronUp, ExternalLink } from 'lucide-react';
+import { Activity, Droplet, BarChart3, X, ChevronUp, ExternalLink } from 'lucide-react';
 import { fetchTokenPairData } from '../services/dexscreenerApi';
 import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, DEXSCREENER_CHAIN, ACTIVE } from '../config/chain.js';
 
@@ -426,10 +426,28 @@ const SwipeCard = forwardRef(function SwipeCard(
           )}
         </div>
 
-        {/* ══ AFFORDANCE — full market stats live on the flip side (scrollable) ══ */}
-        <div style={{ marginTop: 'auto', padding: 'min(14px, 2vh) 0 min(16px, 2.2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        {/* ══ STAT WELLS ══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 'min(10px, 1.4vh) 18px 0' }}>
+          {[
+            { icon: <Droplet size={12} />, label: 'Liquidity', value: fmtUsd(pair?.liquidity) },
+            { icon: <Activity size={12} />, label: 'FDV', value: fmtUsd(pair?.fdv) },
+            { icon: <BarChart3 size={12} />, label: 'Vol 24h', value: fmtUsd(pair?.volume?.h24) },
+            { icon: <Activity size={12} />, label: 'B/S 24h', value: pair ? `${pair.txns?.h24Buys ?? 0}/${pair.txns?.h24Sells ?? 0}` : '—' },
+          ].map((it, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, border: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.02)', padding: 'min(8px, 1.1vh) 11px' }}>
+              <div style={{ color: 'var(--text-3)', display: 'flex' }}>{it.icon}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{it.label}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>{it.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ══ AFFORDANCE — even more detail (price changes, links) on the flip side ══ */}
+        <div style={{ marginTop: 'auto', padding: 'min(12px, 1.5vh) 0 min(14px, 2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <ChevronUp size={13} color="var(--text-3)" className="animate-bounce" />
-          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap for full stats</span>
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap for details</span>
         </div>
         </div>
 
