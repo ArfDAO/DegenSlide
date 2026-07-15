@@ -1,0 +1,24 @@
+name: Keep indexers warm
+
+# Render's free tier sleeps a service after ~15 min idle; the first request
+# after that takes 30–60s and the deck shows "feed offline". Pinging /health
+# every ~10 min keeps both chain indexers awake so users always land on live
+# data. Harmless if you move to a paid/always-on tier — just delete this file.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every 10 minutes (GitHub may delay a few min)
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Monad + Solana indexers
+        run: |
+          for url in \
+            "https://deepswap-monad-bot2.onrender.com/health" \
+            "https://deepswap-solana-bot.onrender.com/health"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$url" || echo "000")
+            echo "$url -> $code"
+          done

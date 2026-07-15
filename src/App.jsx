@@ -215,6 +215,9 @@ function inTier(usd, id) {
 
 export default function App() {
   const clock = useClock();
+  // One-time risk disclaimer — a public tool that executes real trades with a
+  // local hot wallet must gate first use behind an explicit acknowledgement.
+  const [disclaimerOk, setDisclaimerOk] = useState(() => loadLS('degen_disclaimer_v1', false));
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(() => loadLS(WALLET_LS, null));
   const [isConnecting, setIsConnecting] = useState(false);
@@ -698,6 +701,33 @@ export default function App() {
     (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) &&
     inTier(usdOf(c), deckTier)
   );
+
+  if (!disclaimerOk) {
+    return (
+      <div className="app-container">
+        <div style={{ position: 'absolute', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22 }}>
+          <div style={{ maxWidth: 440, width: '100%', background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 24, padding: 24, boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div className="brand-mark" style={{ width: 34, height: 34 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L20 8.5V15.5L12 22L4 15.5V8.5L12 2Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" fill="rgba(255,255,255,0.14)"/><path d="M8.5 12.5L11 15L15.5 9.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-1)', fontFamily: 'var(--font-display)' }}>Before you start</span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>DegenSlide is an experimental tool for copying on-chain whale trades. It is <b>not financial advice</b> — every trade is your own decision and responsibility.</li>
+              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Meme-token trading is extremely high risk. You can lose <b>all</b> of what you deposit. Only trade funds you can afford to lose.</li>
+              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Turbo trading uses a wallet stored <b>in this browser</b>. Back up its key and keep only active funds in it — clearing browser data or a compromised device means lost funds.</li>
+              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Provided “as is”, no warranty. Nothing here is a solicitation to trade where restricted — using it is your responsibility.</li>
+            </ul>
+            <button onClick={() => { setDisclaimerOk(true); saveLS('degen_disclaimer_v1', true); }}
+              style={{ width: '100%', marginTop: 18, padding: '13px 0', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 800, cursor: 'pointer', background: 'var(--color-tidewater-navy)', color: '#fff' }}>
+              I understand &amp; accept the risks
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">

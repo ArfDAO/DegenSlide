@@ -24,3 +24,5 @@ Thumbs.db
 # SQLite transient journals (the checkpointed .db files are the real data)
 *.db-shm
 *.db-wal
+# stale local DB backups — never commit these
+*.bak
