@@ -500,9 +500,10 @@ const SwipeCard = forwardRef(function SwipeCard(
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <a href={EXPLORER_TX_URL(trader.txHash)} target="_blank" rel="noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 600 }}>
-                    View whale's tx on MonadScan <ExternalLink size={14} />
+                    View whale's tx on {ACTIVE.kind === 'evm' ? 'MonadScan' : 'Solscan'} <ExternalLink size={14} />
                   </a>
-                  <a href={pair?.dexUrl || `https://dexscreener.com/${DEXSCREENER_CHAIN}/${trader.tokenAddress}`} target="_blank" rel="noreferrer"
+                  {/* dexUrl comes from an external API — only trust an https link (no javascript:/data: XSS) */}
+                  <a href={(typeof pair?.dexUrl === 'string' && /^https:\/\//i.test(pair.dexUrl)) ? pair.dexUrl : `https://dexscreener.com/${DEXSCREENER_CHAIN}/${trader.tokenAddress}`} target="_blank" rel="noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 10, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 600 }}>
                     ${trader.tokenSymbol} on DexScreener <ExternalLink size={14} />
                   </a>
