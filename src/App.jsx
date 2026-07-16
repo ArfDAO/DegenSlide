@@ -415,18 +415,39 @@ export default function App() {
 
   // ── Load real whale deck + MON price + leaderboard; open live feed ──
   useEffect(() => {
-    let alive = true;
+    const state = { alive: true };
     setIsLoading(true);
-    indexerHealth().then((h) => { if (alive) setIndexerUp(!!h); });
-    Promise.all([fetchWhaleDeck(40), fetchMONPrice(), fetchWhaleLeaderboard()])
-      .then(([deck, mon, lb]) => {
-        if (!alive) return;
-        setCards(deck);
+    indexerHealth().then((h) => { if (state.alive) setIndexerUp(!!h); });
+
+    // The indexers run on Render's free tier, which sleeps after inactivity — a
+    // cold start can take 30-60s. A single deck fetch would time out (7s) and
+    // return empty, so users had to reload 2-3 times until the server woke.
+    // Instead we retry with backoff so one page load waits the server out; the
+    // skeleton keeps showing until cards arrive (or we exhaust the attempts).
+    const loadDeckResilient = async () => {
+      const delays = [0, 2500, 4000, 6000, 8000, 10000, 12000];
+      for (let i = 0; i < delays.length; i++) {
+        if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
+        if (!state.alive) return;
+        const deck = await fetchWhaleDeck(40);
+        if (!state.alive) return;
+        if (deck.length > 0) {
+          setCards(deck);
+          setIndexerUp(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+      if (state.alive) setIsLoading(false); // server still cold — show empty state
+    };
+
+    loadDeckResilient();
+    Promise.all([fetchMONPrice(), fetchWhaleLeaderboard()])
+      .then(([mon, lb]) => {
+        if (!state.alive) return;
         if (mon) setMonPriceUsd(mon.priceUsd);
         setLeaderboard(lb);
-        setIndexerUp(deck.length > 0 || indexerUp);
-      })
-      .finally(() => { if (alive) setIsLoading(false); });
+      });
 
     const closeFeed = openWhaleFeed((card) => {
       // Whale SELLs never become deck cards (you can't "copy" an exit you don't
@@ -438,10 +459,10 @@ export default function App() {
       maybeNotifyWhale(card); // opt-in browser alert for the biggest whale buys
     });
 
-    const lbTimer = setInterval(() => fetchWhaleLeaderboard().then((lb) => { if (alive && lb.length) setLeaderboard(lb); }), 20000);
-    const monTimer = setInterval(() => fetchMONPrice().then((m) => { if (alive && m) setMonPriceUsd(m.priceUsd); }), 30000);
+    const lbTimer = setInterval(() => fetchWhaleLeaderboard().then((lb) => { if (state.alive && lb.length) setLeaderboard(lb); }), 20000);
+    const monTimer = setInterval(() => fetchMONPrice().then((m) => { if (state.alive && m) setMonPriceUsd(m.priceUsd); }), 30000);
 
-    return () => { alive = false; closeFeed(); clearInterval(lbTimer); clearInterval(monTimer); };
+    return () => { state.alive = false; closeFeed(); clearInterval(lbTimer); clearInterval(monTimer); };
   }, []);
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2800); return () => clearTimeout(t); }, [toast]);
