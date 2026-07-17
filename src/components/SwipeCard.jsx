@@ -160,9 +160,10 @@ const SwipeCard = forwardRef(function SwipeCard(
   const activePointerId = useRef(null);
   const firedSwipe = useRef(null);
   const isDragging = useRef(false);
-  const backTap = useRef(null); // tap-vs-scroll detection on the flipped (detail) side
   const backScrollRef = useRef(null);
   const dossierTap = useRef(null); // tap detection for the whale-identity → dossier
+  const flipTap = useRef(null);    // article-level tap detection for flip-back (3D hit-test safe)
+  const suppressClick = useRef(false); // swallow the click that trails an unflip tap
 
   // react-tinder-card attaches NATIVE touch listeners on the card root and
   // preventDefaults touchmove, which killed scrolling inside the flipped
@@ -180,17 +181,9 @@ const SwipeCard = forwardRef(function SwipeCard(
 
   // Back face: a tap (no scroll) flips to the front; a drag scrolls the details.
   // Works on touch, where a plain onClick is unreliable under the card's gestures.
-  const backDown = (e) => { backTap.current = { x: e.clientX, y: e.clientY, moved: false }; };
-  const backMove = (e) => {
-    const s = backTap.current;
-    if (s && (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8)) s.moved = true;
-  };
-  const backUp = (e) => {
-    const s = backTap.current; backTap.current = null;
-    if (!s || s.moved) return;                       // it was a scroll, not a tap
-    if (e.target.closest?.('a, button')) return;     // let links / the X button act
-    setShowDeepDive(false);
-  };
+  // (tap-to-flip-back now lives in trackStart/trackMove/trackEnd at the article
+  // level — Chrome's preserve-3d hit-testing made handlers on the rotated back
+  // face itself unreliable)
 
   // Desktop keyboard: App dispatches 'deck:flip' (Space/Enter) — only the top
   // card responds, toggling the same 3D flip a tap performs.
@@ -227,7 +220,15 @@ const SwipeCard = forwardRef(function SwipeCard(
     setTimeout(() => ref?.current?.swipe?.(dir), 0);
   };
   const trackStart = (e) => {
-    if (!isTopCard || showDeepDive) return;
+    if (!isTopCard) return;
+    if (showDeepDive) {
+      // Flipped: Chrome's preserve-3d hit-testing is unreliable for the
+      // rotated back face's own handlers, so the tap-to-unflip is detected
+      // HERE at the article level, where events always arrive. No capture —
+      // scrolling and links inside the details must keep working.
+      flipTap.current = { x: e.clientX, y: e.clientY, moved: false };
+      return;
+    }
     // Don't hijack pointer capture for taps on interactive controls (e.g. the
     // heart button) — capturing here would retarget their click to the card.
     if (e.target.closest?.('[data-no-drag]')) return;
@@ -237,7 +238,12 @@ const SwipeCard = forwardRef(function SwipeCard(
     isDragging.current = false;
   };
   const trackMove = (e) => {
-    if (!isTopCard || !startPt.current || activePointerId.current !== e.pointerId || showDeepDive) return;
+    if (showDeepDive) {
+      const s = flipTap.current;
+      if (s && (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8)) s.moved = true;
+      return;
+    }
+    if (!isTopCard || !startPt.current || activePointerId.current !== e.pointerId) return;
     const dx = e.clientX - startPt.current.x;
     const dy = e.clientY - startPt.current.y;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) isDragging.current = true;
@@ -252,6 +258,17 @@ const SwipeCard = forwardRef(function SwipeCard(
     } else setSwipeDir(null);
   };
   const trackEnd = (e) => {
+    if (showDeepDive) {
+      // A clean tap (no drag, not on a link/button, not a cancel) flips back.
+      const s = flipTap.current; flipTap.current = null;
+      if (!s || s.moved || e.type === 'pointercancel') return;
+      if (e.target.closest?.('a, button')) return;
+      setShowDeepDive(false);
+      // the browser fires a click right after this pointerup — without this
+      // guard handleCardClick sees the already-unflipped state and re-flips
+      suppressClick.current = true;
+      return;
+    }
     if (activePointerId.current !== null && e.pointerId !== activePointerId.current) return;
     // A press with no drag and no swipe = a TAP → flip the card. Detecting it
     // here (on pointerup) is reliable on touch, where the synthetic click that
@@ -266,6 +283,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     // Desktop mouse fallback — trackEnd already handles touch taps.
     // Taps on interactive elements (whale identity → dossier, links) must
     // not ALSO flip the card underneath.
+    if (suppressClick.current) { suppressClick.current = false; return; } // click trailing an unflip tap
     if (e?.target?.closest?.('[data-no-drag], a, button')) return;
     if (!isTopCard || isDragging.current || showDeepDive) return;
     setShowDeepDive(true);
@@ -391,6 +409,10 @@ const SwipeCard = forwardRef(function SwipeCard(
           borderRadius: 24, overflow: 'hidden',
           border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
           background: 'var(--color-paper-white)',
+          // While flipped, the rotated-away front face can still win pointer
+          // hit-testing (browser backface quirk) and its handlers swallow the
+          // back face's tap-to-unflip — take it out of hit-testing entirely.
+          pointerEvents: showDeepDive ? 'none' : 'auto',
         }}>
         {!showDeepDive && <Stamp dir="right" op={stampOpacity.right} />}
         {!showDeepDive && <Stamp dir="left" op={stampOpacity.left} />}
@@ -583,7 +605,6 @@ const SwipeCard = forwardRef(function SwipeCard(
         {/* ══ BACK FACE — deep dive, real data only. Tap anywhere (except a
             link) to flip back to the front. ══ */}
         <div
-          onPointerDown={backDown} onPointerMove={backMove} onPointerUp={backUp}
           style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
@@ -591,6 +612,8 @@ const SwipeCard = forwardRef(function SwipeCard(
             borderRadius: 24, overflow: 'hidden', touchAction: 'pan-y',
             border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
             background: 'var(--color-paper-white)',
+            // mirror of the front-face guard: only the visible face is hit-testable
+            pointerEvents: showDeepDive ? 'auto' : 'none',
           }}
         >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--color-frost-shadow)' }}>
