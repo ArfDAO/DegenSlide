@@ -2,6 +2,7 @@ import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
 import TinderCard from 'react-tinder-card';
 import { Activity, Droplet, BarChart3, X, ChevronUp, ExternalLink } from 'lucide-react';
 import { fetchTokenPairData } from '../services/dexscreenerApi';
+import { degenScore, scoreTier } from '../services/degenScore';
 import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, DEXSCREENER_CHAIN, ACTIVE } from '../config/chain.js';
 
 /* ───────── helpers (all display-only, derived from real address/values) ───────── */
@@ -255,6 +256,16 @@ const SwipeCard = forwardRef(function SwipeCard(
   const tradeUsd = trader.amountUsd != null ? trader.amountUsd : (monPriceUsd ? trader.amountMon * monPriceUsd : null);
   const badge = sizeBadge(tradeUsd);
   const ch24 = pair?.priceChange?.h24 ?? null;
+  // Degen Score — live market depth + whale quality in one glanceable number.
+  const dScore = degenScore({
+    liquidityUsd: pair?.liquidity ?? trader.liquidityUsd ?? null,
+    fdv: pair?.fdv ?? null,
+    vol24: pair?.volume?.h24 ?? null,
+    buys: pair?.txns?.h24Buys ?? null,
+    sells: pair?.txns?.h24Sells ?? null,
+    whaleWinRate: trader.traderScore?.winRate ?? null,
+  });
+  const dTier = dScore != null ? scoreTier(dScore) : null;
 
   /* ── BACK CARDS ── */
   if (stackIndex > 0) {
@@ -420,16 +431,28 @@ const SwipeCard = forwardRef(function SwipeCard(
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace' }}>{fmtUsd(pair.priceUsd)}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 1 }}>{pair.baseToken?.symbol || trader.tokenSymbol}/{pair.quoteToken?.symbol || 'USD'} · live</div>
               </div>
-              {ch24 != null && (
-                <span style={{
-                  marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 100,
-                  background: ch24 >= 0 ? 'var(--up-soft)' : 'var(--down-soft)',
-                  border: `1px solid ${ch24 >= 0 ? 'rgba(47,230,168,0.35)' : 'rgba(255,93,125,0.35)'}`,
-                  fontSize: 12, fontWeight: 800, color: ch24 >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: '"JetBrains Mono", monospace',
-                }}>
-                  {ch24 >= 0 ? '▲' : '▼'} {fmtPct(ch24)}
-                </span>
-              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                {ch24 != null && (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 100,
+                    background: ch24 >= 0 ? 'var(--up-soft)' : 'var(--down-soft)',
+                    border: `1px solid ${ch24 >= 0 ? 'rgba(47,230,168,0.35)' : 'rgba(255,93,125,0.35)'}`,
+                    fontSize: 12, fontWeight: 800, color: ch24 >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: '"JetBrains Mono", monospace',
+                  }}>
+                    {ch24 >= 0 ? '▲' : '▼'} {fmtPct(ch24)}
+                  </span>
+                )}
+                {dTier && (
+                  <span title="Degen Score — live liquidity depth, FDV backing, volume, buy pressure & whale win rate"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 100,
+                      background: dTier.bg, border: `1px solid ${dTier.border}`,
+                      fontSize: 9.5, fontWeight: 800, color: dTier.color, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.06em',
+                    }}>
+                    {dScore} · {dTier.label}
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
             <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textAlign: 'center', padding: '2px 0' }}>

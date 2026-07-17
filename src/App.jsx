@@ -38,6 +38,13 @@ const LASTTX_LS = LSK('lastTx', 'monad_lastTx');
 const BALHIST_LS = LSK('balHist', 'monad_balHist');
 const AMOUNT_LS = LSK('tradeAmount', 'monad_tradeAmount');
 const ACTIVITY_LS = LSK('activity', 'monad_activity');
+const AUTOCOPY_LS = LSK('autoCopy', 'monad_autoCopy');
+const AUTOCOPY_SPEND_LS = LSK('autoCopySpend', 'monad_autoCopySpend');
+
+// Auto-Copy defaults are conservative and chain-native (MON vs SOL scale).
+const AUTOCOPY_DEFAULTS = ACTIVE.id === 'monad'
+  ? { amount: 1, dailyCap: 10, amountPresets: [0.5, 1, 2, 5], capPresets: [5, 10, 25, 50] }
+  : { amount: 0.1, dailyCap: 1, amountPresets: [0.05, 0.1, 0.25, 0.5], capPresets: [0.5, 1, 2.5, 5] };
 
 /* ── Clock ── */
 function useClock() {
@@ -271,6 +278,34 @@ export default function App() {
   const WATCH_KEY = ACTIVE.id === 'monad' ? 'monad_watchlist' : `${ACTIVE.id}_watchlist`;
   const [favorites, setFavorites] = useState(() => loadLS(FAV_KEY, []));
   const [watchlist, setWatchlist] = useState(() => loadLS(WATCH_KEY, []));
+
+  // ── Auto-Copy (follow mode): whales the user marked AUTO are copied hands-free
+  // when their BUY lands on the live feed — bounded by amount + daily cap. ──
+  const [autoCopy, setAutoCopy] = useState(() => loadLS(AUTOCOPY_LS, { enabled: false, amount: AUTOCOPY_DEFAULTS.amount, dailyCap: AUTOCOPY_DEFAULTS.dailyCap, whales: [] }));
+  const updateAutoCopy = useCallback((patch) => {
+    setAutoCopy((prev) => { const next = { ...prev, ...patch }; saveLS(AUTOCOPY_LS, next); return next; });
+  }, []);
+  const toggleAutoWhale = useCallback((addr) => {
+    const norm = ACTIVE.kind === 'evm' ? (addr || '').toLowerCase() : (addr || '');
+    setAutoCopy((prev) => {
+      const has = prev.whales.includes(norm);
+      const next = { ...prev, whales: has ? prev.whales.filter((w) => w !== norm) : [...prev.whales, norm] };
+      saveLS(AUTOCOPY_LS, next);
+      return next;
+    });
+  }, []);
+  // Daily spend ledger (attempted-native per calendar day, chain-local)
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+  const autoSpentToday = () => {
+    const s = loadLS(AUTOCOPY_SPEND_LS, null);
+    return s && s.date === todayKey() ? s.spent : 0;
+  };
+  const addAutoSpend = (amt) => {
+    const cur = autoSpentToday();
+    saveLS(AUTOCOPY_SPEND_LS, { date: todayKey(), spent: cur + amt });
+  };
+  // re-render tick so the settings UI shows fresh "spent today" numbers
+  const [autoSpendTick, setAutoSpendTick] = useState(0);
   // Verified roster for this chain (Solana: fetched live from the indexer)
   const [curatedWhalesList, setCuratedWhalesList] = useState(STATIC_CURATED);
   const curatedSet = curatedWhalesList.reduce((s, w) => (s.add((w.address || '').toLowerCase()), s), new Set());
@@ -312,6 +347,11 @@ export default function App() {
   // Cards the user already swiped/dismissed — so the live feed and the safety
   // poll never re-add a trade the user has already dealt with.
   const dismissedRef = useRef(new Set());
+  // Auto-Copy plumbing: executor lives in a ref (the feed effect runs once),
+  // recent whale+token pairs are deduped, and failures back the feature off.
+  const autoCopyRef = useRef(null);
+  const autoDedupeRef = useRef(new Map());   // `${whale}-${token}` → last copy ts
+  const autoBackoffRef = useRef(0);          // wallet-level cooldown after a failure
   const [leaderboard, setLeaderboard] = useState([]);
   const [lbMode, setLbMode] = useState('rankings');
   const [showTradeSettings, setShowTradeSettings] = useState(false);
@@ -469,6 +509,7 @@ export default function App() {
       // hold) — but they DO drive the per-position "sell when the whale sells"
       // automation below.
       if (card.side === 'SELL') { whaleExitRef.current?.(card); return; }
+      autoCopyRef.current?.(card); // hands-free copy for whales marked AUTO (guarded)
       if (!settingsRef.current.liveFeed) return; // live feed paused in settings
       if (dismissedRef.current.has(card.id)) return; // already swiped away
       setCards((prev) => (prev.find((c) => c.id === card.id) ? prev : [card, ...prev].slice(0, 60)));
@@ -488,6 +529,9 @@ export default function App() {
       setCards((prev) => {
         const known = new Set(prev.map((c) => c.id));
         const fresh = deck.filter((c) => !known.has(c.id) && !dismissedRef.current.has(c.id));
+        // trades the socket missed still auto-copy — the executor's own 90s
+        // freshness guard rejects anything that's actually old
+        for (const c of fresh) autoCopyRef.current?.(c);
         return fresh.length ? [...fresh, ...prev].slice(0, 60) : prev;
       });
     }, 15000);
@@ -587,7 +631,7 @@ export default function App() {
       return [entry, ...prev];
     });
     setFavorites((prev) => (prev.find((f) => f.address === trader.address) ? prev : [{ address: trader.address, tokenSymbol: trader.tokenSymbol }, ...prev]));
-    logActivity({ kind: 'BUY', symbol: trader.tokenSymbol, tokenAddress: trader.tokenAddress, amountNative: amountMon, usd: invested || null, hash, whale: trader.address || null });
+    logActivity({ kind: 'BUY', symbol: trader.tokenSymbol, tokenAddress: trader.tokenAddress, amountNative: amountMon, usd: invested || null, hash, whale: trader.address || null, auto: action === 'AUTO' ? 'FOLLOW' : null });
   }, [monPriceUsd, logActivity]);
 
   // ── Copy execution: TURBO 1-swipe — the swap is signed locally by the Turbo
@@ -596,33 +640,62 @@ export default function App() {
   const sendCopy = useCallback(async (trader, amountMon, action = 'COPY') => {
     // Safety net for any future chain without in-app execution
     if (!ACTIVE.copySupported) {
+      if (action === 'AUTO') return false; // background copies never open tabs
       if (trader?.tokenAddress) window.open(`https://jup.ag/swap/SOL-${trader.tokenAddress}`, '_blank');
       showToast('copy', 'Opened on Jupiter — in-app copy not live on this chain yet');
-      return;
+      return false;
     }
     // First swipe ever → Turbo setup lives on the Profile page; send them there.
     if (!hasTurboAgreement() || !turboWalletExists()) {
+      if (action === 'AUTO') return false;
       showToast('copy', '⚡ Set up Turbo in Profile to start 1-swipe trading');
       setActiveTab('profile');
-      return;
+      return false;
     }
     try {
-      showToast('copy_pending', `⚡ Copying $${trader.tokenSymbol}…`);
+      showToast('copy_pending', `${action === 'AUTO' ? '🤖 Auto-copying' : '⚡ Copying'} $${trader.tokenSymbol}…`);
       const res = await turboCopyBuy(trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, slippageBps });
       recordBuy(trader, amountMon, action, res);
       refreshBalance();
+      return true;
     } catch (err) {
       console.error('[Turbo] copy failed:', err.message, err);
       if (err.message === 'INSUFFICIENT_FUNDS') {
         showToast('no_funds', `Turbo balance low — deposit ${ACTIVE.nativeSymbol} in Profile`);
-        setActiveTab('profile');
+        if (action !== 'AUTO') setActiveTab('profile'); // never yank the user mid-flow for a background copy
       }
       else if (err.message === 'NO_LIQUIDITY') showToast('no_liq');
       else if (err.message === 'TX_FAILED' || err.message === 'TX_TIMEOUT') showToast('tx_failed');
       else if (err.message === 'SWAP_REVERT') showToast('tx_failed', 'Swap reverted — try higher slippage');
       else showToast('tx_error');
+      return false;
     }
   }, [monPriceUsd, slippageBps, recordBuy, refreshBalance]);
+
+  // ── Auto-Copy executor: called for every fresh BUY landing on the live feed.
+  // Every guard is a real-money guard — err on the side of NOT trading. ──
+  useEffect(() => {
+    autoCopyRef.current = async (card) => {
+      if (!autoCopy.enabled || !autoCopy.whales.length) return;
+      if (card.side !== 'BUY' || card.copyable === false || card.isStable) return;
+      const whale = ACTIVE.kind === 'evm' ? (card.address || '').toLowerCase() : (card.address || '');
+      if (!autoCopy.whales.includes(whale)) return;
+      const now = Date.now();
+      if (card.ts && now - card.ts > 90_000) return;            // stale (reconnect backfill) — never chase old entries
+      if (now < autoBackoffRef.current) return;                  // recent failure → cool off
+      if (!hasTurboAgreement() || !turboWalletExists()) return;  // Turbo not set up
+      const key = `${whale}-${(card.tokenAddress || '').toLowerCase()}`;
+      if ((autoDedupeRef.current.get(key) ?? 0) > now - 30 * 60_000) return; // same whale+token within 30 min
+      const amount = autoCopy.amount || AUTOCOPY_DEFAULTS.amount;
+      const cap = autoCopy.dailyCap || AUTOCOPY_DEFAULTS.dailyCap;
+      if (autoSpentToday() + amount > cap + 1e-9) return;        // daily budget spent
+      autoDedupeRef.current.set(key, now);
+      addAutoSpend(amount);                                      // count the attempt — caps must be unbeatable
+      setAutoSpendTick((t) => t + 1);
+      const ok = await sendCopy(card, amount, 'AUTO');
+      if (!ok) autoBackoffRef.current = Date.now() + 10 * 60_000; // don't burn the budget on a broken state
+    };
+  }, [autoCopy, sendCopy]);
 
   const handleDisconnect = useCallback(() => {
     disconnectWallet();
@@ -634,6 +707,8 @@ export default function App() {
     setPortfolio([]); setFavorites([]); setWatchlist([]); setLastTxHash(null); setBalanceHistory([]); setActivity([]);
     saveLS(PORTFOLIO_LS, []); saveLS(FAV_KEY, []);
     saveLS(WATCH_KEY, []); saveLS(LASTTX_LS, null); saveLS(BALHIST_LS, []); saveLS(ACTIVITY_LS, []);
+    // auto-copy targets point at the (now empty) watchlist — disarm the bot too
+    setAutoCopy((prev) => { const next = { ...prev, enabled: false, whales: [] }; saveLS(AUTOCOPY_LS, next); return next; });
   }, []);
 
   const removePosition = useCallback((id) => setPortfolio((prev) => prev.filter((p) => p.id !== id)), []);
@@ -1020,7 +1095,8 @@ export default function App() {
             ) : lbMode === 'curated' ? (
               <CuratedWhales whales={curatedWhalesList} favorites={favorites} onToggleFavorite={toggleFavorite} onSaveAll={saveAllCurated} monPriceUsd={monPriceUsd} />
             ) : (
-              <WatchlistPanel wallets={watchlistView} onAdd={addWatchWallet} onRemove={removeFromWatchlist} />
+              <WatchlistPanel wallets={watchlistView} onAdd={addWatchWallet} onRemove={removeFromWatchlist}
+                autoWhales={autoCopy.whales} onToggleAuto={toggleAutoWhale} autoEnabled={autoCopy.enabled} />
             )}
           </div>
         ) : activeTab === 'deck' ? (
@@ -1105,6 +1181,8 @@ export default function App() {
             onDisconnect={handleDisconnect} onClearData={handleClearData}
             externalWallet={walletAddress} onConnect={doConnect} showToast={showToast}
             onTurboChanged={() => { setTurboAddr(getTurboAddress()); refreshBalance(); }}
+            autoCopy={autoCopy} updateAutoCopy={updateAutoCopy} autoCopyDefaults={AUTOCOPY_DEFAULTS}
+            autoSpentToday={autoSpentToday()} autoSpendTick={autoSpendTick}
           />
         )}
       </main>

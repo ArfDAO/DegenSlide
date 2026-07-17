@@ -72,7 +72,7 @@ function TxRow({ tx }) {
   );
 }
 
-function WalletCard({ wallet, onRemove, defaultExpanded = false }) {
+function WalletCard({ wallet, onRemove, defaultExpanded = false, isAuto, onToggleAuto, autoEnabled }) {
   const [txns, setTxns] = useState([]);
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -169,6 +169,23 @@ function WalletCard({ wallet, onRemove, defaultExpanded = false }) {
         </div>
 
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {onToggleAuto && (
+            <button
+              onClick={e => { e.stopPropagation(); onToggleAuto(wallet); }}
+              title={isAuto ? 'Auto-copy ON — every BUY from this whale is copied automatically' : 'Turn on auto-copy for this whale'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+                padding: '4px 9px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+                border: `1px solid ${isAuto ? 'rgba(109,93,246,0.6)' : 'var(--color-silver-lining)'}`,
+                background: isAuto ? 'linear-gradient(135deg, #7c6bff 0%, #5946f0 100%)' : 'transparent',
+                color: isAuto ? '#fff' : 'var(--color-pebble)',
+                boxShadow: isAuto ? '0 2px 10px rgba(109,93,246,0.4)' : 'none',
+                opacity: isAuto && !autoEnabled ? 0.55 : 1,
+              }}
+            >
+              🤖 AUTO
+            </button>
+          )}
           <button
             onClick={e => { e.stopPropagation(); refresh(); }}
             title="Refresh"
@@ -220,9 +237,10 @@ function WalletCard({ wallet, onRemove, defaultExpanded = false }) {
   );
 }
 
-export default function WatchlistPanel({ wallets, onAdd, onRemove }) {
+export default function WatchlistPanel({ wallets, onAdd, onRemove, autoWhales = [], onToggleAuto, autoEnabled }) {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const isAuto = (addr) => autoWhales.includes(ACTIVE.kind === 'evm' ? (addr || '').toLowerCase() : addr);
 
   const handleAdd = () => {
     // EVM chains use 0x…40-hex; Solana uses base58 (32–44 chars)
@@ -291,9 +309,16 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove }) {
             </p>
           </div>
         ) : (
-          wallets.map(addr => (
-            <WalletCard key={addr} wallet={addr} onRemove={onRemove} />
-          ))
+          <>
+            {onToggleAuto && wallets.length > 0 && autoWhales.length > 0 && !autoEnabled && (
+              <div style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(245,181,68,0.4)', background: 'rgba(245,181,68,0.08)', fontSize: 10.5, fontWeight: 700, color: '#f5b544', lineHeight: 1.5 }}>
+                🤖 {autoWhales.length} whale{autoWhales.length === 1 ? '' : 's'} marked AUTO, but Auto-Copy is off — enable it in Profile to start hands-free copying.
+              </div>
+            )}
+            {wallets.map(addr => (
+              <WalletCard key={addr} wallet={addr} onRemove={onRemove} isAuto={isAuto(addr)} onToggleAuto={onToggleAuto} autoEnabled={autoEnabled} />
+            ))}
+          </>
         )}
       </div>
     </div>

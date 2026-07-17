@@ -101,7 +101,7 @@ function timeAgo(t) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-const AUTO_LABELS = { SL: 'stop-loss', TP: 'take-profit', WHALE_EXIT: 'whale exited' };
+const AUTO_LABELS = { SL: 'stop-loss', TP: 'take-profit', WHALE_EXIT: 'whale exited', FOLLOW: 'auto-copy' };
 
 function ActivityList({ activity }) {
   const [expanded, setExpanded] = useState(false);
@@ -115,7 +115,7 @@ function ActivityList({ activity }) {
           const buy = a.kind === 'BUY';
           const col = buy ? 'var(--up)' : 'var(--down)';
           const detail = buy
-            ? `${(a.amountNative ?? 0) > 0 ? `${a.amountNative} ${ACTIVE.nativeSymbol}` : ''}${a.usd ? ` · $${a.usd.toFixed(2)}` : ''}`
+            ? `${(a.amountNative ?? 0) > 0 ? `${a.amountNative} ${ACTIVE.nativeSymbol}` : ''}${a.usd ? ` · $${a.usd.toFixed(2)}` : ''}${a.auto ? ` · 🤖 ${AUTO_LABELS[a.auto] || 'auto'}` : ''}`
             : `${a.fraction != null && a.fraction < 0.999 ? `${Math.round(a.fraction * 100)}%` : 'all'}${a.auto ? ` · auto (${AUTO_LABELS[a.auto] || a.auto})` : ''}`;
           return (
             <div key={a.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid var(--color-silver-lining)' }}>
@@ -159,6 +159,7 @@ export default function ProfilePage({
   lastTxHash, indexerUp,
   onDisconnect, onClearData,
   externalWallet, onConnect, showToast, onTurboChanged, activity,
+  autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday,
 }) {
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -254,6 +255,49 @@ export default function ProfilePage({
             </div>
           ))}
         </div>
+
+        {/* ── Auto-Copy (follow mode) — hands-free copying with hard budgets ── */}
+        {autoCopy && (
+          <div style={{ ...CARD, padding: '14px 16px', border: autoCopy.enabled ? '1px solid rgba(109,93,246,0.45)' : CARD.border }}>
+            <SectionTitle icon={<span style={{ fontSize: 12 }}>🤖</span>} accent={autoCopy.enabled ? 'var(--color-deep-iris)' : undefined}>Auto-Copy</SectionTitle>
+            <SettingRow title="Follow whales hands-free" desc="Instantly copy every BUY from whales marked AUTO in your watchlist. Spends from the Turbo wallet — bounded by the budget below.">
+              <Toggle on={!!autoCopy.enabled} onChange={(v) => updateAutoCopy({ enabled: v })} />
+            </SettingRow>
+            {autoCopy.enabled && (
+              <div style={{ marginTop: 6 }}>
+                <p style={{ ...LABEL, marginBottom: 8 }}>Per copy ({ACTIVE.nativeSymbol})</p>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  {autoCopyDefaults.amountPresets.map((v) => {
+                    const active = (autoCopy.amount || autoCopyDefaults.amount) === v;
+                    return (
+                      <button key={v} onClick={() => updateAutoCopy({ amount: v })} style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ ...LABEL, marginBottom: 8 }}>Daily budget ({ACTIVE.nativeSymbol})</p>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {autoCopyDefaults.capPresets.map((v) => {
+                    const active = (autoCopy.dailyCap || autoCopyDefaults.dailyCap) === v;
+                    return (
+                      <button key={v} onClick={() => updateAutoCopy({ dailyCap: v })} style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                  <span style={{ color: 'var(--color-pebble)' }}>Today: {(autoSpentToday ?? 0).toFixed(2)} / {(autoCopy.dailyCap || autoCopyDefaults.dailyCap)} {ACTIVE.nativeSymbol}</span>
+                  <span style={{ color: 'var(--color-deep-iris)' }}>{autoCopy.whales.length} whale{autoCopy.whales.length === 1 ? '' : 's'} on AUTO</span>
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--color-pebble)', margin: '8px 0 0', fontWeight: 600, lineHeight: 1.5 }}>
+                  Mark whales AUTO in Top → Watchlist. Same token from the same whale is copied at most once per 30 min; the daily budget counts every attempt and resets at midnight.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Activity — the audit trail of every executed trade ── */}
         <ActivityList activity={activity} />

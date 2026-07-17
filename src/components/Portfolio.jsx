@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { X, PieChart } from 'lucide-react';
+import { X, PieChart, Share2 } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from '../services/dexscreenerApi';
+import { sharePnlCard } from '../services/pnlCard';
 import { ACTIVE } from '../config/chain.js';
 
 /* ── format helpers ── */
@@ -173,6 +174,18 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
           <div style={{ fontSize: 15, fontWeight: 700, color: col }}>{m.pnlUsd == null ? '—' : `${m.pnlUsd >= 0 ? '+' : ''}${fmtUsd(m.pnlUsd)}`}</div>
           <div style={{ fontSize: 11, fontWeight: 700, color: col }}>{fmtPct(m.pnlPct)}</div>
         </div>
+        {m.pnlPct != null && (
+          <button
+            onClick={() => sharePnlCard({
+              symbol: sym, pnlPct: m.pnlPct, pnlUsd: m.pnlUsd,
+              investedUsd: m.investedUsd, currentValue: m.currentValue,
+              heldDays: (Date.now() - (p.time || Date.now())) / 86400000,
+            }).catch(() => {})}
+            title="Share PnL card"
+            style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'var(--color-frost-shadow)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-pebble)' }}>
+            <Share2 size={14} />
+          </button>
+        )}
       </div>
 
       {/* pnl bar */}
