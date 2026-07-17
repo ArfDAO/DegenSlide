@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DegenSlide — Demo</title>
+<link rel="icon" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b0e16;
+    --surface: #131a2b;
+    --line: rgba(255,255,255,0.09);
+    --text-1: #f2f4fa;
+    --text-2: #8b93a7;
+    --up: #2fe6a8;
+    --down: #ff5d7d;
+    --iris: #7c6bff;
+    --iris-2: #5946f0;
+    --cyan: #22d3ee;
+    --gold: #f5b544;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #05070c; overflow: hidden; }
+  body { font-family: 'Space Grotesk', sans-serif; color: var(--text-1); }
+
+  /* ── 16:9 stage that letterboxes into any screen ── */
+  #stage-wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    position: relative; width: 1280px; height: 720px; overflow: hidden;
+    background:
+      radial-gradient(70% 55% at 15% -10%, rgba(124,107,255,0.16) 0%, transparent 55%),
+      radial-gradient(60% 50% at 90% 110%, rgba(34,211,238,0.10) 0%, transparent 55%),
+      linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+    transform-origin: center center;
+  }
+
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.7s ease; }
+  .scene.on { opacity: 1; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── Scene 1: logo intro ── */
+  .logo-mark { width: 110px; height: 110px; border-radius: 30px; display: grid; place-items: center; font-size: 58px;
+    background: linear-gradient(135deg, #7c6bff 0%, #5946f0 60%, #22d3ee 140%);
+    box-shadow: 0 18px 60px rgba(109,93,246,0.55), inset 0 2px 0 rgba(255,255,255,0.3);
+    transform: scale(0.6); opacity: 0; }
+  .on .logo-mark { animation: pop 0.9s cubic-bezier(0.34,1.56,0.64,1) 0.15s forwards; }
+  .brand-word { margin-top: 26px; font-size: 58px; font-weight: 700; letter-spacing: -0.03em; opacity: 0; transform: translateY(16px); }
+  .brand-word b { background: linear-gradient(90deg, #a89bff, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .on .brand-word { animation: rise 0.8s ease 0.55s forwards; }
+  .tagline { margin-top: 14px; font-size: 21px; color: var(--text-2); font-weight: 500; letter-spacing: 0.34em; text-transform: uppercase; opacity: 0; }
+  .on .tagline { animation: fade 0.9s ease 1.15s forwards; }
+  .tagline span { color: var(--up); }
+
+  /* ── Scene 2: the card + swipe ── */
+  .s2-caption, .s-caption { position: absolute; top: 64px; width: 100%; text-align: center; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; opacity: 0; transform: translateY(-10px); }
+  .on .s-caption { animation: rise 0.7s ease 0.2s forwards; }
+  .s-caption .sub { display: block; margin-top: 10px; font-size: 16px; color: var(--text-2); font-weight: 500; letter-spacing: 0.02em; }
+
+  .demo-card { position: relative; width: 340px; border-radius: 24px; overflow: hidden; margin-top: 70px;
+    background: #10131d; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    opacity: 0; transform: translateY(40px) rotate(0deg); }
+  .on .demo-card { animation: cardIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.5s forwards; }
+  .on .demo-card.fly { animation: cardSwipe 1.1s cubic-bezier(0.5,0,0.9,0.4) forwards; }
+  .dc-banner { display: flex; align-items: center; gap: 9px; padding: 12px 16px;
+    background: linear-gradient(100deg, rgba(47,230,168,0.16) 0%, transparent 70%); border-bottom: 1px solid var(--line); }
+  .dc-side { padding: 3px 11px; border-radius: 100px; background: var(--up); color: #04060c; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; box-shadow: 0 0 16px rgba(47,230,168,0.4); }
+  .dc-dex { font-size: 10px; color: var(--text-2); font-weight: 600; letter-spacing: 0.08em; }
+  .dc-fire { margin-left: auto; font-size: 9px; font-weight: 800; color: #ff9d4d; border: 1px solid rgba(255,157,77,0.45); background: rgba(255,157,77,0.1); border-radius: 100px; padding: 2px 8px; }
+  .dc-whale { display: flex; align-items: center; gap: 10px; padding: 12px 16px 0; }
+  .dc-ava { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, #2b3350, #171c2c); border: 1px solid var(--line); display: grid; place-items: center; font-size: 18px; }
+  .dc-alias { font-size: 15px; font-weight: 700; }
+  .dc-badges { font-size: 9px; color: var(--cyan); font-weight: 700; letter-spacing: 0.08em; margin-top: 2px; }
+  .dc-hero { text-align: center; padding: 16px 0 0; }
+  .dc-token { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .dc-age { font-size: 9px; color: var(--gold); border: 1px solid rgba(245,181,68,0.45); border-radius: 100px; padding: 2px 7px; vertical-align: middle; margin-left: 7px; }
+  .dc-usd { margin-top: 8px; font-size: 40px; font-weight: 800; color: var(--up); text-shadow: 0 0 34px rgba(47,230,168,0.4); }
+  .dc-since { margin-top: 6px; font-size: 10.5px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+  .dc-since b { color: var(--up); }
+  .dc-market { margin: 14px 16px 16px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,0.03); padding: 10px 13px; display: flex; align-items: center; }
+  .dc-price { font-size: 14px; font-weight: 700; }
+  .dc-pair { font-size: 8.5px; color: var(--text-2); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .dc-pills { margin-left: auto; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .dc-ch { font-size: 11px; font-weight: 800; color: var(--up); border: 1px solid rgba(47,230,168,0.35); background: rgba(47,230,168,0.1); border-radius: 100px; padding: 3px 9px; }
+  .dc-score { font-size: 9px; font-weight: 800; color: var(--cyan); border: 1px solid rgba(34,211,238,0.35); background: rgba(34,211,238,0.1); border-radius: 100px; padding: 3px 9px; letter-spacing: 0.06em; }
+  .stamp { position: absolute; top: 60px; left: 22px; border: 3px solid var(--up); border-radius: 8px; padding: 6px 16px; transform: rotate(-16deg); opacity: 0; }
+  .stamp span { font-size: 26px; font-weight: 900; letter-spacing: 0.12em; color: var(--up); }
+  .on .fly .stamp { animation: fade 0.2s ease 0.05s forwards; }
+  .copy-toast { position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%) translateY(14px); display: flex; align-items: center; gap: 9px;
+    background: #10192b; border: 1px solid rgba(47,230,168,0.4); border-radius: 100px; padding: 11px 22px; font-size: 15px; font-weight: 700; opacity: 0; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+  .copy-toast .dot { color: var(--up); }
+  .scene[data-scene="2"].toast-on .copy-toast { animation: rise 0.5s ease forwards; }
+
+  /* ── Scene 3: features ── */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 250px); gap: 20px; margin-top: 66px; }
+  .feat { border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,0.03); padding: 24px 22px; opacity: 0; transform: translateY(24px); }
+  .feat .ic { font-size: 30px; }
+  .feat h3 { margin-top: 12px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .feat p { margin-top: 7px; font-size: 12.5px; line-height: 1.55; color: var(--text-2); font-weight: 500; }
+  .on .feat:nth-child(1) { animation: rise 0.6s ease 0.45s forwards; }
+  .on .feat:nth-child(2) { animation: rise 0.6s ease 0.62s forwards; }
+  .on .feat:nth-child(3) { animation: rise 0.6s ease 0.79s forwards; }
+  .on .feat:nth-child(4) { animation: rise 0.6s ease 0.96s forwards; }
+  .on .feat:nth-child(5) { animation: rise 0.6s ease 1.13s forwards; }
+  .on .feat:nth-child(6) { animation: rise 0.6s ease 1.30s forwards; }
+
+  /* ── Scene 4: turbo ── */
+  .bolt { font-size: 90px; filter: drop-shadow(0 0 40px rgba(245,181,68,0.6)); opacity: 0; transform: scale(0.5); }
+  .on .bolt { animation: pop 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards; }
+  .s4-line { margin-top: 26px; font-size: 40px; font-weight: 700; letter-spacing: -0.02em; text-align: center; opacity: 0; }
+  .on .s4-line { animation: fade 0.8s ease 0.8s forwards; }
+  .s4-sub { margin-top: 14px; font-size: 17px; color: var(--text-2); font-weight: 500; opacity: 0; text-align: center; line-height: 1.6; }
+  .on .s4-sub { animation: fade 0.8s ease 1.3s forwards; }
+
+  /* ── Scene 5: chains ── */
+  .chains { display: flex; gap: 26px; margin-top: 60px; }
+  .chain { display: flex; align-items: center; gap: 13px; border: 1px solid var(--line); border-radius: 100px; padding: 16px 30px; background: rgba(255,255,255,0.03); opacity: 0; transform: translateY(20px); }
+  .chain .cdot { width: 14px; height: 14px; border-radius: 50%; }
+  .chain span { font-size: 24px; font-weight: 700; }
+  .on .chain:nth-child(1) { animation: rise 0.6s ease 0.5s forwards; }
+  .on .chain:nth-child(2) { animation: rise 0.6s ease 0.7s forwards; }
+  .whale-count { margin-top: 34px; font-size: 19px; color: var(--text-2); font-weight: 600; opacity: 0; }
+  .whale-count b { color: var(--cyan); font-size: 23px; }
+  .on .whale-count { animation: fade 0.8s ease 1.15s forwards; }
+
+  /* ── Scene 6: CTA ── */
+  .cta-word { font-size: 66px; font-weight: 700; letter-spacing: -0.03em; opacity: 0; transform: scale(0.92); }
+  .cta-word b { background: linear-gradient(90deg, #a89bff, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .on .cta-word { animation: pop 0.9s cubic-bezier(0.34,1.56,0.64,1) 0.25s forwards; }
+  .cta-tag { margin-top: 18px; font-size: 22px; color: var(--text-2); letter-spacing: 0.3em; text-transform: uppercase; font-weight: 500; opacity: 0; }
+  .on .cta-tag { animation: fade 0.8s ease 0.9s forwards; }
+  .cta-tag span { color: var(--up); }
+
+  /* ── shared bits ── */
+  .ticker { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid var(--line); background: rgba(5,7,12,0.6); overflow: hidden; height: 44px; display: flex; align-items: center; }
+  .ticker-inner { display: flex; gap: 46px; white-space: nowrap; animation: slide 26s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .ticker-inner b { color: var(--up); font-weight: 800; }
+  .ticker-inner i { font-style: normal; color: var(--text-1); }
+
+  .dots { position: absolute; top: 26px; right: 30px; display: flex; gap: 7px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: background 0.4s, transform 0.4s; }
+  .dots i.cur { background: var(--iris); transform: scale(1.3); box-shadow: 0 0 10px rgba(124,107,255,0.7); }
+
+  @keyframes pop  { to { opacity: 1; transform: scale(1); } }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+  /* centered-fixed elements (the toast) keep their translateX while rising */
+  @keyframes riseC { to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  .scene[data-scene="2"].toast-on .copy-toast { animation-name: riseC; }
+  .brand-word, .s-caption, .feat, .chain, .demo-card { transform-origin: center; }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+  @keyframes cardSwipe { 0% { opacity: 1; transform: translateY(0) translateX(0) rotate(0); } 100% { opacity: 0; transform: translateY(-60px) translateX(560px) rotate(24deg); } }
+  @keyframes slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="stage">
+
+    <!-- 1 · LOGO -->
+    <section class="scene" data-scene="1">
+      <div class="logo-mark">🐋</div>
+      <div class="brand-word">Degen<b>Slide</b></div>
+      <div class="tagline">swipe <span>·</span> copy <span>·</span> profit</div>
+    </section>
+
+    <!-- 2 · THE DECK -->
+    <section class="scene" data-scene="2">
+      <div class="s-caption">Whales are buying. <span style="color:var(--up)">Right now.</span>
+        <span class="sub">Every card is a live on-chain trade from a tracked smart-money wallet.</span>
+      </div>
+      <div class="demo-card" id="demoCard">
+        <div class="stamp"><span>COPY</span></div>
+        <div class="dc-banner"><span class="dc-side">↗ BUY</span><span class="dc-dex mono">SOLANA-DEX</span><span class="dc-fire mono">🔥 3 whales</span></div>
+        <div class="dc-whale">
+          <div class="dc-ava">🐋</div>
+          <div><div class="dc-alias">Frost Whale</div><div class="dc-badges mono">WHALE · TRACKED · 71% WIN</div></div>
+        </div>
+        <div class="dc-hero">
+          <span class="dc-token">$WIF</span><span class="dc-age mono">⚠ 2h</span>
+          <div class="dc-usd mono">$4,870</div>
+          <div class="dc-since mono">whale bought · 24.4 SOL · <b>since entry +3.1%</b></div>
+        </div>
+        <div class="dc-market">
+          <div><div class="dc-price mono">$0.0842</div><div class="dc-pair">WIF/SOL · LIVE</div></div>
+          <div class="dc-pills"><span class="dc-ch mono">▲ +18.4%</span><span class="dc-score mono">74 · SOLID</span></div>
+        </div>
+      </div>
+      <div class="copy-toast"><span class="dot">⚡</span> Copied $WIF — no popups, no signing</div>
+    </section>
+
+    <!-- 3 · FEATURES -->
+    <section class="scene" data-scene="3">
+      <div class="s-caption">Built like a weapon.
+        <span class="sub">Everything on screen is live on-chain data — nothing fake, ever.</span>
+      </div>
+      <div class="feat-grid">
+        <div class="feat"><div class="ic">🤖</div><h3>Auto-Copy</h3><p>Mark a whale AUTO and every buy they make is copied hands-free — with per-copy and daily budgets.</p></div>
+        <div class="feat"><div class="ic">🎯</div><h3>Degen Score</h3><p>0–100 risk rating on every card: liquidity depth, FDV backing, volume, buy pressure, whale win rate.</p></div>
+        <div class="feat"><div class="ic">🔥</div><h3>Hot Tokens</h3><p>When multiple whales pile into the same token, you see the consensus before the crowd does.</p></div>
+        <div class="feat"><div class="ic">⚖️</div><h3>Mirror Sizing</h3><p>Copy proportionally — a fixed % of the whale's size, hard-capped. Trade like the pros do.</p></div>
+        <div class="feat"><div class="ic">🛡️</div><h3>Auto SL / TP</h3><p>Stop-loss, take-profit and "sell when the whale sells" — your exits run even while you sleep.</p></div>
+        <div class="feat"><div class="ic">📸</div><h3>PnL Cards</h3><p>Turn any win into a shareable branded PnL card with one tap. Flex responsibly.</p></div>
+      </div>
+    </section>
+
+    <!-- 4 · TURBO -->
+    <section class="scene" data-scene="4">
+      <div class="bolt">⚡</div>
+      <div class="s4-line">One swipe. Zero popups.</div>
+      <div class="s4-sub">The Turbo wallet signs locally on your device — self-custodial,<br/>export or withdraw any time. Agree once, trade at whale speed.</div>
+    </section>
+
+    <!-- 5 · CHAINS -->
+    <section class="scene" data-scene="5">
+      <div class="s-caption">Two chains. One deck.</div>
+      <div class="chains">
+        <div class="chain"><span class="cdot" style="background:#836ef9; box-shadow:0 0 14px #836ef9"></span><span>Monad</span></div>
+        <div class="chain"><span class="cdot" style="background:#14f195; box-shadow:0 0 14px #14f195"></span><span>Solana</span></div>
+      </div>
+      <div class="whale-count mono"><b>750+</b> smart-money whales tracked · growing every 12 hours</div>
+    </section>
+
+    <!-- 6 · CTA -->
+    <section class="scene" data-scene="6">
+      <div class="cta-word">Degen<b>Slide</b></div>
+      <div class="cta-tag">join the hunt <span>·</span> it's live</div>
+    </section>
+
+    <div class="ticker"><div class="ticker-inner" id="ticker"></div></div>
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<script>
+  // ── responsive letterbox ──
+  const stage = document.getElementById('stage');
+  function fit() {
+    const s = Math.min(innerWidth / 1280, innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  // ── live-feel ticker (illustrative trades) ──
+  const trades = [
+    ['🐋','Iron Alpha','BUY','$WIF','$4.8K'], ['🦈','Neon Sniper','BUY','$CHOG','$1.2K'],
+    ['🐋','Frost Whale','BUY','$BONK','$9.3K'], ['🐋','Dark Viper','SELL','$WBTC','$2.1K'],
+    ['🦈','Turbo Ronin','BUY','$POPCAT','$860'], ['🐋','Apex Ghost','BUY','$MON','$12.4K'],
+    ['🦈','Zen Falcon','BUY','$PYTH','$1.9K'], ['🐋','Nova Titan','BUY','$JUP','$6.7K'],
+  ];
+  const seg = trades.map(t => `${t[0]} <i>${t[1]}</i> <b>${t[2]}</b> <i>${t[3]}</i> ${t[4]}`).join('<span style="opacity:.35">·</span>');
+  document.getElementById('ticker').innerHTML = seg + '<span style="opacity:.35">·</span>' + seg;
+
+  // ── scene controller ──
+  const scenes = [...document.querySelectorAll('.scene')];
+  const DUR = { 1: 4200, 2: 6800, 3: 7200, 4: 5200, 5: 5000, 6: 4600 };
+  const dotsEl = document.getElementById('dots');
+  scenes.forEach(() => { const i = document.createElement('i'); dotsEl.appendChild(i); });
+  const dots = [...dotsEl.children];
+
+  let idx = 0, timer = null;
+  function show(i) {
+    scenes.forEach((s, k) => s.classList.toggle('on', k === i));
+    dots.forEach((d, k) => d.classList.toggle('cur', k === i));
+    const sc = scenes[i];
+    sc.classList.remove('toast-on');
+    const card = sc.querySelector('.demo-card');
+    if (card) {
+      card.classList.remove('fly');
+      // let it settle, then swipe right + toast
+      setTimeout(() => { card.classList.add('fly'); }, 3300);
+      setTimeout(() => { sc.classList.add('toast-on'); }, 4100);
+    }
+    timer = setTimeout(next, DUR[i + 1] || 5000);
+  }
+  function next() { idx = (idx + 1) % scenes.length; show(idx); }
+  show(0);
+
+  // click/space = skip ahead (handy while recording setup)
+  addEventListener('keydown', (e) => { if (e.key === ' ') { clearTimeout(timer); next(); } });
+  addEventListener('click', () => { clearTimeout(timer); next(); });
+</script>
+</body>
+</html>
