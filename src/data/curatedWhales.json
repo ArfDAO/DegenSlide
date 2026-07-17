@@ -1,13 +1,13 @@
 {
   "source": "Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)",
-  "scannedAt": "2026-07-16T19:19:41.736Z",
-  "scannedBlocks": 300001,
+  "scannedAt": "2026-07-17T03:47:47.969Z",
+  "scannedBlocks": 54931,
   "minUsdPerSwap": 5,
   "minLiquidityUsd": 150000,
   "botsRemoved": {
-    "contracts": 24,
-    "sameBlockArb": 2,
-    "churnMM": 1
+    "contracts": 0,
+    "sameBlockArb": 0,
+    "churnMM": 0
   },
   "count": 297,
   "whales": [
@@ -681,28 +681,6 @@
       "closedTokens": 1,
       "winTokens": 1,
       "winRate": 1
-    },
-    {
-      "address": "0xc0e1b3e6966ef242a00e95249d954ee2d869fbbc",
-      "volumeUsd": 345.67,
-      "volumeMon": 16003.41,
-      "trades": 1,
-      "buys": 0,
-      "sells": 1,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 175445,
-      "tokens": [
-        "LVMON"
-      ],
-      "lastToken": "LVMON",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
     },
     {
       "address": "0xb9dff818882e26decf26032f2afd43719f68bea4",
@@ -5602,6 +5580,28 @@
         "AUSD"
       ],
       "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0xc0e1b3e6966ef242a00e95249d954ee2d869fbbc",
+      "volumeUsd": 14.72,
+      "volumeMon": 672.35,
+      "trades": 1,
+      "buys": 0,
+      "sells": 1,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 266897,
+      "tokens": [
+        "LV"
+      ],
+      "lastToken": "LV",
       "realizedUsd": 0,
       "realizedMon": 0,
       "closedTokens": 0,
