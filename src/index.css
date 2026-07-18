@@ -540,6 +540,12 @@ body {
   display: none;
 }
 
+/* guided-tour spotlight pulse */
+@keyframes tourPulse {
+  0%, 100% { border-color: rgba(124,107,255,0.9); }
+  50% { border-color: rgba(34,211,238,0.9); }
+}
+
 /* ── Desktop shell scaffolding (hidden until desktop; phone shell used below) ── */
 .side-nav { display: none; }
 .app-main-col { display: contents; }

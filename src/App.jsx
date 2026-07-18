@@ -7,6 +7,33 @@ import CuratedWhales from './components/CuratedWhales';
 import ProfilePage from './components/ProfilePage';
 import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
+import Tour from './components/Tour';
+
+// ── Interactive guided tours (SyncSwap-intro style) — one short spotlight
+// walkthrough per page, auto-shown once. Targets are [data-tour] elements. ──
+const TOURS = {
+  deck: [
+    { icon: '🐋', title: 'Live whale signals', target: '[data-tour="deck-card"]', text: 'Every card is a REAL on-chain buy from a tracked whale, streaming in live. Tap a card to flip it — entry price, Degen Score breakdown, momentum and risk flags are on the back.' },
+    { icon: '🎚️', title: 'Whale size tiers', target: '[data-tour="deck-tiers"]', text: 'Filter the deck by trade size — Big, Shark or Whale. The counters show how many live signals sit in each tier right now.' },
+    { icon: '👆', title: 'Swipe to act', target: '[data-tour="deck-actions"]', text: 'Swipe right (or ✓) to copy the trade instantly from your Turbo wallet — no popups. Swipe left (✕) to skip, swipe up (♥) to save the whale to your watchlist.' },
+    { icon: '⚙️', title: 'Your copy size', target: '[data-tour="trade-settings"]', text: 'Set how much each copy spends — a fixed amount, or Mirror mode to copy a % of the whale’s own size. Slippage lives here too.' },
+    { icon: '🌐', title: 'Switch chains', target: '[data-tour="chain-switch"]', text: 'One tap swaps the whole app between Monad and Solana — separate decks, whales and balances per chain.' },
+  ],
+  portfolio: [
+    { icon: '📊', title: 'Your copies live here', target: '[data-tour="portfolio-head"]', text: 'Every copied trade becomes a position with live PnL. Buy more, close any % of it, or share a PnL card with one tap.' },
+    { icon: '🛡️', title: 'Exits run themselves', target: '[data-tour="portfolio-head"]', text: 'Open a position to set stop-loss / take-profit, or arm “sell when the whale sells” — your exits execute automatically, even while you sleep.' },
+  ],
+  leaderboard: [
+    { icon: '🏆', title: 'Who’s actually good', target: '[data-tour="lb-tabs"]', text: 'Whales ranks tracked wallets by real performance. 🔥 Hot shows tokens that MULTIPLE whales are buying right now — the strongest signal in the app.' },
+    { icon: '🤖', title: 'Watchlist & Auto-Copy', target: '[data-tour="lb-tabs"]', text: 'Save whales to your Watchlist, tap one for its full dossier, and arm 🤖 AUTO to copy their buys hands-free within your daily budget.' },
+  ],
+  profile: [
+    { icon: '⚡', title: 'Turbo wallet', target: '[data-tour="turbo-card"]', text: 'This wallet powers 1-swipe trading — deposit here and swipes spend from it with zero popups. Export the key to back it up; withdraw any time.' },
+    { icon: '🤖', title: 'Auto-Copy budgets', target: '[data-tour="autocopy-card"]', text: 'The master switch for hands-free copying: per-copy amount and a hard daily budget. Whales you mark AUTO in the watchlist trade within these limits.' },
+    { icon: '🧾', title: 'Everything on record', target: '[data-tour="profile-stats"]', text: 'Your stats, full trade activity with explorer links, and settings — including whale alerts and auto-sell — all live on this page.' },
+  ],
+};
+const TOUR_KEY = (tab) => `tour_${tab}_v1`;
 import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Heart } from 'lucide-react';
@@ -410,6 +437,26 @@ export default function App() {
   const [showTradeSettings, setShowTradeSettings] = useState(false);
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' && !navigator.onLine);
   const [dossierAddr, setDossierAddr] = useState(null); // Whale Dossier overlay
+
+  // ── Guided tour: auto-start each page's walkthrough on first visit ──
+  const [tourSteps, setTourSteps] = useState(null);
+  const tourTabRef = useRef(null);
+  const startTour = useCallback((tab, force = false) => {
+    if (!TOURS[tab]) return;
+    if (!force && loadLS(TOUR_KEY(tab), false)) return;
+    tourTabRef.current = tab;
+    // let the page render/settle before measuring spotlight targets
+    setTimeout(() => setTourSteps(TOURS[tab]), 450);
+  }, []);
+  const endTour = useCallback(() => {
+    if (tourTabRef.current) saveLS(TOUR_KEY(tourTabRef.current), true);
+    setTourSteps(null);
+  }, []);
+  const replayTours = useCallback(() => {
+    Object.keys(TOURS).forEach((t) => saveLS(TOUR_KEY(t), false));
+    startTour(activeTab === 'profile' ? 'profile' : activeTab, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, startTour]);
   // Turbo 1-swipe trading: agreement + local trading wallet → no per-trade popups.
   // The Turbo wallet IS the app's primary account on both chains — the external
   // wallet (MetaMask/Phantom) is only a funding source / withdraw destination.
@@ -959,10 +1006,18 @@ export default function App() {
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline); };
   }, [reloadDeck, refreshBalance]);
 
+  // First visit to each page → run its guided tour (after the gates clear and
+  // the deck's initial load settles so spotlight targets actually exist).
+  useEffect(() => {
+    if (!disclaimerOk || !onboardOk) return;
+    if (activeTab === 'deck' && isLoading) return;
+    startTour(activeTab);
+  }, [activeTab, disclaimerOk, onboardOk, isLoading, startTour]);
+
   // ── Desktop keyboard shortcuts: ← skip · → copy · ↑ save · Space/Enter flip ──
   useEffect(() => {
     const onKey = (e) => {
-      if (activeTab !== 'deck' || showTradeSettings) return;
+      if (activeTab !== 'deck' || showTradeSettings || tourSteps) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       // never steal keys from form fields (custom deposit amount, withdraw address…)
       if (e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
@@ -976,7 +1031,7 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, showTradeSettings]);
+  }, [activeTab, showTradeSettings, tourSteps]);
 
   const t = toast ? TOASTS[toast.type] : null;
 
@@ -1061,6 +1116,8 @@ export default function App() {
         </div>
       )}
 
+      {tourSteps && <Tour steps={tourSteps} onDone={endTour} />}
+
       {dossierAddr && (
         <WhaleDossier
           address={dossierAddr}
@@ -1138,7 +1195,7 @@ export default function App() {
       </header>
 
       {/* ── Contextual page head — deck: live-signal count + network switcher ── */}
-      <div className="page-head">
+      <div className="page-head" data-tour={activeTab === 'portfolio' ? 'portfolio-head' : undefined}>
         {activeTab === 'deck' ? (
           <span className="page-meta">{deckCards.length} live signals</span>
         ) : (
@@ -1148,7 +1205,7 @@ export default function App() {
         )}
         {activeTab === 'deck' ? (
           /* Network switcher — persists choice, reloads onto the selected chain's indexer */
-          <div className="seg-track">
+          <div className="seg-track" data-tour="chain-switch">
             {Object.values(CHAINS).map((c) => {
               const on = ACTIVE.id === c.id;
               return (
@@ -1171,7 +1228,7 @@ export default function App() {
       <main className="main-content">
         {activeTab === 'leaderboard' ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: '0 -16px' }}>
-            <div className="seg-track wide lb-seg" style={{ margin: '0 16px 10px', flexShrink: 0 }}>
+            <div className="seg-track wide lb-seg" data-tour="lb-tabs" style={{ margin: '0 16px 10px', flexShrink: 0 }}>
               {[{ id: 'rankings', label: 'Whales' }, { id: 'hot', label: '🔥 Hot' }, { id: 'curated', label: 'Smart Money' }, { id: 'watchlist', label: 'Watchlist' }].map((m) => (
                 <button key={m.id} type="button" className={`seg-item ${lbMode === m.id ? 'on' : ''}`} onClick={() => setLbMode(m.id)}>
                   {m.label}
@@ -1225,7 +1282,7 @@ export default function App() {
           </div>
         ) : activeTab === 'deck' ? (
           <div className="deck-view flex flex-col h-full w-full relative">
-            <div className="seg-track wide" style={{ marginBottom: 12, flexShrink: 0 }}>
+            <div className="seg-track wide" data-tour="deck-tiers" style={{ marginBottom: 12, flexShrink: 0 }}>
               {DECK_TIERS.map((tier) => {
                 const active = deckTier === tier.id;
                 const cnt = cards.filter((c) => c.side !== 'SELL' && c.copyable !== false && (!settings.hideStables || !c.isStable) && (c.amountMon ?? 0) >= (settings.minWhaleMon || 0) && inTier(usdOf(c), tier.id)).length;
@@ -1243,7 +1300,7 @@ export default function App() {
             ) : deckCards.length > 0 ? (
               <>
                 <TradeSettingsPopover open={showTradeSettings} onClose={() => setShowTradeSettings(false)} amount={tradeAmount} onChangeAmount={setTradeAmount} slippageBps={slippageBps} onChangeSlippage={setSlippageBps} monPriceUsd={monPriceUsd} monBalance={monBalance} sizing={sizing} onChangeSizing={updateSizing} />
-                <div className="card-deck-area">
+                <div className="card-deck-area" data-tour="deck-card">
                   {[...deckCards.slice(0, 4)].reverse().map((trader, i, arr) => {
                     const stackIndex = arr.length - 1 - i;
                     return (
@@ -1256,8 +1313,8 @@ export default function App() {
                     );
                   })}
                 </div>
-                <div className="action-row">
-                  <button type="button" onClick={() => setShowTradeSettings(true)} title={sizing.mode === 'mirror' ? `Mirror ${sizing.mirrorPct}% of whale size (cap ${tradeAmount} ${ACTIVE.nativeSymbol})` : `${tradeAmount} ${ACTIVE.nativeSymbol} / copy`}
+                <div className="action-row" data-tour="deck-actions">
+                  <button type="button" data-tour="trade-settings" onClick={() => setShowTradeSettings(true)} title={sizing.mode === 'mirror' ? `Mirror ${sizing.mirrorPct}% of whale size (cap ${tradeAmount} ${ACTIVE.nativeSymbol})` : `${tradeAmount} ${ACTIVE.nativeSymbol} / copy`}
                     style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
                     <Settings size={18} color="var(--color-pebble)" />
                     <span style={{ position: 'absolute', top: -2, right: -2, fontSize: 8, fontWeight: 700, background: 'var(--color-tidewater-navy)', color: '#fff', borderRadius: 8, padding: '1px 5px', lineHeight: '14px' }}>{sizing.mode === 'mirror' ? `${sizing.mirrorPct}%` : tradeAmount}</span>
@@ -1308,7 +1365,7 @@ export default function App() {
             externalWallet={walletAddress} onConnect={doConnect} showToast={showToast}
             onTurboChanged={() => { setTurboAddr(getTurboAddress()); refreshBalance(); }}
             autoCopy={autoCopy} updateAutoCopy={updateAutoCopy} autoCopyDefaults={AUTOCOPY_DEFAULTS}
-            autoSpentToday={autoSpentToday()} autoSpendTick={autoSpendTick}
+            autoSpentToday={autoSpentToday()} autoSpendTick={autoSpendTick} onReplayTours={replayTours}
           />
         )}
       </main>

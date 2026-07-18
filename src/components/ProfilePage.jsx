@@ -159,7 +159,7 @@ export default function ProfilePage({
   lastTxHash, indexerUp,
   onDisconnect, onClearData,
   externalWallet, onConnect, showToast, onTurboChanged, activity,
-  autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday,
+  autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday, onReplayTours,
 }) {
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -190,7 +190,7 @@ export default function ProfilePage({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 16, paddingBottom: 32 }}>
 
         {/* ── Wallet hero — gradient identity card ── */}
-        <div style={{
+        <div data-tour="turbo-card" style={{
           position: 'relative', overflow: 'hidden', borderRadius: 24, padding: 18,
           background: 'radial-gradient(140% 110% at 15% 0%, rgba(109,93,246,0.22) 0%, rgba(34,211,238,0.06) 45%, transparent 70%), var(--surface-1)',
           border: '1px solid rgba(109,93,246,0.25)', boxShadow: 'var(--shadow-md)',
@@ -247,7 +247,7 @@ export default function ProfilePage({
         </div>
 
         {/* ── Stats grid ── */}
-        <div style={{ ...CARD, padding: '14px 4px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div data-tour="profile-stats" style={{ ...CARD, padding: '14px 4px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {STATS.map((s, i) => (
             <div key={s.label} style={{ textAlign: 'center', borderLeft: i === 0 ? 'none' : '1px solid var(--color-silver-lining)' }}>
               <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
@@ -258,7 +258,7 @@ export default function ProfilePage({
 
         {/* ── Auto-Copy (follow mode) — hands-free copying with hard budgets ── */}
         {autoCopy && (
-          <div style={{ ...CARD, padding: '14px 16px', border: autoCopy.enabled ? '1px solid rgba(109,93,246,0.45)' : CARD.border }}>
+          <div data-tour="autocopy-card" style={{ ...CARD, padding: '14px 16px', border: autoCopy.enabled ? '1px solid rgba(109,93,246,0.45)' : CARD.border }}>
             <SectionTitle icon={<span style={{ fontSize: 12 }}>🤖</span>} accent={autoCopy.enabled ? 'var(--color-deep-iris)' : undefined}>Auto-Copy</SectionTitle>
             <SettingRow title="Follow whales hands-free" desc="Instantly copy every BUY from whales marked AUTO in your watchlist. Spends from the Turbo wallet — bounded by the budget below.">
               <Toggle on={!!autoCopy.enabled} onChange={(v) => updateAutoCopy({ enabled: v })} />
@@ -343,6 +343,11 @@ export default function ProfilePage({
           <div style={{ fontSize: 10, color: 'var(--color-pebble)', marginTop: 8, fontWeight: 600, lineHeight: 1.5 }}>
             Copy amount & slippage live in the deck’s settings button (bottom-left on the swipe screen).
           </div>
+          {onReplayTours && (
+            <button onClick={onReplayTours} style={{ marginTop: 10, width: '100%', padding: '10px 0', borderRadius: 12, border: '1px solid var(--color-silver-lining)', background: 'var(--color-frost-shadow)', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              🎓 Replay the guided tour
+            </button>
+          )}
         </div>
 
         {/* ── Network + indexer status ── */}
