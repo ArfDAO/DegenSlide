@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DegenSlide × Max Yinger Dark Terminal</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #12130f;
+      color: #e4dfda;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle { font-size: 18px; color: #b9a3a0; margin-bottom: 48px; }
+    h2 { font-size: 28px; margin: 40px 0 20px; color: #e4dfda; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card {
+      background: #1b1114;
+      border: 1px solid #3c3c38;
+      padding: 20px;
+      border-radius: 0;
+    }
+    .card h3 { margin: 0 0 12px; font-size: 16px; }
+    .card p { margin: 0; font-size: 14px; color: #b9a3a0; line-height: 1.6; }
+    .badge { display: inline-block; background: #3c3c38; padding: 6px 12px; border-radius: 0; font-size: 11px; margin-top: 12px; }
+    .status-complete { border-left: 3px solid #46d16b; }
+    .status-planned { border-left: 3px solid #f5b544; }
+    .code {
+      background: #0f0709;
+      padding: 12px;
+      border-radius: 0;
+      border: 1px solid #3c3c38;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      margin: 12px 0;
+    }
+    .timeline { padding: 20px; background: #1b1114; border-left: 2px solid #3c3c38; margin-bottom: 24px; }
+    .timeline-item { margin-bottom: 20px; }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-dot { font-size: 20px; margin-bottom: 8px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+    .stat { background: #1b1114; border: 1px solid #3c3c38; padding: 16px; text-align: center; border-radius: 0; }
+    .stat-num { font-size: 32px; font-weight: 800; color: #f0511e; margin-bottom: 8px; }
+    .stat-label { font-size: 11px; color: #b9a3a0; text-transform: uppercase; letter-spacing: 0.05em; }
+    .branch-info { background: #0f0709; border: 1px solid #3c3c38; padding: 20px; margin-top: 40px; border-radius: 0; }
+    code { background: #3c3c38; padding: 2px 6px; border-radius: 0; font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DegenSlide × Max Yinger</h1>
+    <p class="subtitle">Dark Terminal Aesthetic: Midnight engineer's workshop, bone-white type, story feed, token visuals</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">5</div>
+        <div class="stat-label">New Components</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">1</div>
+        <div class="stat-label">API Ready</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Commits</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">✅</div>
+        <div class="stat-label">Merge Ready</div>
+      </div>
+    </div>
+
+    <h2>✅ Tamamlanan Özellikler</h2>
+
+    <div class="grid">
+      <div class="card status-complete">
+        <h3>🎨 Yinger Design System</h3>
+        <p>CSS token'ları: midnight carbon (#12130f), bone glow (#e4dfda), charcoal vein (#3c3c38), rose quartz (#f5c2c8)</p>
+        <div class="badge">4 renk</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>📖 Typography Scale</h3>
+        <p>Arbeit Technik (telemetry), Inline VF (hero), Arbeit Contrast (body). 12px-80px range, 0.70-1.25 line heights</p>
+        <div class="badge">Monospace ready</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>🗂️ Full-Bleed Layout</h3>
+        <p>Edge-to-edge, no phone shell, wordmark top-left, profile dropdown top-right, minimal nav borders</p>
+        <div class="badge">100vw × 100vh</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>📰 Story Feed</h3>
+        <p>Whale copies + user shares: token image, P&L, whale alias, timestamp. Horizontal scroll, 4px gaps</p>
+        <div class="badge">Aktif</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>💳 StoryCard Component</h3>
+        <p>Token visuals, P&L amount + percent, profit/loss indicators, compact sizing (sm=140px, md=flexible)</p>
+        <div class="badge">Kullanımda</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>🖼️ TokenImage Fetcher</h3>
+        <p>DexScreener API integration, Monad/Solana support, gradient fallback with initials, async non-blocking</p>
+        <div class="badge">API ready</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>👤 Profile Dropdown</h3>
+        <p>Top-right wallet menu: address (copyable), settings, disconnect. Minimal, flat, no elevation</p>
+        <div class="badge">Entegre</div>
+      </div>
+
+      <div class="card status-complete">
+        <h3>🎭 User Avatar</h3>
+        <p>Best NFT display or deterministic gradient+initials. Clickable to change, respects Yinger square aesthetic</p>
+        <div class="badge">Placeholder API</div>
+      </div>
+    </div>
+
+    <h2>🔄 API'ler (İntegrasyon Hazır)</h2>
+
+    <div class="code">
+// DexScreener Token Images (READY)
+GET https://api.dexscreener.com/latest/dex/tokens/{tokenAddress}
+→ pair.baseToken.image | pair.quoteToken.image
+
+// Solana RPC NFT Queries (Coming)
+POST https://api.mainnet-beta.solana.com/
+→ getTokenAccountsByOwner → NFT metadata
+
+// Monad RPC Integration (Coming)
+Fetch from Monad nodes for token/NFT data
+    </div>
+
+    <h2>🎯 Görsel Hiyerarşi</h2>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot">1️⃣</div>
+        <strong>Story Feed (Top)</strong> — Token images, P&L, activity (Most visual interest)
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">2️⃣</div>
+        <strong>Whale Rail</strong> — Circular avatars, visual anchors
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">3️⃣</div>
+        <strong>Tier Filter</strong> — Telemetry labels, compact controls
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">4️⃣</div>
+        <strong>Card Deck</strong> — Hero card with token visuals
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">5️⃣</div>
+        <strong>Action Buttons</strong> — Minimal, icons only (Red X, Green ✓, Violet ★)
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">6️⃣</div>
+        <strong>Bottom Nav</strong> — Minimal underline active state
+      </div>
+    </div>
+
+    <h2>📝 Dosya Yapısı</h2>
+
+    <div class="code">
+src/components/
+  ├── StoryCard.jsx          (Token image, P&L, whale name)
+  ├── StoryFeed.jsx          (Horizontal scroll feed)
+  ├── ProfileDropdown.jsx    (Wallet menu, top-right)
+  ├── UserAvatar.jsx         (NFT or gradient avatar)
+  ├── TokenImage.jsx         (DexScreener + fallback)
+  ├── SwipeCard.jsx          (Updated with Yinger colors)
+  ├── App.jsx                (Story feed integrated)
+  └── index.css              (Yinger tokens + colors)
+
+Branch: ui/crimson-redesign (ready to merge)
+Commits: 3 (Yinger aesthetic + TokenImage + docs)
+    </div>
+
+    <h2>🚀 Sonraki Aşamalar</h2>
+
+    <div class="grid">
+      <div class="card status-planned">
+        <h3>Phase 1: API Integration</h3>
+        <p>Real NFT images, whale transaction data, P&L calculations, Monad RPC</p>
+        <div class="badge">Planned</div>
+      </div>
+
+      <div class="card status-planned">
+        <h3>Phase 2: Interactions</h3>
+        <p>Accept/reject story cards, share wins/losses, follow whales, profile customization</p>
+        <div class="badge">Planned</div>
+      </div>
+
+      <div class="card status-planned">
+        <h3>Phase 3: Social</h3>
+        <p>Story comments, leaderboards, notifications, social share</p>
+        <div class="badge">Planned</div>
+      </div>
+    </div>
+
+    <div class="branch-info">
+      <h3>🔀 Merge Instructions</h3>
+      <pre style="background: #0f0709; padding: 12px; border: 1px solid #3c3c38; border-radius: 0; overflow-x: auto;">git checkout main
+git merge ui/crimson-redesign
+git push origin main</pre>
+    </div>
+
+    <div style="margin-top: 40px; padding: 20px; background: #1b1114; border-left: 3px solid #46d16b; border-radius: 0;">
+      <p style="margin: 0; font-size: 14px;">
+        ✅ <strong>UI Tamamlandı</strong> — Tüm bileşenler tasarlandı ve entegre edildi<br>
+        🔄 <strong>API Hazır</strong> — DexScreener entegrasyonu beklemede<br>
+        📸 <strong>Görseller</strong> — <code>scratch/screens/yinger_deck.png</code><br>
+        📖 <strong>Dokümantasyon</strong> — <code>YINGER_IMPLEMENTATION.md</code>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

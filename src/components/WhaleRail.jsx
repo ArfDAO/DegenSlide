@@ -49,20 +49,21 @@ function RailAvatar({ addr, size = 54, ring }) {
   );
 }
 
-export default function WhaleRail({ watched = [], curated = [], onOpenDossier, onAdd }) {
+export default function WhaleRail({ watched = [], curated = [], onOpenDossier, onAdd, compact = false }) {
   // Prefer the user's own roster; fall back to curated Smart Money so a new
   // user still sees who they *could* be following.
   const usingWatched = watched.length > 0;
   const addrs = usingWatched
     ? watched.slice(0, 12)
     : curated.slice(0, 12).map((w) => w.address).filter(Boolean);
+  const size = compact ? 38 : 54;
 
   return (
-    <div className="whale-rail hide-scrollbar" data-tour="whale-rail">
+    <div className={`whale-rail ${compact ? 'compact' : ''} hide-scrollbar`} data-tour="whale-rail">
       <button type="button" className="rail-item rail-add" onClick={onAdd}
         title="Add a wallet to your watchlist">
-        <span className="rail-add-disc"><Plus size={20} strokeWidth={2.5} /></span>
-        <span className="rail-name">Add</span>
+        <span className="rail-add-disc"><Plus size={compact ? 15 : 20} strokeWidth={2.5} /></span>
+        {!compact && <span className="rail-name">Add</span>}
       </button>
 
       {addrs.map((addr) => (
@@ -71,11 +72,12 @@ export default function WhaleRail({ watched = [], curated = [], onOpenDossier, o
           title={`${generateAlias(addr)} — open dossier`}>
           <RailAvatar
             addr={addr}
+            size={size}
             ring={usingWatched
               ? 'linear-gradient(160deg, #ff7a2f, #f0511e 55%, #c9231f)'
               : undefined}
           />
-          <span className="rail-name">{generateAlias(addr).split(' ')[0]}</span>
+          {!compact && <span className="rail-name">{generateAlias(addr).split(' ')[0]}</span>}
         </button>
       ))}
     </div>

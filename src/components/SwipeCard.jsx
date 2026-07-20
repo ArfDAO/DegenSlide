@@ -1,6 +1,6 @@
-import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react';
+import React, { forwardRef, useId, useMemo, useRef, useState, useEffect } from 'react';
 import TinderCard from 'react-tinder-card';
-import { Activity, Droplet, BarChart3, X, ChevronUp, ExternalLink, Copy, Check } from 'lucide-react';
+import { X, ChevronUp, ExternalLink, Copy, Check } from 'lucide-react';
 import { fetchTokenPairData } from '../services/dexscreenerApi';
 import { degenScoreBreakdown, scoreTier } from '../services/degenScore';
 import { EXPLORER_TX_URL, EXPLORER_ADDR_URL, DEXSCREENER_CHAIN, ACTIVE } from '../config/chain.js';
@@ -110,6 +110,89 @@ function ChangeBars({ change }) {
         );
       })}
     </div>
+  );
+}
+
+/* ───────── 24h price chart — rebuilt from DexScreener's REAL % changes:
+   price(t) = price_now / (1 + change(t)/100) gives five true samples
+   (24h · 6h · 1h · 5m · now), smoothed into a trend line. The panel is
+   flexible, so it absorbs whatever height the card has left — the token's
+   "photo" slot from the reference design, filled with its chart. ───────── */
+function smoothLinePath(P) {
+  if (P.length < 2) return '';
+  let d = `M ${P[0].x.toFixed(1)} ${P[0].y.toFixed(1)}`;
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+function PriceChart({ pair, loaded }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const data = useMemo(() => {
+    if (!pair?.priceUsd) return null;
+    const now = pair.priceUsd;
+    const ch = pair.priceChange || {};
+    const at = (v) => (v == null || !isFinite(v) || v <= -100 ? null : now / (1 + v / 100));
+    const pts = [
+      { label: '24h', p: at(ch.h24) },
+      { label: '6h',  p: at(ch.h6) },
+      { label: '1h',  p: at(ch.h1) },
+      { label: '5m',  p: at(ch.m5) },
+      { label: 'now', p: now },
+    ].filter((d) => d.p != null && d.p > 0);
+    if (pts.length < 2) return null;
+    const min = Math.min(...pts.map((d) => d.p));
+    const max = Math.max(...pts.map((d) => d.p));
+    return { pts, min, max, up: now >= pts[0].p };
+  }, [pair]);
+
+  if (!data) {
+    return (
+      <div style={{ flex: 1, minHeight: 48, display: 'grid', placeItems: 'center' }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-3)' }}>
+          {loaded ? 'No live chart data for this token' : 'Loading chart…'}
+        </span>
+      </div>
+    );
+  }
+
+  const W = 320, H = 120, PAD = 10;
+  const span = data.max - data.min || data.max * 0.001 || 1;
+  const P = data.pts.map((d, i) => ({
+    x: PAD + (i / (data.pts.length - 1)) * (W - PAD * 2),
+    y: H - PAD - ((d.p - data.min) / span) * (H - PAD * 2),
+  }));
+  const line = smoothLinePath(P);
+  const area = `${line} L ${P[P.length - 1].x.toFixed(1)} ${H} L ${P[0].x.toFixed(1)} ${H} Z`;
+  const col = data.up ? '#46d16b' : '#ff4d6a';
+  const last = P[P.length - 1];
+
+  return (
+    <>
+      <div style={{ flex: 1, minHeight: 36, marginTop: 4, position: 'relative' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, display: 'block' }}>
+          <defs>
+            <linearGradient id={`pcg${uid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={col} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={col} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={area} fill={`url(#pcg${uid})`} />
+          <path d={line} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <circle cx={last.x} cy={last.y} r="3.5" fill={col} />
+        </svg>
+        <span style={{ position: 'absolute', top: 1, right: 3, fontSize: 8, fontWeight: 700, color: 'var(--text-3)', fontFamily: '"JetBrains Mono", monospace' }}>{fmtUsd(data.max)}</span>
+        <span style={{ position: 'absolute', bottom: 1, right: 3, fontSize: 8, fontWeight: 700, color: 'var(--text-3)', fontFamily: '"JetBrains Mono", monospace' }}>{fmtUsd(data.min)}</span>
+      </div>
+      <div className="chart-x-labels" style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 2px 0', flexShrink: 0 }}>
+        {data.pts.map((d) => (
+          <span key={d.label} style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: '"JetBrains Mono", monospace' }}>{d.label}</span>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -420,7 +503,7 @@ const SwipeCard = forwardRef(function SwipeCard(
 
         {/* ══ SIGNAL BANNER — side-tinted strip announcing the trade ══ */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '13px 18px',
+          display: 'flex', alignItems: 'center', gap: 8, padding: 'min(12px, 1.5vh) 18px',
           background: isBuy
             ? 'linear-gradient(100deg, rgba(70, 209, 107,0.16) 0%, rgba(70, 209, 107,0.03) 55%, transparent 100%)'
             : 'linear-gradient(100deg, rgba(255, 77, 106,0.16) 0%, rgba(255, 77, 106,0.03) 55%, transparent 100%)',
@@ -450,7 +533,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         </div>
 
         {/* ══ WHALE IDENTITY ══ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'min(8px, 1vh) 18px 0' }}>
           <div
             data-no-drag="true"
             onPointerDown={(e) => { e.stopPropagation(); dossierTap.current = { x: e.clientX, y: e.clientY }; }}
@@ -510,8 +593,8 @@ const SwipeCard = forwardRef(function SwipeCard(
         <div style={{
           position: 'relative',
           flexShrink: 0,
-          margin: 'min(14px, 1.6vh) 12px 0',
-          padding: 'min(18px, 2vh) 14px min(16px, 1.8vh)',
+          margin: 'min(14px, 1.4vh) 12px 0',
+          padding: 'min(16px, 1.6vh) 14px min(14px, 1.5vh)',
           textAlign: 'center',
           borderRadius: 22,
           background: 'var(--gradient-hero)',
@@ -529,7 +612,7 @@ const SwipeCard = forwardRef(function SwipeCard(
             ) : (
               <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--surface-3)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-2)' }}>{(trader.tokenSymbol || '?').slice(0, 1)}</div>
             )}
-            <span style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(90, 8, 14, 0.45)' }}>${trader.tokenSymbol}</span>
+            <span style={{ fontSize: 'clamp(24px, 3.4vh, 30px)', fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(90, 8, 14, 0.45)' }}>${trader.tokenSymbol}</span>
             {ageLabel && (
               <span title={ageRisky ? 'Fresh pair — extra rug risk' : 'Pair age on this DEX'}
                 style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 100, letterSpacing: '0.06em', fontFamily: '"JetBrains Mono", monospace',
@@ -542,11 +625,11 @@ const SwipeCard = forwardRef(function SwipeCard(
           {tradeUsd != null && (
             /* On the ember bed the side is already signalled by the banner —
                keep the headline white so it stays legible against orange. */
-            <div style={{ position: 'relative', marginTop: 8, fontSize: 'clamp(28px, 5vh, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: '0 3px 16px rgba(70, 4, 10, 0.5)' }}>
+            <div style={{ position: 'relative', marginTop: 'min(8px, 1vh)', fontSize: 'clamp(26px, 4.2vh, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: '0 3px 16px rgba(70, 4, 10, 0.5)' }}>
               {fmtUsd(tradeUsd)}
             </div>
           )}
-          <div style={{ position: 'relative', marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.86)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>
+          <div style={{ position: 'relative', marginTop: 'min(6px, 0.7vh)', fontSize: 11, color: 'rgba(255,255,255,0.86)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>
             {/* USDC-quoted Solana trades carry no native amount — fall back to the trade size we do know */}
             whale {isBuy ? 'bought' : 'sold'} · {trader.amountMon >= 0.01
               ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}`
@@ -560,64 +643,70 @@ const SwipeCard = forwardRef(function SwipeCard(
           </div>
         </div>
 
-        {/* ══ LIVE MARKET WELL ══ */}
-        <div style={{ margin: 'min(16px, 2vh) 18px 0', borderRadius: 16, border: '1px solid var(--line-2)', background: 'var(--surface-2)', padding: '11px 14px' }}>
-          {pair ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace' }}>{fmtUsd(pair.priceUsd)}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 1 }}>{pair.baseToken?.symbol || trader.tokenSymbol}/{pair.quoteToken?.symbol || 'USD'} · live</div>
-              </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                {ch24 != null && (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 100,
-                    background: ch24 >= 0 ? 'var(--up-soft)' : 'var(--down-soft)',
-                    border: `1px solid ${ch24 >= 0 ? 'rgba(70, 209, 107,0.35)' : 'rgba(255, 77, 106,0.35)'}`,
-                    fontSize: 12, fontWeight: 800, color: ch24 >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: '"JetBrains Mono", monospace',
-                  }}>
-                    {ch24 >= 0 ? '▲' : '▼'} {fmtPct(ch24)}
-                  </span>
-                )}
-                {dTier && (
-                  <span title="Degen Score — live liquidity depth, FDV backing, volume, buy pressure & whale win rate"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 100,
-                      background: dTier.bg, border: `1px solid ${dTier.border}`,
-                      fontSize: 9.5, fontWeight: 800, color: dTier.color, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.06em',
+        {/* ══ MARKET + CHART — one flexible panel: live price header, the
+            token's 24h chart as the card's visual centerpiece (the "photo"
+            slot of the reference design), and a compact stat strip. The
+            chart absorbs whatever height remains, so nothing clips. ══ */}
+        <div style={{
+          flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+          margin: 'min(14px, 1.8vh) 18px 0', borderRadius: 16,
+          border: '1px solid var(--line-2)', background: 'var(--surface-2)',
+          padding: 'min(9px, 1.2vh) 13px 6px', overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {pair ? (
+              <>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace' }}>{fmtUsd(pair.priceUsd)}</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 1 }}>{pair.baseToken?.symbol || trader.tokenSymbol}/{pair.quoteToken?.symbol || 'USD'} · 24h chart</div>
+                </div>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {ch24 != null && (
+                    <span style={{
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 100,
+                      background: ch24 >= 0 ? 'var(--up-soft)' : 'var(--down-soft)',
+                      border: `1px solid ${ch24 >= 0 ? 'rgba(70, 209, 107,0.35)' : 'rgba(255, 77, 106,0.35)'}`,
+                      fontSize: 10.5, fontWeight: 800, color: ch24 >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: '"JetBrains Mono", monospace',
                     }}>
-                    {dScore} · {dTier.label}
-                  </span>
-                )}
+                      {ch24 >= 0 ? '▲' : '▼'} {fmtPct(ch24)}
+                    </span>
+                  )}
+                  {dTier && (
+                    <span title="Degen Score — live liquidity depth, FDV backing, volume, buy pressure & whale win rate"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 100,
+                        background: dTier.bg, border: `1px solid ${dTier.border}`,
+                        fontSize: 9.5, fontWeight: 800, color: dTier.color, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.06em',
+                      }}>
+                      {dScore} · {dTier.label}
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textAlign: 'center', padding: '2px 0', width: '100%' }}>
+                {pairLoaded ? 'No live market data for this token' : 'Loading live market…'}
               </div>
-            </div>
-          ) : (
-            <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textAlign: 'center', padding: '2px 0' }}>
-              {pairLoaded ? 'No live market data for this token' : 'Loading live market…'}
-            </div>
-          )}
-        </div>
-
-        {/* ══ STAT WELLS ══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 'min(10px, 1.4vh) 18px 0' }}>
-          {[
-            { icon: <Droplet size={12} />, label: 'Liquidity', value: fmtUsd(pair?.liquidity) },
-            { icon: <Activity size={12} />, label: 'FDV', value: fmtUsd(pair?.fdv) },
-            { icon: <BarChart3 size={12} />, label: 'Vol 24h', value: fmtUsd(pair?.volume?.h24) },
-            { icon: <Activity size={12} />, label: 'B/S 24h', value: pair ? `${pair.txns?.h24Buys ?? 0}/${pair.txns?.h24Sells ?? 0}` : '—' },
-          ].map((it, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, border: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.02)', padding: 'min(8px, 1.1vh) 11px' }}>
-              <div style={{ color: 'var(--text-3)', display: 'flex' }}>{it.icon}</div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{it.label}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>{it.value}</div>
+            )}
+          </div>
+          <PriceChart pair={pair} loaded={pairLoaded} />
+          <div className="chart-stat-strip" style={{ display: 'flex', gap: 4, paddingTop: 'min(5px, 0.7vh)', marginTop: 4, borderTop: '1px solid var(--line-2)', flexShrink: 0 }}>
+            {[
+              ['Liq', fmtUsd(pair?.liquidity)],
+              ['FDV', fmtUsd(pair?.fdv)],
+              ['Vol 24h', fmtUsd(pair?.volume?.h24)],
+              ['B/S', pair ? `${pair.txns?.h24Buys ?? 0}/${pair.txns?.h24Sells ?? 0}` : '—'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+                <div style={{ fontSize: 7.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* ══ AFFORDANCE — even more detail (price changes, links) on the flip side ══ */}
-        <div style={{ marginTop: 'auto', padding: 'min(12px, 1.5vh) 0 min(14px, 2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        <div style={{ flexShrink: 0, padding: 'min(8px, 1vh) 0 min(9px, 1.2vh)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <ChevronUp size={13} color="var(--text-3)" className="animate-bounce" />
           <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>tap for details</span>
         </div>

@@ -87,9 +87,8 @@ export default function TokenImage({
     );
   }
 
-  // Fallback: Initials on gradient background
+  // Fallback: initials stamped bone-on-midnight (two-color system, no gradients)
   const initials = (tokenSymbol || '?').slice(0, 1).toUpperCase();
-  const hue = (tokenAddress?.charCodeAt(0) || 0) * 12;
 
   return (
     <div
@@ -99,12 +98,12 @@ export default function TokenImage({
         borderRadius: '0px',
         display: 'grid',
         placeItems: 'center',
-        background: `linear-gradient(160deg, hsl(${hue} 60% 35%), hsl(${(hue + 40) % 360} 55% 20%))`,
+        background: 'var(--color-midnight-carbon)',
         border: '1px solid var(--color-charcoal-vein)',
         color: 'var(--color-bone-glow)',
         fontSize: `${size * 0.4}px`,
-        fontWeight: 800,
-        fontFamily: 'var(--font-arbeit-contrast)',
+        fontWeight: 400,
+        fontFamily: 'var(--font-arbeit-technik)',
         flexShrink: 0,
       }}
       title={tokenSymbol}

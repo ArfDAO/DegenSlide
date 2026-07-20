@@ -75,42 +75,44 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
     } finally { setBusy(false); }
   };
 
-  const LABEL = { fontSize: 9, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' };
+  const MONO = 'var(--font-arbeit-technik)';
+  const LABEL = { fontSize: 10, fontWeight: 400, color: 'var(--color-bone-dim)', textTransform: 'uppercase', letterSpacing: '-0.3px', fontFamily: MONO };
   const btn = (primary) => ({
-    flex: 1, padding: '10px 0', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-    background: primary ? 'var(--color-tidewater-navy)' : 'rgba(255,255,255,0.05)',
-    border: primary ? 'none' : '1px solid var(--line-1)',
-    color: primary ? '#fff' : 'var(--text-1)',
+    flex: 1, padding: '10px 0', borderRadius: 9999, fontSize: 11, fontWeight: 400, cursor: 'pointer',
+    fontFamily: MONO, letterSpacing: '-0.3px', textTransform: 'uppercase',
+    background: primary ? 'var(--color-bone-glow)' : 'transparent',
+    border: primary ? '1px solid var(--color-bone-glow)' : '1px solid var(--color-charcoal-vein)',
+    color: primary ? 'var(--color-midnight-carbon)' : 'var(--color-bone-glow)',
   });
 
   if (!ready) {
     return (
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-2)' }}>
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <ShieldAlert size={15} style={{ color: '#ffb02e', flexShrink: 0 }} />
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-1)' }}>
+          <ShieldAlert size={15} style={{ color: 'var(--color-bone-glow)', flexShrink: 0 }} />
+          <span style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>
             Accept once — after that, swipes trade instantly with no wallet popups.
           </span>
         </div>
         <ol style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {TERMS.map((t, i) => (
-            <li key={i} style={{ fontSize: 10.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.5 }}>{t}</li>
+            <li key={i} style={{ fontSize: 10.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45 }}>{t}</li>
           ))}
         </ol>
         <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, cursor: 'pointer', userSelect: 'none' }}>
-          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--color-tidewater-navy)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)' }}>I have read and accept the Turbo Trading Agreement.</span>
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--color-bone-glow)' }} />
+          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>I have read and accept the Turbo Trading Agreement.</span>
         </label>
         <button onClick={doAccept} disabled={!agreed}
-          style={{ width: '100%', marginTop: 10, padding: '12px 0', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 800, cursor: agreed ? 'pointer' : 'default', background: agreed ? 'var(--color-tidewater-navy)' : 'rgba(255,255,255,0.05)', color: agreed ? '#fff' : 'var(--text-3)' }}>
-          ⚡ Accept & create Turbo wallet
+          style={{ ...btn(agreed), width: '100%', marginTop: 10, padding: '12px 0', fontSize: 12, cursor: agreed ? 'pointer' : 'default', ...(agreed ? {} : { color: 'var(--color-bone-dim)' }) }}>
+          Accept &amp; create Turbo wallet
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-2)' }}>
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
       <p style={{ ...LABEL, margin: '0 0 6px' }}>Deposit · 1 confirmation, or send {sym} directly to the address above</p>
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
         {quicks.map((q) => (
@@ -118,7 +120,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
         ))}
         <input type="text" inputMode="decimal" placeholder="Custom" value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-          style={{ flex: 1.2, padding: '10px 8px', borderRadius: 12, border: '1px solid var(--line-1)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-1)', fontSize: 12, fontWeight: 700, textAlign: 'center', outline: 'none', minWidth: 0 }} />
+          style={{ flex: 1.2, padding: '10px 8px', borderRadius: 9999, border: '1px solid var(--color-charcoal-vein)', background: 'transparent', color: 'var(--color-bone-glow)', fontSize: 11, fontWeight: 400, fontFamily: MONO, letterSpacing: '-0.3px', textAlign: 'center', outline: 'none', minWidth: 0 }} />
       </div>
       <button onClick={doDeposit} disabled={busy} style={{ ...btn(true), width: '100%', opacity: busy ? 0.6 : 1 }}>
         {busy ? 'Waiting…' : externalWallet ? `Deposit ${amount || '—'} ${sym}` : `Connect wallet to deposit`}
@@ -126,7 +128,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
 
       <p style={{ ...LABEL, margin: '12px 0 6px' }}>Withdraw to</p>
       <input type="text" placeholder={`Your ${sym} address`} value={dest} onChange={(e) => setDest(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', borderRadius: 10, border: '1px solid var(--line-1)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-1)', fontSize: 10.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, outline: 'none', marginBottom: 8 }} />
+        style={{ width: '100%', boxSizing: 'border-box', padding: '9px 14px', borderRadius: 9999, border: '1px solid var(--color-charcoal-vein)', background: 'transparent', color: 'var(--color-bone-glow)', fontSize: 10.5, fontFamily: MONO, letterSpacing: '-0.3px', fontWeight: 400, outline: 'none', marginBottom: 8 }} />
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={doWithdraw} disabled={busy} style={{ ...btn(false), display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
           <ArrowUpRight size={12} /> Withdraw all
@@ -136,12 +138,12 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
         </button>
       </div>
       {exported && (
-        <div style={{ marginTop: 8, background: 'rgba(255, 77, 106,0.06)', border: '1px solid rgba(255, 77, 106,0.3)', borderRadius: 10, padding: '9px 11px' }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--down)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Private key — never share this</div>
-          <div style={{ fontSize: 9.5, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', wordBreak: 'break-all', userSelect: 'all' }}>{exported}</div>
+        <div style={{ marginTop: 8, background: 'transparent', border: '1px solid rgba(255, 77, 106, 0.45)', borderRadius: 0, padding: '9px 11px' }}>
+          <div style={{ fontSize: 9.5, fontWeight: 400, color: 'var(--down)', textTransform: 'uppercase', letterSpacing: '-0.3px', fontFamily: MONO, marginBottom: 4 }}>Private key — never share this</div>
+          <div style={{ fontSize: 9.5, fontFamily: MONO, color: 'var(--color-bone-glow)', wordBreak: 'break-all', userSelect: 'all' }}>{exported}</div>
         </div>
       )}
-      <p style={{ fontSize: 9.5, color: 'var(--text-3)', fontWeight: 600, lineHeight: 1.5, margin: '10px 0 0' }}>
+      <p style={{ fontSize: 9.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45, margin: '10px 0 0' }}>
         <Check size={9} style={{ display: 'inline' }} /> Turbo active — swipes spend from this wallet with no confirmations. Keep only active trading funds here.
       </p>
     </div>

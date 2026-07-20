@@ -15,13 +15,14 @@ export default function StoryFeed({ whaleStories = [], userStories = [] }) {
   if (stories.length === 0) {
     return (
       <div style={{
-        padding: '12px',
+        padding: '8px 12px',
         borderBottom: '1px solid var(--color-charcoal-vein)',
         textAlign: 'center',
+        flexShrink: 0,
       }}>
         <div style={{
           fontSize: '12px',
-          color: 'var(--color-charcoal-vein)',
+          color: 'var(--color-bone-dim)',
           fontFamily: 'var(--font-arbeit-technik)',
           letterSpacing: '-0.6px',
           textTransform: 'uppercase',
@@ -37,13 +38,14 @@ export default function StoryFeed({ whaleStories = [], userStories = [] }) {
       display: 'flex',
       flexDirection: 'column',
       borderBottom: '1px solid var(--color-charcoal-vein)',
+      flexShrink: 0,
     }}>
       {/* Label */}
       <div style={{
-        padding: '8px 12px',
+        padding: '8px 12px 0',
         fontSize: '11px',
         fontFamily: 'var(--font-arbeit-technik)',
-        color: 'var(--color-charcoal-vein)',
+        color: 'var(--color-bone-dim)',
         letterSpacing: '-0.6px',
         textTransform: 'uppercase',
         fontWeight: 400,
@@ -53,11 +55,11 @@ export default function StoryFeed({ whaleStories = [], userStories = [] }) {
       </div>
 
       {/* Horizontal scroll container */}
-      <div style={{
+      <div className="hide-scrollbar" style={{
         display: 'flex',
         overflowX: 'auto',
         gap: '8px',
-        padding: '12px',
+        padding: '8px 12px 10px',
         scrollBehavior: 'smooth',
       }}>
         {stories.map((story, idx) => (

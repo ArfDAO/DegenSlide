@@ -9,7 +9,6 @@ import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
 import Tour from './components/Tour';
 import WhaleRail from './components/WhaleRail';
-import StoryFeed from './components/StoryFeed';
 import ProfileDropdown from './components/ProfileDropdown';
 import UserAvatar from './components/UserAvatar';
 import TokenImage from './components/TokenImage';
@@ -121,22 +120,22 @@ const TOASTS = {
 };
 const TOAST_ICON = { ok: Check, err: AlertTriangle, info: Info };
 
-/* ── Nav icons ── */
+/* ── Nav icons — active sits as white glyph on the orange nav disc ── */
 function IconDeck({ active }) {
-  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.14)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.07)' : 'none'}/></svg>);
+  const c = active ? '#fff' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(255,255,255,0.18)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(255,255,255,0.08)' : 'none'}/></svg>);
 }
 function IconPortfolio({ active }) {
-  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="9" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="10" y="7" width="4" height="14" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/><rect x="17" y="3" width="4" height="18" rx="1.5" fill={c} fillOpacity={active ? 0.9 : 0.4}/></svg>);
+  const c = active ? '#fff' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="9" rx="1.5" fill={c} fillOpacity={active ? 1 : 0.4}/><rect x="10" y="7" width="4" height="14" rx="1.5" fill={c} fillOpacity={active ? 1 : 0.4}/><rect x="17" y="3" width="4" height="18" rx="1.5" fill={c} fillOpacity={active ? 1 : 0.4}/></svg>);
 }
 function IconLeaderboard({ active }) {
-  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(160, 107, 255,0.18)' : 'none'}/></svg>);
+  const c = active ? '#fff' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(255,255,255,0.18)' : 'none'}/></svg>);
 }
 function IconProfile({ active }) {
-  const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.14)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
+  const c = active ? '#fff' : 'var(--text-3)';
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(255,255,255,0.18)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
 }
 const TABS = [
   { id: 'deck', Icon: IconDeck, label: 'Deck' },
@@ -1177,7 +1176,7 @@ export default function App() {
       </aside>
 
       <div className="app-main-col">
-      {/* ── App bar: brand identity + wallet ── */}
+      {/* ── App bar: brand identity (mobile only — desktop shows it in the sidebar) ── */}
       <header className="app-bar">
         <div className="brand">
           <div className="brand-mark">
@@ -1191,44 +1190,66 @@ export default function App() {
             </div>
           </div>
         </div>
-        <ProfileDropdown
-          walletAddress={turboAddr}
-          nftImage={customNFT || bestNFT}
-          onDisconnect={handleDisconnect}
-          onSettings={() => setActiveTab('profile')}
-          onProfileEdit={() => setActiveTab('profile')}
-        />
       </header>
 
-      {/* ── Contextual page head — deck: live-signal count + network switcher ── */}
+      {/* ── Contextual page head — 3-column grid so the chain switcher sits
+          dead-centre and the profile avatar always anchors the top-right,
+          on every breakpoint. ── */}
       <div className="page-head" data-tour={activeTab === 'portfolio' ? 'portfolio-head' : undefined}>
-        {activeTab === 'deck' ? (
-          <span className="page-meta">{deckCards.length} live signals</span>
-        ) : (
-          <h1 className="page-title">
-            {activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
-          </h1>
-        )}
-        {activeTab === 'deck' ? (
-          /* Network switcher — persists choice, reloads onto the selected chain's indexer */
-          <div className="seg-track" data-tour="chain-switch">
-            {Object.values(CHAINS).map((c) => {
-              const on = ACTIVE.id === c.id;
-              return (
-                <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
-                  onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
-                  {c.nativeSymbol}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <span className="page-meta">
-            {activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
-             activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
-             (turboAddr ? `⚡ ${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}` : 'turbo not set up')}
-          </span>
-        )}
+        <div className="page-head-left">
+          {activeTab === 'deck' ? (
+            <>
+              <span className="page-meta">{deckCards.length} live signals</span>
+              {/* Story rail lives up here beside the signal counter — the deck
+                  below keeps the full height for the card. */}
+              <WhaleRail
+                compact
+                watched={watchlistView}
+                curated={curatedWhalesList}
+                onOpenDossier={setDossierAddr}
+                onAdd={() => { setActiveTab('leaderboard'); setLbMode('watchlist'); }}
+              />
+            </>
+          ) : (
+            <h1 className="page-title">
+              {activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
+            </h1>
+          )}
+        </div>
+
+        <div className="page-head-center">
+          {activeTab === 'deck' && (
+            /* Network switcher — persists choice, reloads onto the selected chain's indexer */
+            <div className="seg-track" data-tour="chain-switch">
+              {Object.values(CHAINS).map((c) => {
+                const on = ACTIVE.id === c.id;
+                return (
+                  <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
+                    onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
+                    {c.nativeSymbol}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="page-head-right">
+          {activeTab !== 'deck' && (
+            <span className="page-meta">
+              {activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
+               activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
+               (turboAddr ? `⚡ ${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}` : 'turbo not set up')}
+            </span>
+          )}
+          <ProfileDropdown
+            walletAddress={turboAddr}
+            nftImage={customNFT || bestNFT}
+            onDisconnect={handleDisconnect}
+            onSettings={() => setActiveTab('profile')}
+            onProfileEdit={() => setActiveTab('profile')}
+          />
+        </div>
       </div>
 
       <main className="main-content">
@@ -1288,19 +1309,6 @@ export default function App() {
           </div>
         ) : activeTab === 'deck' ? (
           <div className="deck-view flex flex-col h-full w-full relative">
-            <WhaleRail
-              watched={watchlistView}
-              curated={curatedWhalesList}
-              onOpenDossier={setDossierAddr}
-              onAdd={() => { setActiveTab('leaderboard'); setLbMode('watchlist'); }}
-            />
-            <StoryFeed
-              whaleStories={[
-                { id: 1, type: 'copy', whaleAlias: 'Bold Sniper', tokenSymbol: 'SOL', tokenAddress: 'So11111111111111111111111111111111111111112', chain: 'solana', pnl: 450, pnlPercent: 12.5, timestamp: '5m' },
-                { id: 2, type: 'copy', whaleAlias: 'Iron Wizard', tokenSymbol: 'MON', tokenAddress: 'MON', chain: 'monad', pnl: -120, pnlPercent: -3.2, timestamp: '18m' },
-              ]}
-              userStories={[]}
-            />
             <div className="seg-track wide" data-tour="deck-tiers" style={{ marginBottom: 12, flexShrink: 0 }}>
               {DECK_TIERS.map((tier) => {
                 const active = deckTier === tier.id;
