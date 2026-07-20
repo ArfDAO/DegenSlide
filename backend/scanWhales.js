@@ -31,7 +31,7 @@ const FRESH_BLOCKS = Number(process.env.SCAN_FRESH_BLOCKS || 60000); // always-s
 const HISTORY_DEPTH = Number(process.env.SCAN_HISTORY_DEPTH || 12000000); // how far back the explore walk goes before wrapping to the tip — whale activity lives in the recent window, not at genesis
 const TARGET = Number(process.env.SCAN_TARGET || 1500);          // safety cap on distinct candidate wallets held in memory
 const OUT_COUNT = Number(process.env.OUT_COUNT || 140);
-const MAX_PER_TOKEN = Number(process.env.MAX_PER_TOKEN || 20);   // cap so 1-2 hyper-liquid tokens can't monopolise the roster
+const MAX_PER_TOKEN = Number(process.env.MAX_PER_TOKEN || 45);   // cap so 1-2 hyper-liquid tokens can't monopolise the roster (raised: high-liquidity tokens hold many real, safe-to-copy whales — capping at 20 was discarding them)
 const CHUNK = 90;
 
 const WMON = '0x3bd359c1119da7da1d913d1c4d2b7c461115433a';
