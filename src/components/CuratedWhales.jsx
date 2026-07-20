@@ -117,7 +117,7 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
                   {w.isMarketMaker ? (
                     <>
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${fmtMon(w.lpAddedUsd)} LP</span>
-                      <span style={{ fontSize: 8, fontWeight: 800, color: '#22d3ee', border: '1px solid rgba(34,211,238,0.5)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: '#a06bff', border: '1px solid rgba(160, 107, 255,0.5)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
                     </>
                   ) : (
                     <>
@@ -151,7 +151,7 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
               </div>
               <button onClick={() => onToggleFavorite?.({ address: w.address, tokenSymbol: w.lastToken })} title={saved ? 'Remove from watchlist' : 'Save to watchlist'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, display: 'flex', flexShrink: 0 }}>
-                <Heart size={17} color={saved ? 'var(--down)' : 'var(--color-pebble)'} fill={saved ? '#ff5d7d' : 'none'} />
+                <Heart size={17} color={saved ? 'var(--down)' : 'var(--color-pebble)'} fill={saved ? '#ff4d6a' : 'none'} />
               </button>
             </div>
           );

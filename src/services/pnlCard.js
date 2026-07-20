@@ -31,7 +31,7 @@ export async function sharePnlCard({ symbol, pnlPct, pnlUsd, investedUsd, curren
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   const up = (pnlPct ?? 0) >= 0;
-  const accent = up ? '#2fe6a8' : '#ff5d7d';
+  const accent = up ? '#46d16b' : '#ff4d6a';
 
   // ── background: app-dark with a soft accent glow ──
   const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -40,12 +40,12 @@ export async function sharePnlCard({ symbol, pnlPct, pnlUsd, investedUsd, curren
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W * 0.82, H * 0.2, 60, W * 0.82, H * 0.2, 520);
-  glow.addColorStop(0, up ? 'rgba(47,230,168,0.16)' : 'rgba(255,93,125,0.16)');
+  glow.addColorStop(0, up ? 'rgba(70, 209, 107,0.16)' : 'rgba(255, 77, 106,0.16)');
   glow.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
   const glow2 = ctx.createRadialGradient(W * 0.1, H * 0.9, 40, W * 0.1, H * 0.9, 480);
-  glow2.addColorStop(0, 'rgba(109,93,246,0.18)');
+  glow2.addColorStop(0, 'rgba(240, 81, 30,0.18)');
   glow2.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, W, H);
@@ -72,7 +72,7 @@ export async function sharePnlCard({ symbol, pnlPct, pnlUsd, investedUsd, curren
   ctx.fillStyle = accent;
   ctx.font = '800 148px "JetBrains Mono", monospace';
   const pctText = pnlPct == null ? '—' : `${up ? '+' : ''}${pnlPct.toFixed(1)}%`;
-  ctx.shadowColor = up ? 'rgba(47,230,168,0.45)' : 'rgba(255,93,125,0.45)';
+  ctx.shadowColor = up ? 'rgba(70, 209, 107,0.45)' : 'rgba(255, 77, 106,0.45)';
   ctx.shadowBlur = 42;
   ctx.fillText(pctText, 66, 420);
   ctx.shadowBlur = 0;

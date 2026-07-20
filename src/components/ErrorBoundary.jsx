@@ -25,14 +25,14 @@ export default class ErrorBoundary extends React.Component {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24, background: '#000814', color: '#eef1f8',
+        padding: 24, background: '#0f0709', color: '#fbf1ef',
         fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center',
       }}>
         <div style={{ maxWidth: 380 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 16, margin: '0 auto 16px',
             display: 'grid', placeItems: 'center',
-            background: 'linear-gradient(135deg, #7c6bff, #5946f0 60%, #22d3ee 130%)',
+            background: 'linear-gradient(135deg, #ff6a3d, #f0511e 60%, #a06bff 130%)',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L20 8.5V15.5L12 22L4 15.5V8.5L12 2Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" fill="rgba(255,255,255,0.14)" />
@@ -45,7 +45,7 @@ export default class ErrorBoundary extends React.Component {
           </p>
           <button onClick={() => window.location.reload()} style={{
             padding: '12px 28px', borderRadius: 100, border: 'none', cursor: 'pointer',
-            background: '#5946f0', color: '#fff', fontSize: 14, fontWeight: 700,
+            background: '#f0511e', color: '#fff', fontSize: 14, fontWeight: 700,
           }}>
             Reload app
           </button>

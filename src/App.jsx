@@ -8,6 +8,7 @@ import ProfilePage from './components/ProfilePage';
 import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
 import Tour from './components/Tour';
+import WhaleRail from './components/WhaleRail';
 
 // ── Interactive guided tours (SyncSwap-intro style) — one short spotlight
 // walkthrough per page, auto-shown once. Targets are [data-tour] elements. ──
@@ -36,7 +37,7 @@ const TOURS = {
 const TOUR_KEY = (tab) => `tour_${tab}_v1`;
 import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
-import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Heart } from 'lucide-react';
+import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Star } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
 import {
   fetchWhaleDeck,
@@ -119,7 +120,7 @@ const TOAST_ICON = { ok: Check, err: AlertTriangle, info: Info };
 /* ── Nav icons ── */
 function IconDeck({ active }) {
   const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.14)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.07)' : 'none'}/></svg>);
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="13" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.14)' : 'none'}/><rect x="7" y="5" width="13" height="12" rx="3" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.07)' : 'none'}/></svg>);
 }
 function IconPortfolio({ active }) {
   const c = active ? 'var(--accent-2)' : 'var(--text-3)';
@@ -127,11 +128,11 @@ function IconPortfolio({ active }) {
 }
 function IconLeaderboard({ active }) {
   const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(34,211,238,0.18)' : 'none'}/></svg>);
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={active ? 'rgba(160, 107, 255,0.18)' : 'none'}/></svg>);
 }
 function IconProfile({ active }) {
   const c = active ? 'var(--accent-2)' : 'var(--text-3)';
-  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(34,211,238,0.14)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
+  return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={c} strokeWidth="1.6" fill={active ? 'rgba(160, 107, 255,0.14)' : 'none'}/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></svg>);
 }
 const TABS = [
   { id: 'deck', Icon: IconDeck, label: 'Deck' },
@@ -275,9 +276,9 @@ const STATIC_CURATED = ACTIVE.id === 'monad' ? (curatedWhalesData.whales || []) 
 const TIERS_USD = ACTIVE.tiers;
 const DECK_TIERS = [
   { id: 'all', label: 'All', color: 'var(--text-3)' },
-  { id: 'big', label: 'Big', color: '#38bdf8' },
-  { id: 'shark', label: 'Shark', color: '#a78bfa' },
-  { id: 'whale', label: 'Whale', color: '#22d3ee' },
+  { id: 'big', label: 'Big', color: '#ff9d4d' },
+  { id: 'shark', label: 'Shark', color: '#b98cff' },
+  { id: 'whale', label: 'Whale', color: '#a06bff' },
 ];
 function inTier(usd, id) {
   if (usd < (TIERS_USD.all || 0)) return false; // global floor, every tier
@@ -1098,7 +1099,7 @@ export default function App() {
     <div className="app-container">
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="animate-rocket flex flex-col items-center gap-3"><Heart size={72} strokeWidth={1.5} fill="#ff5d7d" style={{ color: '#ff5d7d' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: '#ff5d7d' }}>Saved</span></div>
+          <div className="animate-rocket flex flex-col items-center gap-3"><Star size={72} strokeWidth={1.5} fill="#9b6bff" style={{ color: '#9b6bff' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: '#9b6bff' }}>Saved</span></div>
         </div>
       )}
 
@@ -1110,7 +1111,7 @@ export default function App() {
 
       {isOffline && (
         <div className="pointer-events-none fixed top-0 left-0 right-0 z-[80] flex justify-center">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 8, padding: '7px 16px', borderRadius: 100, background: 'rgba(245,181,68,0.95)', color: '#1a1508', fontSize: 12, fontWeight: 800, boxShadow: '0 4px 18px rgba(0,0,0,0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 8, padding: '7px 16px', borderRadius: 100, background: 'rgba(255, 176, 46,0.95)', color: '#1a1508', fontSize: 12, fontWeight: 800, boxShadow: '0 4px 18px rgba(0,0,0,0.4)' }}>
             <WifiOff size={14} strokeWidth={2.5} /> No internet — live feed paused
           </div>
         </div>
@@ -1265,7 +1266,7 @@ export default function App() {
                     </a>
                     {h.lastCard && h.lastCard.copyable !== false && (
                       <button onClick={() => sendCopy(h.lastCard, tradeAmount)}
-                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'linear-gradient(135deg, #7c6bff 0%, #5946f0 100%)', boxShadow: '0 3px 12px rgba(109,93,246,0.4)' }}>
+                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)', boxShadow: '0 3px 12px rgba(240, 81, 30,0.4)' }}>
                         Copy
                       </button>
                     )}
@@ -1282,6 +1283,12 @@ export default function App() {
           </div>
         ) : activeTab === 'deck' ? (
           <div className="deck-view flex flex-col h-full w-full relative">
+            <WhaleRail
+              watched={watchlistView}
+              curated={curatedWhalesList}
+              onOpenDossier={setDossierAddr}
+              onAdd={() => { setActiveTab('leaderboard'); setLbMode('watchlist'); }}
+            />
             <div className="seg-track wide" data-tour="deck-tiers" style={{ marginBottom: 12, flexShrink: 0 }}>
               {DECK_TIERS.map((tier) => {
                 const active = deckTier === tier.id;
@@ -1319,7 +1326,9 @@ export default function App() {
                     <Settings size={18} color="var(--color-pebble)" />
                     <span style={{ position: 'absolute', top: -2, right: -2, fontSize: 8, fontWeight: 700, background: 'var(--color-tidewater-navy)', color: '#fff', borderRadius: 8, padding: '1px 5px', lineHeight: '14px' }}>{sizing.mode === 'mirror' ? `${sizing.mirrorPct}%` : tradeAmount}</span>
                   </button>
-                  <button type="button" className="btn-pass" onClick={() => swipe('left')} title="Skip"><X size={24} /></button>
+                  <button type="button" className="btn-pass" onClick={() => swipe('left')} title="Skip"><X size={24} strokeWidth={2.6} /></button>
+                  {/* Copy is the hero action — largest disc, dead centre */}
+                  <button type="button" className="btn-copy" onClick={() => swipe('right')} title="Copy Trade"><Check size={28} strokeWidth={2.8} /></button>
                   {(() => {
                     const top = deckCards[0];
                     const saved = top && favorites.some((f) => (f.address || '').toLowerCase() === (top.address || '').toLowerCase());
@@ -1331,11 +1340,10 @@ export default function App() {
                           toggleFavorite({ address: top.address, tokenSymbol: top.tokenSymbol });
                           showToast('copy', wasSaved ? 'Removed from watchlist' : 'Saved to watchlist');
                         }}>
-                        <Heart size={22} fill={saved ? '#ff5d7d' : 'none'} />
+                        <Star size={22} fill={saved ? '#fff' : 'none'} strokeWidth={2.2} />
                       </button>
                     );
                   })()}
-                  <button type="button" className="btn-copy" onClick={() => swipe('right')} title="Copy Trade"><Check size={24} strokeWidth={2.6} /></button>
                 </div>
                 <div className="kbd-hints" aria-hidden="true">
                   <span><kbd>←</kbd> skip</span>

@@ -98,8 +98,8 @@ export default function WhaleDossier({
             <button onClick={() => onToggleWatch?.(address)}
               style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
-                border: `1px solid ${isWatched ? 'rgba(34,211,238,0.5)' : 'var(--color-silver-lining)'}`,
-                background: isWatched ? 'rgba(34,211,238,0.1)' : 'var(--color-frost-shadow)',
+                border: `1px solid ${isWatched ? 'rgba(160, 107, 255,0.5)' : 'var(--color-silver-lining)'}`,
+                background: isWatched ? 'rgba(160, 107, 255,0.1)' : 'var(--color-frost-shadow)',
                 color: isWatched ? 'var(--accent-2)' : 'var(--color-midnight-ink)',
               }}>
               {isWatched ? <><EyeOff size={14} /> Watching</> : <><Eye size={14} /> Watch</>}
@@ -109,8 +109,8 @@ export default function WhaleDossier({
                 title={autoEnabled ? '' : 'Auto-Copy master switch is off — enable it in Profile'}
                 style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 0', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
-                  border: `1px solid ${isAuto ? 'rgba(109,93,246,0.6)' : 'var(--color-silver-lining)'}`,
-                  background: isAuto ? 'linear-gradient(135deg, #7c6bff 0%, #5946f0 100%)' : 'var(--color-frost-shadow)',
+                  border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
+                  background: isAuto ? 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)' : 'var(--color-frost-shadow)',
                   color: isAuto ? '#fff' : 'var(--color-midnight-ink)',
                   opacity: isAuto && !autoEnabled ? 0.6 : 1,
                 }}>
@@ -132,7 +132,7 @@ export default function WhaleDossier({
                 return (
                   <a key={t.id || i} href={EXPLORER_TX_URL(t.txHash)} target="_blank" rel="noreferrer"
                     style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 0', textDecoration: 'none', borderBottom: i < trades.length - 1 ? '1px solid var(--color-silver-lining)' : 'none' }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 6, flexShrink: 0, color: buy ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)', background: buy ? 'rgba(47,230,168,0.1)' : 'rgba(255,93,125,0.1)' }}>
+                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 6, flexShrink: 0, color: buy ? 'var(--color-aurora-green)' : 'var(--color-aurora-magenta)', background: buy ? 'rgba(70, 209, 107,0.1)' : 'rgba(255, 77, 106,0.1)' }}>
                       {buy ? 'BUY' : 'SELL'}
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-midnight-ink)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${t.tokenSymbol}</span>

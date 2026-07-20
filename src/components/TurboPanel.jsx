@@ -87,7 +87,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
     return (
       <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line-2)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <ShieldAlert size={15} style={{ color: '#f5b544', flexShrink: 0 }} />
+          <ShieldAlert size={15} style={{ color: '#ffb02e', flexShrink: 0 }} />
           <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-1)' }}>
             Accept once — after that, swipes trade instantly with no wallet popups.
           </span>
@@ -136,7 +136,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
         </button>
       </div>
       {exported && (
-        <div style={{ marginTop: 8, background: 'rgba(255,93,125,0.06)', border: '1px solid rgba(255,93,125,0.3)', borderRadius: 10, padding: '9px 11px' }}>
+        <div style={{ marginTop: 8, background: 'rgba(255, 77, 106,0.06)', border: '1px solid rgba(255, 77, 106,0.3)', borderRadius: 10, padding: '9px 11px' }}>
           <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--down)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Private key — never share this</div>
           <div style={{ fontSize: 9.5, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', wordBreak: 'break-all', userSelect: 'all' }}>{exported}</div>
         </div>

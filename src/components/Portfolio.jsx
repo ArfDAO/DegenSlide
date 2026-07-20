@@ -72,7 +72,7 @@ function Summary({ rows, monData }) {
   return (
     <div style={{
       position: 'relative', overflow: 'hidden', borderRadius: 22, padding: '18px 18px 14px', marginBottom: 12,
-      background: `radial-gradient(130% 90% at 20% 0%, ${up ? 'rgba(47,230,168,0.09)' : 'rgba(255,93,125,0.09)'} 0%, transparent 55%), var(--surface-1)`,
+      background: `radial-gradient(130% 90% at 20% 0%, ${up ? 'rgba(70, 209, 107,0.09)' : 'rgba(255, 77, 106,0.09)'} 0%, transparent 55%), var(--surface-1)`,
       border: '1px solid var(--line-1)', boxShadow: 'var(--shadow-md)',
     }}>
       <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>Portfolio value</div>
@@ -82,7 +82,7 @@ function Summary({ rows, monData }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 100,
             background: up ? 'var(--up-soft)' : 'var(--down-soft)',
-            border: `1px solid ${up ? 'rgba(47,230,168,0.35)' : 'rgba(255,93,125,0.35)'}`,
+            border: `1px solid ${up ? 'rgba(70, 209, 107,0.35)' : 'rgba(255, 77, 106,0.35)'}`,
             fontSize: 11.5, fontWeight: 800, color: col, fontFamily: '"JetBrains Mono", monospace',
           }}>
             {up ? '▲' : '▼'} {pnl >= 0 ? '+' : ''}{fmtUsd(pnl)} · {fmtPct(pnlPct)}
@@ -219,10 +219,10 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
           onClick={() => onSetTargets(p.id, { sellOnWhaleExit: !p.sellOnWhaleExit })}
           style={{
             flexShrink: 0, padding: '7px 14px', borderRadius: 100, cursor: 'pointer', fontSize: 11, fontWeight: 800,
-            border: p.sellOnWhaleExit ? '1px solid rgba(34,211,238,0.5)' : '1px solid var(--color-silver-lining)',
-            background: p.sellOnWhaleExit ? 'rgba(34,211,238,0.12)' : 'transparent',
+            border: p.sellOnWhaleExit ? '1px solid rgba(160, 107, 255,0.5)' : '1px solid var(--color-silver-lining)',
+            background: p.sellOnWhaleExit ? 'rgba(160, 107, 255,0.12)' : 'transparent',
             color: p.sellOnWhaleExit ? 'var(--accent-2)' : 'var(--color-pebble)',
-            boxShadow: p.sellOnWhaleExit ? '0 0 14px rgba(34,211,238,0.2)' : 'none',
+            boxShadow: p.sellOnWhaleExit ? '0 0 14px rgba(160, 107, 255,0.2)' : 'none',
           }}>
           {p.sellOnWhaleExit ? 'ON' : 'OFF'}
         </button>

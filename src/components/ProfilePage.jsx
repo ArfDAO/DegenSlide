@@ -119,7 +119,7 @@ function ActivityList({ activity }) {
             : `${a.fraction != null && a.fraction < 0.999 ? `${Math.round(a.fraction * 100)}%` : 'all'}${a.auto ? ` · auto (${AUTO_LABELS[a.auto] || a.auto})` : ''}`;
           return (
             <div key={a.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid var(--color-silver-lining)' }}>
-              <div style={{ width: 26, height: 26, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center', background: buy ? 'rgba(47,230,168,0.12)' : 'rgba(255,93,125,0.12)' }}>
+              <div style={{ width: 26, height: 26, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center', background: buy ? 'rgba(70, 209, 107,0.12)' : 'rgba(255, 77, 106,0.12)' }}>
                 {buy ? <ArrowUpRight size={14} color={col} /> : <ArrowDownRight size={14} color={col} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -192,14 +192,14 @@ export default function ProfilePage({
         {/* ── Wallet hero — gradient identity card ── */}
         <div data-tour="turbo-card" style={{
           position: 'relative', overflow: 'hidden', borderRadius: 24, padding: 18,
-          background: 'radial-gradient(140% 110% at 15% 0%, rgba(109,93,246,0.22) 0%, rgba(34,211,238,0.06) 45%, transparent 70%), var(--surface-1)',
-          border: '1px solid rgba(109,93,246,0.25)', boxShadow: 'var(--shadow-md)',
+          background: 'radial-gradient(140% 110% at 15% 0%, rgba(240, 81, 30,0.22) 0%, rgba(160, 107, 255,0.06) 45%, transparent 70%), var(--surface-1)',
+          border: '1px solid rgba(240, 81, 30,0.25)', boxShadow: 'var(--shadow-md)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 48, height: 48, borderRadius: 16, flexShrink: 0, display: 'grid', placeItems: 'center',
-              background: 'linear-gradient(135deg, #7c6bff 0%, #5946f0 60%, #22d3ee 140%)',
-              boxShadow: '0 5px 18px rgba(109,93,246,0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
+              background: 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 60%, #a06bff 140%)',
+              boxShadow: '0 5px 18px rgba(240, 81, 30,0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
               fontSize: 15, fontWeight: 800, color: '#fff', fontFamily: '"JetBrains Mono", monospace',
             }}>
               {walletAddress ? walletAddress.slice(ACTIVE.kind === 'evm' ? 2 : 0, ACTIVE.kind === 'evm' ? 4 : 2).toUpperCase() : '··'}
@@ -258,7 +258,7 @@ export default function ProfilePage({
 
         {/* ── Auto-Copy (follow mode) — hands-free copying with hard budgets ── */}
         {autoCopy && (
-          <div data-tour="autocopy-card" style={{ ...CARD, padding: '14px 16px', border: autoCopy.enabled ? '1px solid rgba(109,93,246,0.45)' : CARD.border }}>
+          <div data-tour="autocopy-card" style={{ ...CARD, padding: '14px 16px', border: autoCopy.enabled ? '1px solid rgba(240, 81, 30,0.45)' : CARD.border }}>
             <SectionTitle icon={<span style={{ fontSize: 12 }}>🤖</span>} accent={autoCopy.enabled ? 'var(--color-deep-iris)' : undefined}>Auto-Copy</SectionTitle>
             <SettingRow title="Follow whales hands-free" desc="Instantly copy every BUY from whales marked AUTO in your watchlist. Spends from the Turbo wallet — bounded by the budget below.">
               <Toggle on={!!autoCopy.enabled} onChange={(v) => updateAutoCopy({ enabled: v })} />

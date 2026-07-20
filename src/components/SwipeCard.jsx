@@ -19,10 +19,10 @@ export function generateAlias(addr) {
 function sizeBadge(usd) {
   const v = Number(usd) || 0;
   const t = ACTIVE.tiers;
-  if (v >= t.whale) return { label: 'WHALE', color: '#22d3ee' };
-  if (v >= t.shark) return { label: 'SHARK', color: '#a78bfa' };
-  if (v >= t.big)   return { label: 'BIG',   color: '#38bdf8' };
-  return { label: 'ACTIVE', color: '#8b93a7' };
+  if (v >= t.whale) return { label: 'WHALE', color: '#a06bff' };
+  if (v >= t.shark) return { label: 'SHARK', color: '#b98cff' };
+  if (v >= t.big)   return { label: 'BIG',   color: '#ff9d4d' };
+  return { label: 'ACTIVE', color: '#b9a3a0' };
 }
 function fmtMonShort(v) {
   const a = Math.abs(v);
@@ -102,7 +102,7 @@ function ChangeBars({ change }) {
           <div key={p.k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
             <div style={{
               width: '100%', maxWidth: 34, height: h, borderRadius: 4,
-              background: up ? 'rgba(47,230,168,0.85)' : 'rgba(255,93,125,0.85)',
+              background: up ? 'rgba(70, 209, 107,0.85)' : 'rgba(255, 77, 106,0.85)',
             }} />
             <span style={{ fontSize: 8, fontWeight: 700, color: up ? 'var(--up)' : 'var(--down)' }}>{fmtPct(v)}</span>
             <span style={{ fontSize: 8, color: 'var(--color-pebble)', fontWeight: 600 }}>{p.k}</span>
@@ -359,7 +359,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     const cfg = {
       right: { text: 'COPY', color: 'var(--up)', rot: -16 },
       left:  { text: 'SKIP', color: 'var(--down)', rot: 16 },
-      up:    { text: 'SAVE', color: '#ff5d7d', rot: 0 },
+      up:    { text: 'SAVE', color: '#ff4d6a', rot: 0 },
     }[dir];
     const pos = dir === 'right' ? { top: 56, left: 24 } : dir === 'left' ? { top: 56, right: 24 } : { top: 56, left: '50%', transform: 'translateX(-50%)' };
     return (
@@ -422,15 +422,15 @@ const SwipeCard = forwardRef(function SwipeCard(
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '13px 18px',
           background: isBuy
-            ? 'linear-gradient(100deg, rgba(47,230,168,0.16) 0%, rgba(47,230,168,0.03) 55%, transparent 100%)'
-            : 'linear-gradient(100deg, rgba(255,93,125,0.16) 0%, rgba(255,93,125,0.03) 55%, transparent 100%)',
+            ? 'linear-gradient(100deg, rgba(70, 209, 107,0.16) 0%, rgba(70, 209, 107,0.03) 55%, transparent 100%)'
+            : 'linear-gradient(100deg, rgba(255, 77, 106,0.16) 0%, rgba(255, 77, 106,0.03) 55%, transparent 100%)',
           borderBottom: '1px solid var(--line-2)',
         }}>
           <span style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 100,
             background: sideColor, color: '#04060c', fontSize: 11, fontWeight: 900,
             letterSpacing: '0.08em', fontFamily: '"JetBrains Mono", monospace',
-            boxShadow: isBuy ? '0 0 16px rgba(47,230,168,0.4)' : '0 0 16px rgba(255,93,125,0.4)',
+            boxShadow: isBuy ? '0 0 16px rgba(70, 209, 107,0.4)' : '0 0 16px rgba(255, 77, 106,0.4)',
           }}>
             {isBuy ? '↗' : '↘'} {trader.side}
           </span>
@@ -438,7 +438,7 @@ const SwipeCard = forwardRef(function SwipeCard(
             {trader.dex}{trader.feeTier ? ` · ${(trader.feeTier / 10000).toFixed(2)}%` : ''}
           </span>
           {trader.copyable === false && (
-            <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-soft)', border: '1px solid rgba(245,181,68,0.4)', padding: '2px 7px', borderRadius: 100, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watch only</span>
+            <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-soft)', border: '1px solid rgba(255, 176, 46,0.4)', padding: '2px 7px', borderRadius: 100, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watch only</span>
           )}
           {consensusCount >= 2 && (
             <span title={`${consensusCount} different whales bought this token in the last 24h — consensus signal`}
@@ -486,8 +486,8 @@ const SwipeCard = forwardRef(function SwipeCard(
               </span>
               <span style={{ fontSize: 8.5, fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>{badge.label}</span>
               {isCurated && (
-                <span title="On your tracked whale roster" style={{ display: 'flex', alignItems: 'center', padding: '1px 7px', borderRadius: 100, background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.35)' }}>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tracked</span>
+                <span title="On your tracked whale roster" style={{ display: 'flex', alignItems: 'center', padding: '1px 7px', borderRadius: 100, background: 'rgba(160, 107, 255,0.1)', border: '1px solid rgba(160, 107, 255,0.35)' }}>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: '#a06bff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tracked</span>
                 </span>
               )}
             </div>
@@ -502,36 +502,57 @@ const SwipeCard = forwardRef(function SwipeCard(
           </div>
         </div>
 
-        {/* ══ TOKEN HERO — the centerpiece ══ */}
-        <div style={{ padding: 'min(18px, 2vh) 18px 0', textAlign: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+        {/* ══ TOKEN HERO — the centerpiece, on its own ember gradient bed ══
+            flexShrink: 0 keeps this at its natural content height — without
+            it the flex column squeezes the box under pressure and the
+            overflow:hidden (needed for the darken overlay's radius) clips
+            the price text instead of the layout simply growing taller. */}
+        <div style={{
+          position: 'relative',
+          flexShrink: 0,
+          margin: 'min(14px, 1.6vh) 12px 0',
+          padding: 'min(18px, 2vh) 14px min(16px, 1.8vh)',
+          textAlign: 'center',
+          borderRadius: 22,
+          background: 'var(--gradient-hero)',
+          boxShadow: '0 10px 30px rgba(160, 25, 25, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+          overflow: 'hidden',
+        }}>
+          {/* darkens the lower half so the numbers keep contrast on the gradient */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'linear-gradient(180deg, transparent 35%, rgba(40, 4, 8, 0.42) 100%)',
+          }} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {pair?.imageUrl ? (
               <img src={pair.imageUrl} alt="" style={{ width: 34, height: 34, borderRadius: '50%', boxShadow: '0 0 0 2px var(--line-1), 0 4px 14px rgba(0,0,0,0.5)' }} />
             ) : (
               <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--surface-3)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-2)' }}>{(trader.tokenSymbol || '?').slice(0, 1)}</div>
             )}
-            <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.035em', fontFamily: 'var(--font-display)' }}>${trader.tokenSymbol}</span>
+            <span style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', fontFamily: 'var(--font-display)', textShadow: '0 2px 10px rgba(90, 8, 14, 0.45)' }}>${trader.tokenSymbol}</span>
             {ageLabel && (
               <span title={ageRisky ? 'Fresh pair — extra rug risk' : 'Pair age on this DEX'}
                 style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 100, letterSpacing: '0.06em', fontFamily: '"JetBrains Mono", monospace',
-                  color: ageRisky ? '#f5b544' : 'var(--text-3)', border: `1px solid ${ageRisky ? 'rgba(245,181,68,0.45)' : 'var(--line-2)'}`,
-                  background: ageRisky ? 'rgba(245,181,68,0.08)' : 'rgba(255,255,255,0.03)' }}>
+                  color: '#fff', border: `1px solid ${ageRisky ? 'rgba(255, 226, 150, 0.85)' : 'rgba(255,255,255,0.42)'}`,
+                  background: ageRisky ? 'rgba(90, 8, 14, 0.42)' : 'rgba(255,255,255,0.14)' }}>
                 {ageRisky ? '⚠ ' : ''}{ageLabel}
               </span>
             )}
           </div>
           {tradeUsd != null && (
-            <div style={{ marginTop: 8, fontSize: 'clamp(28px, 5vh, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: sideColor, fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: isBuy ? '0 0 34px rgba(47,230,168,0.35)' : '0 0 34px rgba(255,93,125,0.35)' }}>
+            /* On the ember bed the side is already signalled by the banner —
+               keep the headline white so it stays legible against orange. */
+            <div style={{ position: 'relative', marginTop: 8, fontSize: 'clamp(28px, 5vh, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', fontFamily: '"JetBrains Mono", monospace', lineHeight: 1, textShadow: '0 3px 16px rgba(70, 4, 10, 0.5)' }}>
               {fmtUsd(tradeUsd)}
             </div>
           )}
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>
+          <div style={{ position: 'relative', marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.86)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>
             {/* USDC-quoted Solana trades carry no native amount — fall back to the trade size we do know */}
             whale {isBuy ? 'bought' : 'sold'} · {trader.amountMon >= 0.01
               ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}`
               : (tradeUsd != null ? fmtUsd(tradeUsd) : `— ${ACTIVE.nativeSymbol}`)}
             {sinceEntry != null && (
-              <span style={{ marginLeft: 8, color: sinceEntry >= 0 ? 'var(--up)' : 'var(--down)', letterSpacing: '0.04em' }}
+              <span style={{ marginLeft: 8, color: sinceEntry >= 0 ? '#c6ffd8' : '#ffd0d8', letterSpacing: '0.04em', fontWeight: 800 }}
                 title="Price move since the whale's entry — negative means you'd enter cheaper than the whale">
                 since entry {sinceEntry >= 0 ? '+' : ''}{Math.abs(sinceEntry) >= 100 ? sinceEntry.toFixed(0) : sinceEntry.toFixed(1)}%
               </span>
@@ -552,7 +573,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                   <span style={{
                     display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 100,
                     background: ch24 >= 0 ? 'var(--up-soft)' : 'var(--down-soft)',
-                    border: `1px solid ${ch24 >= 0 ? 'rgba(47,230,168,0.35)' : 'rgba(255,93,125,0.35)'}`,
+                    border: `1px solid ${ch24 >= 0 ? 'rgba(70, 209, 107,0.35)' : 'rgba(255, 77, 106,0.35)'}`,
                     fontSize: 12, fontWeight: 800, color: ch24 >= 0 ? 'var(--up)' : 'var(--down)', fontFamily: '"JetBrains Mono", monospace',
                   }}>
                     {ch24 >= 0 ? '▲' : '▼'} {fmtPct(ch24)}
@@ -668,7 +689,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                         <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3.5px 0' }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-pebble)', width: 108, flexShrink: 0 }}>{p.label}</span>
                           <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'rgba(128,128,128,0.15)', overflow: 'hidden' }}>
-                            <div style={{ width: `${(p.pts / p.max) * 100}%`, height: '100%', borderRadius: 3, background: p.pts / p.max >= 0.66 ? 'var(--up)' : p.pts / p.max >= 0.33 ? '#f5b544' : 'var(--down)' }} />
+                            <div style={{ width: `${(p.pts / p.max) * 100}%`, height: '100%', borderRadius: 3, background: p.pts / p.max >= 0.66 ? 'var(--up)' : p.pts / p.max >= 0.33 ? '#ffb02e' : 'var(--down)' }} />
                           </div>
                           <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: '"JetBrains Mono", monospace', width: 34, textAlign: 'right', flexShrink: 0 }}>{p.pts}/{p.max}</span>
                         </div>
@@ -730,13 +751,13 @@ const SwipeCard = forwardRef(function SwipeCard(
                   if (ageRisky) flags.push('Pair younger than 24h — unproven');
                   if (pair.fdv && pair.liquidity && pair.fdv / pair.liquidity > 100) flags.push(`FDV is ${(pair.fdv / pair.liquidity).toFixed(0)}× liquidity — little real backing`);
                   return flags.length ? (
-                    <div style={{ borderRadius: 12, border: '1px solid rgba(245,181,68,0.4)', background: 'rgba(245,181,68,0.07)', padding: '10px 13px', marginBottom: 16 }}>
+                    <div style={{ borderRadius: 12, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.07)', padding: '10px 13px', marginBottom: 16 }}>
                       {flags.map((f, i) => (
                         <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: '#b98a2e', lineHeight: 1.6 }}>⚠ {f}</div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ borderRadius: 12, border: '1px solid rgba(47,230,168,0.35)', background: 'rgba(47,230,168,0.06)', padding: '10px 13px', marginBottom: 16, fontSize: 10.5, fontWeight: 700, color: 'var(--color-aurora-green)' }}>
+                    <div style={{ borderRadius: 12, border: '1px solid rgba(70, 209, 107,0.35)', background: 'rgba(70, 209, 107,0.06)', padding: '10px 13px', marginBottom: 16, fontSize: 10.5, fontWeight: 700, color: 'var(--color-aurora-green)' }}>
                       ✓ No red flags in live market data
                     </div>
                   );

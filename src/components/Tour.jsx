@@ -96,14 +96,14 @@ export default function Tour({ steps, onDone }) {
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 14, gap: 8 }}>
             <div style={{ display: 'flex', gap: 4, marginRight: 'auto' }}>
               {steps.map((_, i) => (
-                <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === idx ? 'var(--color-deep-iris, #7c6bff)' : 'rgba(128,128,150,0.35)' }} />
+                <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === idx ? 'var(--color-deep-iris, #ff6a3d)' : 'rgba(128,128,150,0.35)' }} />
               ))}
             </div>
             <button onClick={onDone} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--color-pebble)', padding: '7px 8px' }}>Skip</button>
             {idx > 0 && (
               <button onClick={back} style={{ background: 'var(--color-frost-shadow)', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--color-midnight-ink)', padding: '8px 13px', borderRadius: 10 }}>Back</button>
             )}
-            <button onClick={next} style={{ background: 'linear-gradient(135deg, #7c6bff 0%, #5946f0 100%)', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 800, color: '#fff', padding: '8px 16px', borderRadius: 10, boxShadow: '0 3px 12px rgba(109,93,246,0.4)' }}>
+            <button onClick={next} style={{ background: 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 800, color: '#fff', padding: '8px 16px', borderRadius: 10, boxShadow: '0 3px 12px rgba(240, 81, 30,0.4)' }}>
               {idx < steps.length - 1 ? 'Next' : 'Got it'}
             </button>
           </div>

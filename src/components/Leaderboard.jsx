@@ -33,7 +33,7 @@ function alias(addr, i) {
 }
 
 const RANK_STYLE = {
-  1: { bg: 'linear-gradient(135deg, #f5b544, #d98e1f)', glow: '0 3px 12px rgba(245,181,68,0.4)' },
+  1: { bg: 'linear-gradient(135deg, #ffb02e, #d98e1f)', glow: '0 3px 12px rgba(255, 176, 46,0.4)' },
   2: { bg: 'linear-gradient(135deg, #c7cede, #8d96ac)', glow: '0 3px 12px rgba(199,206,222,0.25)' },
   3: { bg: 'linear-gradient(135deg, #d99e6d, #a96b3c)', glow: '0 3px 12px rgba(217,158,109,0.3)' },
 };
@@ -55,7 +55,7 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
           width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
           background: medal ? medal.bg : 'var(--surface-2)',
           boxShadow: medal?.glow || 'none',
-          color: medal ? '#0a0d16' : 'var(--text-3)', fontSize: medal ? 14 : 11, fontWeight: 800,
+          color: medal ? '#1a0507' : 'var(--text-3)', fontSize: medal ? 14 : 11, fontWeight: 800,
           fontFamily: 'var(--font-display)',
         }}>
           {rank}
@@ -68,7 +68,7 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
               style={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', fontWeight: 700, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>
               {t.address.slice(0, 7)}…{t.address.slice(-4)}
             </a>
-            {t.verified && (<span title="Verified whale (bot-filtered)" style={{ display: 'inline-flex', alignItems: 'center', color: '#22d3ee', flexShrink: 0 }}><BadgeCheck size={13} /></span>)}
+            {t.verified && (<span title="Verified whale (bot-filtered)" style={{ display: 'inline-flex', alignItems: 'center', color: '#a06bff', flexShrink: 0 }}><BadgeCheck size={13} /></span>)}
             {t.lastToken && (<span style={{ flexShrink: 0, borderRadius: 100, padding: '1px 7px', fontSize: 8, textTransform: 'uppercase', background: 'var(--accent-soft)', color: 'var(--color-deep-iris)', fontWeight: 800, letterSpacing: '0.04em' }}>${t.lastToken}</span>)}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>
@@ -96,7 +96,7 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
       </div>
       {/* relative volume bar — instantly shows who moves real size */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: 'rgba(255,255,255,0.03)' }}>
-        <div style={{ width: `${volShare * 100}%`, height: '100%', background: medal ? 'linear-gradient(90deg, var(--accent), var(--accent-2))' : 'rgba(109,93,246,0.35)' }} />
+        <div style={{ width: `${volShare * 100}%`, height: '100%', background: medal ? 'linear-gradient(90deg, var(--accent), var(--accent-2))' : 'rgba(240, 81, 30,0.35)' }} />
       </div>
     </div>
   );

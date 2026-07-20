@@ -80,8 +80,8 @@ export function degenScore(inputs) {
 }
 
 export function scoreTier(score) {
-  if (score >= 75) return { label: 'SOLID', color: 'var(--up)', bg: 'rgba(47,230,168,0.12)', border: 'rgba(47,230,168,0.35)' };
-  if (score >= 55) return { label: 'DECENT', color: '#22d3ee', bg: 'rgba(34,211,238,0.10)', border: 'rgba(34,211,238,0.35)' };
-  if (score >= 35) return { label: 'RISKY', color: '#f5b544', bg: 'rgba(245,181,68,0.10)', border: 'rgba(245,181,68,0.35)' };
-  return { label: 'DEGEN', color: 'var(--down)', bg: 'rgba(255,93,125,0.10)', border: 'rgba(255,93,125,0.35)' };
+  if (score >= 75) return { label: 'SOLID', color: 'var(--up)', bg: 'rgba(70, 209, 107,0.12)', border: 'rgba(70, 209, 107,0.35)' };
+  if (score >= 55) return { label: 'DECENT', color: '#a06bff', bg: 'rgba(160, 107, 255,0.10)', border: 'rgba(160, 107, 255,0.35)' };
+  if (score >= 35) return { label: 'RISKY', color: '#ffb02e', bg: 'rgba(255, 176, 46,0.10)', border: 'rgba(255, 176, 46,0.35)' };
+  return { label: 'DEGEN', color: 'var(--down)', bg: 'rgba(255, 77, 106,0.10)', border: 'rgba(255, 77, 106,0.35)' };
 }

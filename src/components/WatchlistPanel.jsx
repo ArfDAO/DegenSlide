@@ -15,7 +15,7 @@ function WalletRow({ wallet, onRemove, onOpenDossier, isAuto, onToggleAuto, auto
       onClick={() => onOpenDossier?.(wallet)}
       style={{
         background: 'var(--color-paper-white)',
-        border: `1px solid ${isAuto ? 'rgba(109,93,246,0.4)' : 'var(--color-silver-lining)'}`,
+        border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.4)' : 'var(--color-silver-lining)'}`,
         boxShadow: 'var(--shadow-md)',
         borderRadius: 16,
         marginBottom: 10,
@@ -40,10 +40,10 @@ function WalletRow({ wallet, onRemove, onOpenDossier, isAuto, onToggleAuto, auto
             style={{
               display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
               padding: '4px 9px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
-              border: `1px solid ${isAuto ? 'rgba(109,93,246,0.6)' : 'var(--color-silver-lining)'}`,
-              background: isAuto ? 'linear-gradient(135deg, #7c6bff 0%, #5946f0 100%)' : 'transparent',
+              border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
+              background: isAuto ? 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)' : 'transparent',
               color: isAuto ? '#fff' : 'var(--color-pebble)',
-              boxShadow: isAuto ? '0 2px 10px rgba(109,93,246,0.4)' : 'none',
+              boxShadow: isAuto ? '0 2px 10px rgba(240, 81, 30,0.4)' : 'none',
               opacity: isAuto && !autoEnabled ? 0.55 : 1,
             }}
           >
@@ -147,7 +147,7 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove, autoWhales = 
         ) : (
           <>
             {onToggleAuto && autoWhales.length > 0 && !autoEnabled && (
-              <div style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(245,181,68,0.4)', background: 'rgba(245,181,68,0.08)', fontSize: 10.5, fontWeight: 700, color: '#f5b544', lineHeight: 1.5 }}>
+              <div style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.08)', fontSize: 10.5, fontWeight: 700, color: '#ffb02e', lineHeight: 1.5 }}>
                 🤖 {autoWhales.length} whale{autoWhales.length === 1 ? '' : 's'} marked AUTO, but Auto-Copy is off — enable it in Profile to start hands-free copying.
               </div>
             )}
