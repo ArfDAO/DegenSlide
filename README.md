@@ -1,4 +1,4 @@
-# DegenSlide — Monad Mainnet Whale Copy-Trade
+# DegenSlide —- Monad Mainnet Whale Copy-Trade
 
 Tinder-style copy trading on **Monad mainnet**. The app surfaces real whales
 the moment they trade and lets you copy their buys with a swipe — **no mock,
