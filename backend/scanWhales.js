@@ -26,9 +26,10 @@ import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
 const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap floor (discovery gathers cumulative behaviour)
 const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 150000);    // high-liquidity token floor (raised: thin pools + tax tokens were reverting real copy-trades)
-const MAX_BLOCKS = Number(process.env.SCAN_MAX_BLOCKS || 300000); // deeper window so low-volume-but-real tokens accumulate enough candidates
-const TARGET = Number(process.env.SCAN_TARGET || 400);           // distinct candidate wallets before bot-filtering
-const OUT_COUNT = Number(process.env.OUT_COUNT || 100);
+const MAX_BLOCKS = Number(process.env.SCAN_MAX_BLOCKS || 300000); // explore-window size (rotates through history each run)
+const FRESH_BLOCKS = Number(process.env.SCAN_FRESH_BLOCKS || 60000); // always-scan window at the chain tip → catches brand-new whales
+const TARGET = Number(process.env.SCAN_TARGET || 1500);          // safety cap on distinct candidate wallets held in memory
+const OUT_COUNT = Number(process.env.OUT_COUNT || 140);
 const MAX_PER_TOKEN = Number(process.env.MAX_PER_TOKEN || 20);   // cap so 1-2 hyper-liquid tokens can't monopolise the roster
 const CHUNK = 90;
 
@@ -229,22 +230,52 @@ async function classify(w) {
   return { isContract, arbBot, churnBot, directionality, isBot: isContract || arbBot || churnBot };
 }
 
-async function main() {
-  await refreshMonPrice();
-  const current = await provider.getBlockNumber();
-  const floor = Math.max(0, current - MAX_BLOCKS);
-  console.log(`[scan] MON=$${monPriceUsd} · min $${SCAN_MIN_USD}/swap · liq≥$${MIN_LIQ_USD} · blocks ${floor}→${current}`);
-  let to = current, scanned = 0;
-  while (to > floor && whales.size < TARGET) {
-    const from = Math.max(floor, to - CHUNK + 1);
+// Scan one contiguous block window [fromBlock, toBlock], newest→oldest.
+async function scanRange(fromBlock, toBlock, label) {
+  let to = toBlock, scanned = 0;
+  while (to >= fromBlock && whales.size < TARGET) {
+    const from = Math.max(fromBlock, to - CHUNK + 1);
     let logs = [];
     try { logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [ALL_TOPICS] }); }
     catch { to = from - 1; continue; }
     for (const log of logs) { await processLog(log).catch(() => {}); }
     scanned += (to - from + 1);
-    if (scanned % (CHUNK * 20) < CHUNK) console.log(`[scan] ~${scanned} blocks · ${whales.size} candidate wallets (block ${from})`);
+    if (scanned % (CHUNK * 25) < CHUNK) console.log(`[scan:${label}] ~${scanned} blocks · ${whales.size} candidates (block ${from})`);
     to = from - 1;
   }
+  return scanned;
+}
+
+async function main() {
+  await refreshMonPrice();
+  const current = await provider.getBlockNumber();
+
+  // The old scan always re-read the SAME recent window from the tip, so every
+  // run re-found the same wallets and the roster plateaued. Now discovery walks
+  // the WHOLE chain: a rotating explore-cursor moves one MAX_BLOCKS window
+  // further back each run (persisted in the file, which CI checks out fresh),
+  // plus a fixed FRESH window at the tip so brand-new whales are never missed.
+  let prevData = {};
+  try { prevData = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'curatedWhales.json'), 'utf8')); } catch { /* first run */ }
+  let exploreEnd = Number.isFinite(prevData.scanCursorBlock) ? prevData.scanCursorBlock : current;
+  if (!(exploreEnd > FRESH_BLOCKS) || exploreEnd > current) exploreEnd = current; // wrap/reset to tip
+
+  console.log(`[scan] MON=$${monPriceUsd} · min $${SCAN_MIN_USD}/swap · liq≥$${MIN_LIQ_USD} · tip ${current}`);
+
+  // Pass A — fresh tip window (brand-new whales, every run)
+  const freshFrom = Math.max(0, current - FRESH_BLOCKS);
+  let scanned = await scanRange(freshFrom, current, 'fresh');
+
+  // Pass B — rotating explore window (a different historical slice each run)
+  const exploreTo = Math.min(exploreEnd, freshFrom - 1); // don't re-scan the fresh window
+  const exploreFrom = Math.max(0, exploreTo - MAX_BLOCKS);
+  if (exploreTo > exploreFrom) {
+    console.log(`[scan] explore window ${exploreFrom}→${exploreTo} (cursor was ${exploreEnd})`);
+    scanned += await scanRange(exploreFrom, exploreTo, 'explore');
+  }
+  // advance cursor backward; wrap to the tip once the walk passes genesis
+  let nextCursor = exploreFrom - 1;
+  if (nextCursor <= FRESH_BLOCKS) nextCursor = current;
 
   // rank candidates by trade volume OR liquidity provided (market makers count too)
   const score = (w) => Math.max(w.volumeUsd, w.lpAddedUsd);
@@ -351,6 +382,7 @@ async function main() {
     source: 'Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)',
     scannedAt: new Date().toISOString(),
     scannedBlocks: scanned, minUsdPerSwap: SCAN_MIN_USD, minLiquidityUsd: MIN_LIQ_USD,
+    scanCursorBlock: nextCursor, // rotating explore cursor — next run continues the history walk here
     botsRemoved: { contracts: dropContract, sameBlockArb: dropArb, churnMM: dropChurn },
     count: mergedWhales.length, whales: mergedWhales,
   }, null, 2));
