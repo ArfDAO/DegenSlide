@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import TokenImage from './TokenImage';
 
 /* ═══════════════════════════════════════════════════════════════════
    STORY CARD — Compact story showing whale copy result or user activity
@@ -13,7 +14,9 @@ export default function StoryCard({
   type = 'copy', // 'copy' | 'share' | 'whale'
   whaleAlias,
   tokenSymbol,
+  tokenAddress,
   tokenImage,
+  chain = 'monad',
   pnl,
   pnlPercent,
   timestamp,
@@ -36,32 +39,17 @@ export default function StoryCard({
     }}>
       {/* Token Image */}
       <div style={{
-        width: size === 'sm' ? '100%' : '48px',
-        height: size === 'sm' ? '100px' : '48px',
-        borderRadius: '0px',
-        background: 'var(--color-charcoal-vein)',
         display: 'grid',
         placeItems: 'center',
         flexShrink: 0,
-        border: '1px solid var(--color-charcoal-vein)',
         overflow: 'hidden',
       }}>
-        {tokenImage ? (
-          <img
-            src={tokenImage}
-            alt={tokenSymbol}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <span style={{
-            fontSize: '32px',
-            fontWeight: 700,
-            color: 'var(--color-bone-glow)',
-            fontFamily: 'var(--font-arbeit-contrast)',
-          }}>
-            {(tokenSymbol || '?').slice(0, 1)}
-          </span>
-        )}
+        <TokenImage
+          tokenAddress={tokenAddress}
+          tokenSymbol={tokenSymbol}
+          chain={chain}
+          size={size === 'sm' ? 100 : 48}
+        />
       </div>
 
       {/* Content */}

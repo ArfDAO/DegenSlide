@@ -66,7 +66,9 @@ export default function StoryFeed({ whaleStories = [], userStories = [] }) {
             type={story.type}
             whaleAlias={story.whaleAlias || story.walletAlias}
             tokenSymbol={story.tokenSymbol}
+            tokenAddress={story.tokenAddress}
             tokenImage={story.tokenImage}
+            chain={story.chain || 'monad'}
             pnl={story.pnl}
             pnlPercent={story.pnlPercent}
             timestamp={story.timestamp || `${Math.floor(Math.random() * 60)}m`}

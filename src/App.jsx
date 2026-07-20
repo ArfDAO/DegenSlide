@@ -12,6 +12,7 @@ import WhaleRail from './components/WhaleRail';
 import StoryFeed from './components/StoryFeed';
 import ProfileDropdown from './components/ProfileDropdown';
 import UserAvatar from './components/UserAvatar';
+import TokenImage from './components/TokenImage';
 
 // ── Interactive guided tours (SyncSwap-intro style) — one short spotlight
 // walkthrough per page, auto-shown once. Targets are [data-tour] elements. ──
@@ -1295,8 +1296,8 @@ export default function App() {
             />
             <StoryFeed
               whaleStories={[
-                { id: 1, type: 'copy', whaleAlias: 'Bold Sniper', tokenSymbol: 'SOL', pnl: 450, pnlPercent: 12.5, timestamp: '5m' },
-                { id: 2, type: 'copy', whaleAlias: 'Iron Wizard', tokenSymbol: 'MON', pnl: -120, pnlPercent: -3.2, timestamp: '18m' },
+                { id: 1, type: 'copy', whaleAlias: 'Bold Sniper', tokenSymbol: 'SOL', tokenAddress: 'So11111111111111111111111111111111111111112', chain: 'solana', pnl: 450, pnlPercent: 12.5, timestamp: '5m' },
+                { id: 2, type: 'copy', whaleAlias: 'Iron Wizard', tokenSymbol: 'MON', tokenAddress: 'MON', chain: 'monad', pnl: -120, pnlPercent: -3.2, timestamp: '18m' },
               ]}
               userStories={[]}
             />
