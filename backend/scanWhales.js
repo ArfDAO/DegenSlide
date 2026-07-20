@@ -28,6 +28,7 @@ const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap flo
 const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 150000);    // high-liquidity token floor (raised: thin pools + tax tokens were reverting real copy-trades)
 const MAX_BLOCKS = Number(process.env.SCAN_MAX_BLOCKS || 300000); // explore-window size (rotates through history each run)
 const FRESH_BLOCKS = Number(process.env.SCAN_FRESH_BLOCKS || 60000); // always-scan window at the chain tip → catches brand-new whales
+const HISTORY_DEPTH = Number(process.env.SCAN_HISTORY_DEPTH || 12000000); // how far back the explore walk goes before wrapping to the tip — whale activity lives in the recent window, not at genesis
 const TARGET = Number(process.env.SCAN_TARGET || 1500);          // safety cap on distinct candidate wallets held in memory
 const OUT_COUNT = Number(process.env.OUT_COUNT || 140);
 const MAX_PER_TOKEN = Number(process.env.MAX_PER_TOKEN || 20);   // cap so 1-2 hyper-liquid tokens can't monopolise the roster
@@ -258,7 +259,8 @@ async function main() {
   let prevData = {};
   try { prevData = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'curatedWhales.json'), 'utf8')); } catch { /* first run */ }
   let exploreEnd = Number.isFinite(prevData.scanCursorBlock) ? prevData.scanCursorBlock : current;
-  if (!(exploreEnd > FRESH_BLOCKS) || exploreEnd > current) exploreEnd = current; // wrap/reset to tip
+  const activeFloor = Math.max(FRESH_BLOCKS, current - HISTORY_DEPTH);
+  if (exploreEnd <= activeFloor || exploreEnd > current) exploreEnd = current; // wrap/reset to tip
 
   console.log(`[scan] MON=$${monPriceUsd} · min $${SCAN_MIN_USD}/swap · liq≥$${MIN_LIQ_USD} · tip ${current}`);
 
@@ -273,9 +275,12 @@ async function main() {
     console.log(`[scan] explore window ${exploreFrom}→${exploreTo} (cursor was ${exploreEnd})`);
     scanned += await scanRange(exploreFrom, exploreTo, 'explore');
   }
-  // advance cursor backward; wrap to the tip once the walk passes genesis
+  // advance cursor backward; wrap to the tip once the walk passes the active
+  // history window (whales don't live at genesis) so we keep re-covering the
+  // region where new whales actually appear.
   let nextCursor = exploreFrom - 1;
-  if (nextCursor <= FRESH_BLOCKS) nextCursor = current;
+  const historyFloor = Math.max(FRESH_BLOCKS, current - HISTORY_DEPTH);
+  if (nextCursor <= historyFloor) nextCursor = current;
 
   // rank candidates by trade volume OR liquidity provided (market makers count too)
   const score = (w) => Math.max(w.volumeUsd, w.lpAddedUsd);

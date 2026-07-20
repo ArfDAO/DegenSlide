@@ -38,6 +38,11 @@ jobs:
         working-directory: backend
         env:
           MONAD_RPC: ${{ secrets.MONAD_RPC || 'https://rpc.monad.xyz' }}
+          # CI has no 25-min watchdog like the live server, so cover a much
+          # wider explore window per run — the rotating cursor walks the whole
+          # active history fast and the roster keeps climbing.
+          SCAN_MAX_BLOCKS: '600000'
+          SCAN_FRESH_BLOCKS: '80000'
         run: node scanWhales.js
 
       - name: Commit grown roster
