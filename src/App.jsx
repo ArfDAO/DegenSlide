@@ -9,6 +9,9 @@ import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
 import Tour from './components/Tour';
 import WhaleRail from './components/WhaleRail';
+import StoryFeed from './components/StoryFeed';
+import ProfileDropdown from './components/ProfileDropdown';
+import UserAvatar from './components/UserAvatar';
 
 // ── Interactive guided tours (SyncSwap-intro style) — one short spotlight
 // walkthrough per page, auto-shown once. Targets are [data-tour] elements. ──
@@ -358,6 +361,8 @@ export default function App() {
   const FAV_KEY = ACTIVE.id === 'monad' ? 'monad_favorites' : `${ACTIVE.id}_favorites`;
   const WATCH_KEY = ACTIVE.id === 'monad' ? 'monad_watchlist' : `${ACTIVE.id}_watchlist`;
   const [favorites, setFavorites] = useState(() => loadLS(FAV_KEY, []));
+  const [bestNFT, setBestNFT] = useState(null); // Best NFT for profile picture
+  const [customNFT, setCustomNFT] = useState(null); // User-selected custom NFT
   const [watchlist, setWatchlist] = useState(() => loadLS(WATCH_KEY, []));
 
   // ── Auto-Copy (follow mode): whales the user marked AUTO are copied hands-free
@@ -1185,14 +1190,13 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Turbo wallet IS the account — the button jumps to its home on the Profile page */}
-          <button onClick={() => setActiveTab('profile')} className={`connect-btn ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
-            {turboAddr
-              ? (<><span style={{ fontSize: 11 }}>⚡</span>{monBalance != null ? `${monBalance.toFixed(2)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`}</>)
-              : (<><span style={{ fontSize: 11 }}>⚡</span>Turbo</>)}
-          </button>
-        </div>
+        <ProfileDropdown
+          walletAddress={turboAddr}
+          nftImage={customNFT || bestNFT}
+          onDisconnect={handleDisconnect}
+          onSettings={() => setActiveTab('profile')}
+          onProfileEdit={() => setActiveTab('profile')}
+        />
       </header>
 
       {/* ── Contextual page head — deck: live-signal count + network switcher ── */}
@@ -1288,6 +1292,13 @@ export default function App() {
               curated={curatedWhalesList}
               onOpenDossier={setDossierAddr}
               onAdd={() => { setActiveTab('leaderboard'); setLbMode('watchlist'); }}
+            />
+            <StoryFeed
+              whaleStories={[
+                { id: 1, type: 'copy', whaleAlias: 'Bold Sniper', tokenSymbol: 'SOL', pnl: 450, pnlPercent: 12.5, timestamp: '5m' },
+                { id: 2, type: 'copy', whaleAlias: 'Iron Wizard', tokenSymbol: 'MON', pnl: -120, pnlPercent: -3.2, timestamp: '18m' },
+              ]}
+              userStories={[]}
             />
             <div className="seg-track wide" data-tour="deck-tiers" style={{ marginBottom: 12, flexShrink: 0 }}>
               {DECK_TIERS.map((tier) => {
