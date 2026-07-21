@@ -1294,7 +1294,7 @@ export default function App() {
                     </a>
                     {h.lastCard && h.lastCard.copyable !== false && (
                       <button onClick={() => sendCopy(h.lastCard, tradeAmount)}
-                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)', boxShadow: '0 3px 12px rgba(240, 81, 30,0.4)' }}>
+                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'var(--accent)', boxShadow: 'var(--glow-accent)' }}>
                         Copy
                       </button>
                     )}

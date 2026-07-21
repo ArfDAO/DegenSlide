@@ -7,17 +7,17 @@ import { Check, Zap, PieChart } from 'lucide-react';
 export default function Onboarding({ onDone }) {
   const steps = [
     {
-      Icon: Check, tint: '#46d16b', bg: 'rgba(70, 209, 107,0.12)', bd: 'rgba(70, 209, 107,0.35)',
+      Icon: Check, tint: 'var(--up)', bg: 'var(--up-soft)', bd: 'rgba(109, 180, 138, 0.35)',
       title: 'Swipe right to copy',
       body: 'The deck streams live whale buys. Swipe right (or tap ✓) to copy the trade, left to skip, up to save the whale to your watchlist.',
     },
     {
-      Icon: Zap, tint: '#ffb02e', bg: 'rgba(255, 176, 46,0.12)', bd: 'rgba(255, 176, 46,0.4)',
+      Icon: Zap, tint: 'var(--gold)', bg: 'var(--gold-soft)', bd: 'rgba(201, 162, 78, 0.4)',
       title: 'Turbo = one-swipe trading',
       body: 'Connect your wallet in Profile to save your account — your Turbo wallet links to it and is recoverable anywhere. Fund it once, then every swipe executes instantly on-chain with no pop-ups.',
     },
     {
-      Icon: PieChart, tint: '#f0511e', bg: 'rgba(240, 81, 30,0.14)', bd: 'rgba(240, 81, 30,0.4)',
+      Icon: PieChart, tint: 'var(--accent)', bg: 'var(--accent-soft)', bd: 'rgba(214, 99, 58, 0.4)',
       title: 'Manage in Portfolio',
       body: 'Track live PnL, buy more, sell any percentage, and set stop-loss / take-profit that auto-close for you — on Monad and Solana.',
     },

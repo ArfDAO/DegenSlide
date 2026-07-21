@@ -102,7 +102,7 @@ function ChangeBars({ change }) {
           <div key={p.k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
             <div style={{
               width: '100%', maxWidth: 34, height: h, borderRadius: 4,
-              background: up ? 'rgba(70, 209, 107,0.85)' : 'rgba(255, 77, 106,0.85)',
+              background: up ? 'var(--up)' : 'var(--down)',
             }} />
             <span style={{ fontSize: 8, fontWeight: 700, color: up ? 'var(--up)' : 'var(--down)' }}>{fmtPct(v)}</span>
             <span style={{ fontSize: 8, color: 'var(--color-pebble)', fontWeight: 600 }}>{p.k}</span>
@@ -212,18 +212,19 @@ function BackKV({ k, v, sub }) {
 
 /* ───────── avatar (effigy.im — deterministic from the real address) ───────── */
 export function BlockieAvatar({ addr, size = 42 }) {
-  const [loaded, setLoaded] = useState(false);
-  const src = addr ? `https://effigy.im/a/${addr}.png` : null;
+  // Monochrome initials tile — one material with the terminal theme (no
+  // per-wallet colour identicons). Distinction comes from the hex initials.
+  const initials = (addr || '?').replace(/^0x/, '').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+      display: 'grid', placeItems: 'center',
       border: '1px solid var(--color-silver-lining)', background: 'var(--color-frost-shadow)',
     }}>
-      {src && (
-        <img src={src} alt="" width={size} height={size}
-          onLoad={() => setLoaded(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: loaded ? 'block' : 'none' }} />
-      )}
+      <span style={{
+        fontSize: size * 0.34, fontWeight: 700, color: 'var(--text-1)',
+        fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em',
+      }}>{initials}</span>
     </div>
   );
 }
@@ -568,7 +569,7 @@ const SwipeCard = forwardRef(function SwipeCard(
               </span>
               <span style={{ fontSize: 8.5, fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>{badge.label}</span>
               {isCurated && (
-                <span title="On your tracked whale roster" style={{ display: 'flex', alignItems: 'center', padding: '1px 7px', borderRadius: 100, background: 'rgba(160, 107, 255,0.1)', border: '1px solid rgba(160, 107, 255,0.35)' }}>
+                <span title="On your tracked whale roster" style={{ display: 'flex', alignItems: 'center', padding: '1px 7px', borderRadius: 100, background: 'var(--surface-2)', border: '1px solid var(--line-1)' }}>
                   <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--accent-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tracked</span>
                 </span>
               )}
@@ -597,13 +598,14 @@ const SwipeCard = forwardRef(function SwipeCard(
           textAlign: 'center',
           borderRadius: 22,
           background: 'var(--gradient-hero)',
-          boxShadow: '0 10px 30px rgba(160, 25, 25, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+          border: '1px solid var(--line-1)',
+          boxShadow: 'var(--shadow-md)',
           overflow: 'hidden',
         }}>
           {/* darkens the lower half so the numbers keep contrast on the gradient */}
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: 'linear-gradient(180deg, transparent 35%, rgba(40, 4, 8, 0.42) 100%)',
+            background: 'linear-gradient(180deg, transparent 35%, rgba(0, 0, 0, 0.35) 100%)',
           }} />
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {pair?.imageUrl ? (
@@ -777,7 +779,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                         <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3.5px 0' }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-pebble)', width: 108, flexShrink: 0 }}>{p.label}</span>
                           <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'rgba(128,128,128,0.15)', overflow: 'hidden' }}>
-                            <div style={{ width: `${(p.pts / p.max) * 100}%`, height: '100%', borderRadius: 3, background: p.pts / p.max >= 0.66 ? 'var(--up)' : p.pts / p.max >= 0.33 ? '#ffb02e' : 'var(--down)' }} />
+                            <div style={{ width: `${(p.pts / p.max) * 100}%`, height: '100%', borderRadius: 3, background: p.pts / p.max >= 0.66 ? 'var(--up)' : p.pts / p.max >= 0.33 ? 'var(--gold)' : 'var(--down)' }} />
                           </div>
                           <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: '"JetBrains Mono", monospace', width: 34, textAlign: 'right', flexShrink: 0 }}>{p.pts}/{p.max}</span>
                         </div>

@@ -285,9 +285,9 @@ body {
 .seg-item:hover { color: var(--text-1); }
 
 .seg-item.on {
-  background: linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%);
-  color: #fff;
-  box-shadow: 0 3px 12px rgba(240, 81, 30, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--color-bone-glow);
+  color: var(--color-midnight-carbon);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -514,58 +514,55 @@ body {
   cursor: pointer;
 }
 
-/* Pass — solid crimson disc, the reference's left-hand "X" */
+/* Pass — flat disc, muted rose. The left-hand "skip". */
 .btn-pass {
   width: 54px;
   height: 54px;
   border-radius: 100px;
-  background: linear-gradient(160deg, #f2404a 0%, #d81f2e 100%);
-  border: none;
-  color: #fff;
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  color: var(--down);
   font-size: 20px;
-  box-shadow: 0 6px 20px rgba(216, 31, 46, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .btn-pass:hover {
-  transform: scale(1.07);
-  box-shadow: 0 8px 28px rgba(216, 31, 46, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+  border-color: var(--down);
 }
 
 .btn-pass:active { transform: scale(0.94); }
 
-/* Copy trade — the hero action: largest disc, green, dead centre */
+/* Copy trade — the hero action: largest disc, the single ember accent, centre */
 .btn-copy {
   width: 66px;
   height: 66px;
   border-radius: 100px;
-  background: linear-gradient(160deg, #63d94a 0%, #46b32e 100%);
+  background: var(--accent);
   border: none;
   color: #fff;
   font-size: 22px;
-  box-shadow: 0 8px 26px rgba(70, 179, 46, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: var(--glow-accent);
 }
 
 .btn-copy:hover {
-  transform: scale(1.07);
-  box-shadow: 0 10px 34px rgba(70, 179, 46, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transform: scale(1.06);
 }
 
 .btn-copy:active { transform: scale(0.94); }
 
-/* Like / save-whale button — the reference's violet "star" superlike */
+/* Save-whale — flat disc, bone. The "star" superlike. */
 .btn-like {
   width: 54px;
   height: 54px;
   border-radius: 100px;
-  background: linear-gradient(160deg, #9b6bff 0%, #6d3fe0 100%);
-  border: none;
-  color: #fff;
-  box-shadow: 0 6px 20px rgba(109, 63, 224, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  color: var(--accent-2);
 }
 
 .btn-like:hover {
-  transform: scale(1.07);
-  box-shadow: 0 8px 28px rgba(109, 63, 224, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+  border-color: var(--accent-2);
 }
 
 /* saved state — brightened + ringed so it reads as "already on the list" */

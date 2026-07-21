@@ -151,7 +151,7 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
               </div>
               <button onClick={() => onToggleFavorite?.({ address: w.address, tokenSymbol: w.lastToken })} title={saved ? 'Remove from watchlist' : 'Save to watchlist'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, display: 'flex', flexShrink: 0 }}>
-                <Heart size={17} color={saved ? 'var(--down)' : 'var(--color-pebble)'} fill={saved ? '#ff4d6a' : 'none'} />
+                <Heart size={17} color={saved ? 'var(--down)' : 'var(--color-pebble)'} fill={saved ? 'var(--down)' : 'none'} />
               </button>
             </div>
           );

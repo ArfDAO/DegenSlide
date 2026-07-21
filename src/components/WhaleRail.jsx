@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus } from 'lucide-react';
 import { generateAlias } from './SwipeCard';
 
@@ -12,38 +12,28 @@ import { generateAlias } from './SwipeCard';
    roster, so the rail is never an empty shelf.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Circular portrait. effigy.im only renders EVM addresses, so Solana
-   wallets (and any fetch failure) fall back to a deterministic initials
-   disc tinted from the address itself — never a blank hole in the rail. */
+/* Monochrome initials disc — one material with the rest of the terminal.
+   A watched whale gets an ember ring; curated ones a charcoal ring. No
+   external identicons, no per-wallet hues — distinction comes from the
+   initials alone. */
 function RailAvatar({ addr, size = 54, ring }) {
-  const [failed, setFailed] = useState(false);
-  const src = addr ? `https://effigy.im/a/${addr}.png` : null;
-
-  // deterministic hue so a given wallet always gets the same colour
-  const hue = addr ? addr.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360 : 0;
   const initials = (addr || '?').replace(/^0x/, '').slice(0, 2).toUpperCase();
-
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
       padding: 2,
-      background: ring || 'linear-gradient(160deg, rgba(255,190,175,0.28), rgba(255,190,175,0.06))',
+      background: ring || 'var(--line-1)',
     }}>
       <div style={{
         width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden',
-        background: `linear-gradient(160deg, hsl(${hue} 62% 40%), hsl(${(hue + 40) % 360} 58% 24%))`,
+        background: 'var(--surface-2)',
         display: 'grid', placeItems: 'center',
         border: '2px solid var(--bg-app)',
       }}>
-        {src && !failed ? (
-          <img src={src} alt="" width={size} height={size} onError={() => setFailed(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <span style={{
-            fontSize: size * 0.3, fontWeight: 800, color: 'rgba(255,255,255,0.92)',
-            fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em',
-          }}>{initials}</span>
-        )}
+        <span style={{
+          fontSize: size * 0.3, fontWeight: 700, color: 'var(--text-1)',
+          fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em',
+        }}>{initials}</span>
       </div>
     </div>
   );

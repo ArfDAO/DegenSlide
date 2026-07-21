@@ -110,7 +110,7 @@ export default function WhaleDossier({
                 style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 0', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
                   border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
-                  background: isAuto ? 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)' : 'var(--color-frost-shadow)',
+                  background: isAuto ? 'var(--accent)' : 'var(--color-frost-shadow)',
                   color: isAuto ? '#fff' : 'var(--color-midnight-ink)',
                   opacity: isAuto && !autoEnabled ? 0.6 : 1,
                 }}>
