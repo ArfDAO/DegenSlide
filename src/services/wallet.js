@@ -140,6 +140,18 @@ export async function connectWallet() {
   return accounts[0].toLowerCase();
 }
 
+/**
+ * Sign a plain-text message with the external wallet (gasless, no tx).
+ * Deterministic: the same account signing the same string always returns the
+ * same signature — that property is what lets us derive a recoverable trading
+ * wallet from it (see turboWallet.linkTurboWallet). Returns the 0x-hex signature.
+ */
+export async function signMessage(address, message) {
+  if (!isMetaMaskAvailable()) throw new Error('NO_METAMASK');
+  const hex = '0x' + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, '0')).join('');
+  return await mmCall('personal_sign', [hex, address.toLowerCase()]);
+}
+
 export async function ensureMonadMainnet() {
   try {
     await mmCall('wallet_switchEthereumChain', [{ chainId: MONAD_MAINNET.chainId }]);
@@ -207,6 +219,7 @@ export async function bestCopyQuote(tokenOut, amountMon, opts = {}) {
  */
 export async function copyBuy(from, tokenOut, amountMon, opts = {}) {
   if (!tokenOut || !/^0x[0-9a-fA-F]{40}$/.test(tokenOut)) throw new Error('NO_TOKEN_ADDRESS');
+  await ensureMonadMainnet(); // every trade executes on Monad mainnet — never testnet
   const { routeKey, fee, amountOut, amountInWei: maxAmountInWei, deadline } = await bestCopyQuote(tokenOut, amountMon, opts);
   if (amountOut === 0n) throw Object.assign(new Error('NO_LIQUIDITY'), { details: 'No route found' });
 
@@ -391,6 +404,7 @@ async function quoteSell(route, from, tokenIn, amountInWei, fee, deadline) {
  */
 export async function sellToken(from, tokenIn, opts = {}) {
   if (!tokenIn || !/^0x[0-9a-fA-F]{40}$/.test(tokenIn)) throw new Error('NO_TOKEN_ADDRESS');
+  await ensureMonadMainnet(); // sells settle on Monad mainnet — never testnet
   const slippageBps = opts.slippageBps ?? DEFAULT_SLIPPAGE_BPS;
 
   const { raw: balance } = await getTokenInfo(from, tokenIn);

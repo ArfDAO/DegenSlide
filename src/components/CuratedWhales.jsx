@@ -117,7 +117,7 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
                   {w.isMarketMaker ? (
                     <>
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>${fmtMon(w.lpAddedUsd)} LP</span>
-                      <span style={{ fontSize: 8, fontWeight: 800, color: '#a06bff', border: '1px solid rgba(160, 107, 255,0.5)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--accent-2)', border: '1px solid var(--line-1)', borderRadius: 6, padding: '1px 5px', letterSpacing: '0.04em' }}>MARKET MAKER</span>
                     </>
                   ) : (
                     <>

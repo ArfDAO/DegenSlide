@@ -16,6 +16,7 @@ export const WALLET_NAME = impl.WALLET_NAME;
 export const WALLET_INSTALL_URL = impl.WALLET_INSTALL_URL;
 export const isWalletAvailable = impl.isWalletAvailable;
 export const connectWallet = impl.connectWallet;
+export const signMessage = impl.signMessage; // gasless proof-of-ownership → Turbo key seed
 export const getConnectedAccount = impl.getConnectedAccount;
 export const disconnectWallet = impl.disconnectWallet;
 export const onAccountsChanged = impl.onAccountsChanged;

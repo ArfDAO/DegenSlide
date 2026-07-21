@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   // req.url will be like /monad-api/api/v2/stats or /monad-api/api?module=...
   const stripped = req.url.replace(/^\/monad-api/, '') || '/';
-  const target = `https://testnet.monadexplorer.com${stripped}`;
+  const target = `https://monadexplorer.com${stripped}`;
 
   try {
     const upstream = await fetch(target, {

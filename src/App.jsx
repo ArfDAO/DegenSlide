@@ -9,7 +9,6 @@ import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
 import Tour from './components/Tour';
 import WhaleRail from './components/WhaleRail';
-import ProfileDropdown from './components/ProfileDropdown';
 import UserAvatar from './components/UserAvatar';
 import TokenImage from './components/TokenImage';
 
@@ -38,7 +37,7 @@ const TOURS = {
   ],
 };
 const TOUR_KEY = (tab) => `tour_${tab}_v1`;
-import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance } from './services/turboWallet';
+import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance, isTurboLinked, unlinkTurbo } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Star } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
@@ -279,9 +278,9 @@ const STATIC_CURATED = ACTIVE.id === 'monad' ? (curatedWhalesData.whales || []) 
 const TIERS_USD = ACTIVE.tiers;
 const DECK_TIERS = [
   { id: 'all', label: 'All', color: 'var(--text-3)' },
-  { id: 'big', label: 'Big', color: '#ff9d4d' },
-  { id: 'shark', label: 'Shark', color: '#b98cff' },
-  { id: 'whale', label: 'Whale', color: '#a06bff' },
+  { id: 'big', label: 'Big', color: 'var(--text-2)' },
+  { id: 'shark', label: 'Shark', color: 'var(--text-1)' },
+  { id: 'whale', label: 'Whale', color: 'var(--accent)' },
 ];
 function inTier(usd, id) {
   if (usd < (TIERS_USD.all || 0)) return false; // global floor, every tier
@@ -688,7 +687,7 @@ export default function App() {
       const addr = await connectWallet();
       setWalletAddress(addr); setIsConnected(true); saveLS(WALLET_LS, addr);
       showToast('connect');
-      return true;
+      return addr; // truthy on success (callers only test truthiness); linking needs the address
     } catch (err) {
       if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
       return false;
@@ -805,7 +804,18 @@ export default function App() {
   }, [autoCopy, sendCopy]);
 
   const handleDisconnect = useCallback(() => {
+    // Log out: drop the external connection AND forget the linked Turbo wallet
+    // on this device. A linked wallet is deterministically recoverable (reconnect
+    // + re-sign), so this fully resets the account without losing funds.
     disconnectWallet();
+    try {
+      if (isTurboLinked()) { unlinkTurbo(); setTurboAddr(null); }
+    } catch (e) {
+      if (e.message === 'UNLINKED_KEY_EXPORT_FIRST') {
+        showToast('tx_error', 'Export your Turbo key before disconnecting — it only exists on this device');
+        return; // keep everything; the local-only key would otherwise be stranded
+      }
+    }
     setWalletAddress(null); setIsConnected(false); setMonBalance(null);
     saveLS(WALLET_LS, null);
   }, []);
@@ -1083,7 +1093,7 @@ export default function App() {
             <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 9 }}>
               <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>DegenSlide is an experimental tool for copying on-chain whale trades. It is <b>not financial advice</b> — every trade is your own decision and responsibility.</li>
               <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Meme-token trading is extremely high risk. You can lose <b>all</b> of what you deposit. Only trade funds you can afford to lose.</li>
-              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Turbo trading uses a wallet stored <b>in this browser</b>. Back up its key and keep only active funds in it — clearing browser data or a compromised device means lost funds.</li>
+              <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Turbo trading uses a wallet <b>derived from your connected wallet</b>. Reconnect and re-sign on any device to recover it. Its key is also cached in this browser — keep only active funds in it, as anyone with access to this device can control them.</li>
               <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Provided “as is”, no warranty. Nothing here is a solicitation to trade where restricted — using it is your responsibility.</li>
             </ul>
             <button onClick={() => { setDisclaimerOk(true); saveLS('degen_disclaimer_v1', true); }}
@@ -1104,7 +1114,7 @@ export default function App() {
     <div className="app-container">
       {showApe && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="animate-rocket flex flex-col items-center gap-3"><Star size={72} strokeWidth={1.5} fill="#9b6bff" style={{ color: '#9b6bff' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: '#9b6bff' }}>Saved</span></div>
+          <div className="animate-rocket flex flex-col items-center gap-3"><Star size={72} strokeWidth={1.5} fill="var(--accent-2)" style={{ color: 'var(--accent-2)' }} /><span className="text-2xl font-black uppercase tracking-widest" style={{ color: 'var(--accent-2)' }}>Saved</span></div>
         </div>
       )}
 
@@ -1235,20 +1245,12 @@ export default function App() {
         </div>
 
         <div className="page-head-right">
-          {activeTab !== 'deck' && (
+          {(activeTab === 'leaderboard' || activeTab === 'portfolio') && (
             <span className="page-meta">
               {activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
-               activeTab === 'portfolio' ? `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}` :
-               (turboAddr ? `⚡ ${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}` : 'turbo not set up')}
+               `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}`}
             </span>
           )}
-          <ProfileDropdown
-            walletAddress={turboAddr}
-            nftImage={customNFT || bestNFT}
-            onDisconnect={handleDisconnect}
-            onSettings={() => setActiveTab('profile')}
-            onProfileEdit={() => setActiveTab('profile')}
-          />
         </div>
       </div>
 

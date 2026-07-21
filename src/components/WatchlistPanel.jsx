@@ -41,7 +41,7 @@ function WalletRow({ wallet, onRemove, onOpenDossier, isAuto, onToggleAuto, auto
               display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
               padding: '4px 9px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
               border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
-              background: isAuto ? 'linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%)' : 'transparent',
+              background: isAuto ? 'linear-gradient(135deg, var(--accent) 0%, #b5502680 100%)' : 'transparent',
               color: isAuto ? '#fff' : 'var(--color-pebble)',
               boxShadow: isAuto ? '0 2px 10px rgba(240, 81, 30,0.4)' : 'none',
               opacity: isAuto && !autoEnabled ? 0.55 : 1,

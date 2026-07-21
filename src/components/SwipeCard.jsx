@@ -19,10 +19,10 @@ export function generateAlias(addr) {
 function sizeBadge(usd) {
   const v = Number(usd) || 0;
   const t = ACTIVE.tiers;
-  if (v >= t.whale) return { label: 'WHALE', color: '#a06bff' };
-  if (v >= t.shark) return { label: 'SHARK', color: '#b98cff' };
-  if (v >= t.big)   return { label: 'BIG',   color: '#ff9d4d' };
-  return { label: 'ACTIVE', color: '#b9a3a0' };
+  if (v >= t.whale) return { label: 'WHALE', color: 'var(--accent)' };
+  if (v >= t.shark) return { label: 'SHARK', color: 'var(--text-1)' };
+  if (v >= t.big)   return { label: 'BIG',   color: 'var(--text-2)' };
+  return { label: 'ACTIVE', color: 'var(--text-3)' };
 }
 function fmtMonShort(v) {
   const a = Math.abs(v);
@@ -167,7 +167,7 @@ function PriceChart({ pair, loaded }) {
   }));
   const line = smoothLinePath(P);
   const area = `${line} L ${P[P.length - 1].x.toFixed(1)} ${H} L ${P[0].x.toFixed(1)} ${H} Z`;
-  const col = data.up ? '#46d16b' : '#ff4d6a';
+  const col = data.up ? 'var(--up)' : 'var(--down)';
   const last = P[P.length - 1];
 
   return (
@@ -442,7 +442,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     const cfg = {
       right: { text: 'COPY', color: 'var(--up)', rot: -16 },
       left:  { text: 'SKIP', color: 'var(--down)', rot: 16 },
-      up:    { text: 'SAVE', color: '#ff4d6a', rot: 0 },
+      up:    { text: 'SAVE', color: 'var(--accent-2)', rot: 0 },
     }[dir];
     const pos = dir === 'right' ? { top: 56, left: 24 } : dir === 'left' ? { top: 56, right: 24 } : { top: 56, left: '50%', transform: 'translateX(-50%)' };
     return (
@@ -505,15 +505,14 @@ const SwipeCard = forwardRef(function SwipeCard(
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: 'min(12px, 1.5vh) 18px',
           background: isBuy
-            ? 'linear-gradient(100deg, rgba(70, 209, 107,0.16) 0%, rgba(70, 209, 107,0.03) 55%, transparent 100%)'
-            : 'linear-gradient(100deg, rgba(255, 77, 106,0.16) 0%, rgba(255, 77, 106,0.03) 55%, transparent 100%)',
+            ? 'linear-gradient(100deg, var(--up-soft) 0%, transparent 60%)'
+            : 'linear-gradient(100deg, var(--down-soft) 0%, transparent 60%)',
           borderBottom: '1px solid var(--line-2)',
         }}>
           <span style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 100,
-            background: sideColor, color: '#04060c', fontSize: 11, fontWeight: 900,
+            background: sideColor, color: 'var(--bg-app)', fontSize: 11, fontWeight: 900,
             letterSpacing: '0.08em', fontFamily: '"JetBrains Mono", monospace',
-            boxShadow: isBuy ? '0 0 16px rgba(70, 209, 107,0.4)' : '0 0 16px rgba(255, 77, 106,0.4)',
           }}>
             {isBuy ? '↗' : '↘'} {trader.side}
           </span>
@@ -525,7 +524,7 @@ const SwipeCard = forwardRef(function SwipeCard(
           )}
           {consensusCount >= 2 && (
             <span title={`${consensusCount} different whales bought this token in the last 24h — consensus signal`}
-              style={{ fontSize: 8.5, fontWeight: 800, color: '#ff9d4d', background: 'rgba(255,157,77,0.1)', border: '1px solid rgba(255,157,77,0.45)', padding: '2px 8px', borderRadius: 100, letterSpacing: '0.05em', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
+              style={{ fontSize: 8.5, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid rgba(214, 99, 58, 0.4)', padding: '2px 8px', borderRadius: 100, letterSpacing: '0.05em', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
               🔥 {consensusCount} whales
             </span>
           )}
@@ -570,7 +569,7 @@ const SwipeCard = forwardRef(function SwipeCard(
               <span style={{ fontSize: 8.5, fontWeight: 800, color: badge.color, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>{badge.label}</span>
               {isCurated && (
                 <span title="On your tracked whale roster" style={{ display: 'flex', alignItems: 'center', padding: '1px 7px', borderRadius: 100, background: 'rgba(160, 107, 255,0.1)', border: '1px solid rgba(160, 107, 255,0.35)' }}>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: '#a06bff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tracked</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--accent-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tracked</span>
                 </span>
               )}
             </div>
@@ -635,7 +634,7 @@ const SwipeCard = forwardRef(function SwipeCard(
               ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}`
               : (tradeUsd != null ? fmtUsd(tradeUsd) : `— ${ACTIVE.nativeSymbol}`)}
             {sinceEntry != null && (
-              <span style={{ marginLeft: 8, color: sinceEntry >= 0 ? '#c6ffd8' : '#ffd0d8', letterSpacing: '0.04em', fontWeight: 800 }}
+              <span style={{ marginLeft: 8, color: sinceEntry >= 0 ? 'var(--up)' : 'var(--down)', letterSpacing: '0.04em', fontWeight: 800 }}
                 title="Price move since the whale's entry — negative means you'd enter cheaper than the whale">
                 since entry {sinceEntry >= 0 ? '+' : ''}{Math.abs(sinceEntry) >= 100 ? sinceEntry.toFixed(0) : sinceEntry.toFixed(1)}%
               </span>
@@ -842,7 +841,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                   return flags.length ? (
                     <div style={{ borderRadius: 12, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.07)', padding: '10px 13px', marginBottom: 16 }}>
                       {flags.map((f, i) => (
-                        <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: '#b98a2e', lineHeight: 1.6 }}>⚠ {f}</div>
+                        <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--gold)', lineHeight: 1.6 }}>⚠ {f}</div>
                       ))}
                     </div>
                   ) : (

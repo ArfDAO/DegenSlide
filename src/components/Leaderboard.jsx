@@ -68,7 +68,7 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
               style={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', fontWeight: 700, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>
               {t.address.slice(0, 7)}…{t.address.slice(-4)}
             </a>
-            {t.verified && (<span title="Verified whale (bot-filtered)" style={{ display: 'inline-flex', alignItems: 'center', color: '#a06bff', flexShrink: 0 }}><BadgeCheck size={13} /></span>)}
+            {t.verified && (<span title="Verified whale (bot-filtered)" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-2)', flexShrink: 0 }}><BadgeCheck size={13} /></span>)}
             {t.lastToken && (<span style={{ flexShrink: 0, borderRadius: 100, padding: '1px 7px', fontSize: 8, textTransform: 'uppercase', background: 'var(--accent-soft)', color: 'var(--color-deep-iris)', fontWeight: 800, letterSpacing: '0.04em' }}>${t.lastToken}</span>)}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>

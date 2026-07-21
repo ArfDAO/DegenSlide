@@ -14,7 +14,7 @@ export default function Onboarding({ onDone }) {
     {
       Icon: Zap, tint: '#ffb02e', bg: 'rgba(255, 176, 46,0.12)', bd: 'rgba(255, 176, 46,0.4)',
       title: 'Turbo = one-swipe trading',
-      body: 'Fund your Turbo wallet once in Profile. After that every swipe executes instantly on-chain — no wallet pop-up per trade. Back up its key.',
+      body: 'Connect your wallet in Profile to save your account — your Turbo wallet links to it and is recoverable anywhere. Fund it once, then every swipe executes instantly on-chain with no pop-ups.',
     },
     {
       Icon: PieChart, tint: '#f0511e', bg: 'rgba(240, 81, 30,0.14)', bd: 'rgba(240, 81, 30,0.4)',

@@ -23,7 +23,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/monad-api': {
-        target: 'https://testnet.monadexplorer.com',
+        target: 'https://monadexplorer.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/monad-api/, '')
       }

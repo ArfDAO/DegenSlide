@@ -59,6 +59,20 @@ export async function connectWallet() {
   return pk; // base58 is case-sensitive — never lowercase
 }
 
+/**
+ * Sign a plain-text message with Phantom (gasless, no tx). Deterministic per
+ * account — the seed the Turbo trading wallet is derived from. Returns the raw
+ * 64-byte Ed25519 signature (Uint8Array).
+ */
+export async function signMessage(address, message) {
+  const p = provider();
+  if (!p) throw new Error('NO_METAMASK');
+  const encoded = new TextEncoder().encode(message);
+  const res = await p.signMessage(encoded, 'utf8');
+  const sig = res?.signature ?? res;
+  return sig instanceof Uint8Array ? sig : Uint8Array.from(sig);
+}
+
 export async function getConnectedAccount() {
   const p = provider();
   if (!p) return null;

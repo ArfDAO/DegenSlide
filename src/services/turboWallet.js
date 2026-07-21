@@ -2,9 +2,12 @@
  * TURBO trading wallet — one-swipe execution with NO per-trade wallet popups.
  *
  * How it works (the same model GMGN / Photon / BullX use):
- *   1. The user accepts the Turbo agreement ONCE.
- *   2. A dedicated trading keypair is generated locally and stored ONLY in
- *      this browser's localStorage (self-custodial; exportable any time).
+ *   1. The user connects their external wallet (MetaMask / Phantom) and signs
+ *      ONE gasless message. The Turbo trading key is DERIVED from that
+ *      signature — so the external wallet permanently "owns" it.
+ *   2. Because the derivation is deterministic, signing the same message with
+ *      the same wallet on ANY device / browser restores the exact same trading
+ *      wallet and its funds. Clearing localStorage never loses the account.
  *   3. The user funds it with ONE normal wallet-approved transfer.
  *   4. Every subsequent swipe signs the swap locally with the Turbo key and
  *      broadcasts straight to the chain — zero confirmations, zero popups.
@@ -13,21 +16,22 @@
  * interactive path (wallet.js / solWallet.js builders), just a different
  * signer. Withdraw sweeps funds back to any address, signed locally.
  *
- * SECURITY MODEL (stated in the agreement the user accepts): the key lives in
- * localStorage on this device — deposit only an amount you accept losing if
- * the device/browser profile is compromised.
+ * RECOVERY MODEL: the key is cached in localStorage for a popup-free session,
+ * but it is never the source of truth — the external wallet's signature is.
+ * Lose the device, connect the same wallet elsewhere, re-sign → same wallet.
  */
 import { Keypair, VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
-import { Wallet as EthWallet, JsonRpcProvider } from 'ethers';
+import { Wallet as EthWallet, JsonRpcProvider, keccak256, sha256, getBytes } from 'ethers';
 import { ACTIVE, MONAD_MAINNET, DEFAULT_SLIPPAGE_BPS } from '../config/chain.js';
-import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx } from './wallet.js';
+import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx, signMessage as evmSignMessage, ensureMonadMainnet } from './wallet.js';
 import {
   rpc as solRpc, jupQuote, jupSwapTx, confirmOnChain, actualTokenDelta,
-  mintDecimals, dexLabel, getTokenInfo as solTokenInfo, sendRawTransaction,
+  mintDecimals, dexLabel, getTokenInfo as solTokenInfo, sendRawTransaction, signMessage as solSignMessage,
 } from './solWallet.js';
 
 const AGREED_LS = 'turbo_agreed_v1';           // agreement is global (per device)
 const KEY_LS = `${ACTIVE.id}_turbo_key_v1`;    // keypair is per chain
+const LINKED_LS = `${ACTIVE.id}_turbo_linked_v1`; // external wallet the key is derived from
 const IS_SVM = ACTIVE.kind === 'svm';
 const WSOL = 'So11111111111111111111111111111111111111112';
 const SOL_FEE_LAMPORTS = 5000n;                // base tx fee
@@ -56,6 +60,75 @@ export function ensureTurboWallet() {
       : EthWallet.createRandom().privateKey;
     try { localStorage.setItem(KEY_LS, secret); } catch { throw new Error('STORAGE_UNAVAILABLE'); }
   }
+  return getTurboAddress();
+}
+
+/* ── account linking: derive the Turbo key from an external-wallet signature ──
+ *
+ * This is the "save / recover your account" step. The message is FIXED (no
+ * nonce, no timestamp) so the signature — and therefore the derived key — is
+ * identical every time the same wallet signs it, on any device. It is
+ * chain-scoped so Monad and Solana get distinct keys (they must: different
+ * curves / key formats).
+ */
+function linkMessage() {
+  return (
+    'DegenSlide — Trading Wallet\n\n' +
+    'Sign to create and recover your in-app trading wallet.\n' +
+    'This signature IS your account key: signing this same message with this ' +
+    'same wallet always restores the same trading wallet and its funds.\n\n' +
+    'This request is free and gasless. It will NOT send a transaction, ' +
+    'approve spending, or move any funds.\n\n' +
+    `Network: ${ACTIVE.label}`
+  );
+}
+
+/** The external wallet address the local Turbo key is derived from (or null). */
+export function getLinkedAddress() {
+  try { return localStorage.getItem(LINKED_LS) || null; } catch { return null; }
+}
+/** True once a derived key AND its external-wallet link are both present. */
+export function isTurboLinked() { return !!getLinkedAddress() && turboWalletExists(); }
+
+/**
+ * Forget the Turbo wallet on THIS device (log out). Safe only for a LINKED
+ * wallet — the key is deterministically recoverable by reconnecting and
+ * re-signing, so nothing is lost. Refuses on an unlinked legacy key (that key
+ * exists nowhere else — clearing it would strand its funds; export it first).
+ */
+export function unlinkTurbo() {
+  if (turboWalletExists() && !isTurboLinked()) throw new Error('UNLINKED_KEY_EXPORT_FIRST');
+  try {
+    localStorage.removeItem(KEY_LS);
+    localStorage.removeItem(LINKED_LS);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Link (or recover) the Turbo wallet from `externalAddress`.
+ * Prompts ONE gasless signature via the external wallet, derives the trading
+ * key deterministically from it, and caches both the key and the link locally.
+ * Returns the Turbo address (same value every time for a given wallet+chain).
+ */
+export async function linkTurboWallet(externalAddress) {
+  if (!externalAddress) throw new Error('NO_WALLET');
+  const msg = linkMessage();
+  let secret;
+  if (IS_SVM) {
+    const sig = await solSignMessage(externalAddress, msg);   // 64-byte Ed25519 signature
+    if (!sig || sig.length < 32) throw new Error('SIGN_FAILED');
+    const seed = getBytes(sha256(sig));                        // 32-byte deterministic seed
+    secret = btoa(String.fromCharCode(...Keypair.fromSeed(seed).secretKey));
+  } else {
+    const sig = await evmSignMessage(externalAddress, msg);    // 0x-hex secp256k1 signature
+    if (!sig || sig.length < 66) throw new Error('SIGN_FAILED');
+    secret = keccak256(sig);                                   // 32-byte private key
+  }
+  try {
+    localStorage.setItem(KEY_LS, secret);
+    localStorage.setItem(LINKED_LS, IS_SVM ? externalAddress : externalAddress.toLowerCase());
+    localStorage.setItem(AGREED_LS, '1');
+  } catch { throw new Error('STORAGE_UNAVAILABLE'); }
   return getTurboAddress();
 }
 
@@ -115,6 +188,7 @@ export async function depositToTurbo(fromMain, amountNative) {
     await confirmOnChain(signature);
     return { hash: signature };
   }
+  await ensureMonadMainnet(); // NEVER deposit on testnet — force Monad mainnet (143) first
   const wei = BigInt(Math.round(amountNative * 1e9)) * 10n ** 9n;
   const hash = await window.ethereum.request({
     method: 'eth_sendTransaction',
@@ -124,13 +198,30 @@ export async function depositToTurbo(fromMain, amountNative) {
   return { hash };
 }
 
-/* ── withdraw: sweep Turbo funds back out, signed locally (no popup) ── */
-export async function withdrawTurbo(toAddress) {
+/* ── withdraw: send Turbo funds back out, signed locally (no popup) ──
+ * amountNative:
+ *   • a positive number  → withdraw EXACTLY that much (the rest stays for gas/fees)
+ *   • omitted / falsy     → sweep the MAX withdrawable (balance minus the network fee)
+ */
+export async function withdrawTurbo(toAddress, amountNative) {
+  const wantExact = typeof amountNative === 'number' && amountNative > 0;
+
   if (IS_SVM) {
+    if (!toAddress) throw new Error('BAD_ADDRESS');
+    try { new PublicKey(toAddress); } catch { throw new Error('BAD_ADDRESS'); }
     const kp = solKeypair();
     const bal = BigInt((await solRpc('getBalance', [kp.publicKey.toString()]))?.value ?? 0);
-    const lamports = bal - SOL_FEE_LAMPORTS;
-    if (lamports <= 0n) throw new Error('NO_BALANCE');
+    let lamports;
+    if (wantExact) {
+      lamports = BigInt(Math.round(amountNative * 1e9));
+      if (lamports <= 0n) throw new Error('BAD_AMOUNT');
+      if (lamports + SOL_FEE_LAMPORTS > bal) {
+        throw Object.assign(new Error('INSUFFICIENT_FUNDS'), { needMon: Number(lamports + SOL_FEE_LAMPORTS) / 1e9, haveMon: Number(bal) / 1e9 });
+      }
+    } else {
+      lamports = bal - SOL_FEE_LAMPORTS;
+      if (lamports <= 0n) throw new Error('NO_BALANCE');
+    }
     const { value } = await solRpc('getLatestBlockhash', [{ commitment: 'confirmed' }]);
     const tx = new Transaction({ recentBlockhash: value.blockhash, feePayer: kp.publicKey })
       .add(SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: new PublicKey(toAddress), lamports: Number(lamports) }));
@@ -139,15 +230,58 @@ export async function withdrawTurbo(toAddress) {
     await confirmOnChain(sig);
     return { hash: sig, amount: Number(lamports) / 1e9 };
   }
+
+  if (!toAddress || !/^0x[0-9a-fA-F]{40}$/.test(toAddress)) throw new Error('BAD_ADDRESS');
   const w = evmWallet();
   const bal = await w.provider.getBalance(w.address);
+
+  // Pin the fee fields explicitly (same EIP-1559 model the working turbo swaps
+  // use). Pinning legacy gasPrice on an EIP-1559 chain like Monad is one revert
+  // cause; the other is gas: a bare EOA transfer is 21000, but a contract or
+  // EIP-7702-delegated destination (what modern MetaMask accounts often are on
+  // Monad) runs code on receive and needs MORE — hardcoding 21000 makes those
+  // run out of gas and revert. So we ESTIMATE gas against the real destination.
   const fee = await w.provider.getFeeData();
-  const gasPrice = fee.gasPrice ?? 100000000000n;
-  const gasCost = 21000n * gasPrice;
-  const value = bal - gasCost;
-  if (value <= 0n) throw new Error('NO_BALANCE');
-  const tx = await w.sendTransaction({ to: toAddress, value, gasLimit: 21000n, gasPrice });
-  await tx.wait();
+  let feeFields, unitFee;
+  if (fee.maxFeePerGas && fee.maxPriorityFeePerGas) {
+    unitFee = fee.maxFeePerGas;
+    feeFields = { maxFeePerGas: fee.maxFeePerGas, maxPriorityFeePerGas: fee.maxPriorityFeePerGas };
+  } else {
+    unitFee = fee.gasPrice ?? 100000000000n;
+    feeFields = { gasPrice: unitFee };
+  }
+
+  let gasLimit;
+  try {
+    const est = await w.provider.estimateGas({ from: w.address, to: toAddress, value: 1n });
+    gasLimit = est < 21000n ? 21000n : (est * 3n) / 2n; // +50% headroom for delegated-account receive paths
+  } catch (e) {
+    const s = (String(e?.shortMessage || '') + String(e?.message || '')).toLowerCase();
+    if (s.includes('reserve balance')) gasLimit = 200000n; // known Monad RPC estimate quirk — use a generous limit
+    else throw Object.assign(new Error('DEST_REJECTS'), { cause: e }); // destination reverts on ANY native transfer
+  }
+  const gasReserve = gasLimit * unitFee;
+
+  let value;
+  if (wantExact) {
+    value = BigInt(Math.round(amountNative * 1e9)) * 10n ** 9n; // native → wei (18 dp)
+    if (value <= 0n) throw new Error('BAD_AMOUNT');
+    if (value + gasReserve > bal) {
+      throw Object.assign(new Error('INSUFFICIENT_FUNDS'), { needMon: Number(value + gasReserve) / 1e18, haveMon: Number(bal) / 1e18 });
+    }
+  } else {
+    value = bal - gasReserve;
+    if (value <= 0n) throw new Error('NO_BALANCE');
+  }
+
+  let tx;
+  try {
+    tx = await w.sendTransaction({ to: toAddress, value, gasLimit, ...feeFields });
+  } catch (e) {
+    throw Object.assign(new Error('WITHDRAW_REVERT'), { reason: e?.shortMessage || e?.info?.error?.message || e?.message || 'send failed', cause: e });
+  }
+  const rec = await tx.wait();
+  if (!rec || rec.status === 0) throw Object.assign(new Error('TX_FAILED'), { hash: tx.hash });
   return { hash: tx.hash, amount: Number(value) / 1e18 };
 }
 

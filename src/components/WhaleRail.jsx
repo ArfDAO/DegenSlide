@@ -74,7 +74,7 @@ export default function WhaleRail({ watched = [], curated = [], onOpenDossier, o
             addr={addr}
             size={size}
             ring={usingWatched
-              ? 'linear-gradient(160deg, #ff7a2f, #f0511e 55%, #c9231f)'
+              ? 'linear-gradient(160deg, var(--accent), var(--accent) 55%, #a8482270)'
               : undefined}
           />
           {!compact && <span className="rail-name">{generateAlias(addr).split(' ')[0]}</span>}

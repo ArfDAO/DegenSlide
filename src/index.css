@@ -59,35 +59,38 @@
    already consumes — remapped here to the new theme in one place.
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* ── core palette — warm obsidian: every neutral carries a red undertone
-     so the crimson ambience reads as one material, not grey + red light ── */
-  --bg-void:        #150406;   /* page behind the phone */
-  --bg-app:         #0f0709;   /* app canvas */
-  --surface-1:      #1b1114;   /* cards */
-  --surface-2:      #241619;   /* inset chips / wells */
-  --surface-3:      #2e1d21;   /* hover / raised */
-  --line-1:         rgba(255, 190, 175, 0.14);  /* hairline borders */
-  --line-2:         rgba(255, 190, 175, 0.075);
-  --text-1:         #fbf1ef;   /* primary */
-  --text-2:         #b9a3a0;   /* secondary */
-  --text-3:         #7c6362;   /* tertiary */
+  /* ── core palette — Yinger midnight terminal: neutral warm-black canvas,
+     bone-white type, charcoal hairlines. One material, no colour cast. The
+     whole app now reads as the Profile page: flat, monochrome, professional. ── */
+  --bg-void:        #0c0d0a;   /* page behind the phone */
+  --bg-app:         #101109;   /* app canvas */
+  --surface-1:      #191a13;   /* cards */
+  --surface-2:      #20211a;   /* inset chips / wells */
+  --surface-3:      #292a21;   /* hover / raised */
+  --line-1:         rgba(228, 223, 218, 0.14);  /* bone hairline borders */
+  --line-2:         rgba(228, 223, 218, 0.07);
+  --text-1:         #e4dfda;   /* primary — bone glow */
+  --text-2:         rgba(228, 223, 218, 0.60);   /* secondary */
+  --text-3:         rgba(228, 223, 218, 0.36);   /* tertiary */
 
-  /* ── accents ── */
-  --accent:         #f0511e;   /* ignition orange — primary actions */
-  --accent-2:       #a06bff;   /* violet — superlike / tracked / data */
-  --accent-soft:    rgba(240, 81, 30, 0.15);
-  --up:             #46d16b;   /* green — buy / profit / the "like" action */
-  --down:           #ff4d6a;   /* rose — sell / loss */
-  --gold:           #ffb02e;   /* amber — ALL IN / degen heat */
-  --up-soft:        rgba(70, 209, 107, 0.12);
-  --down-soft:      rgba(255, 77, 106, 0.12);
-  --gold-soft:      rgba(255, 176, 46, 0.12);
+  /* ── accents — one restrained ember for primary actions; everything else
+     is bone. Market semantics (up/down) are kept but desaturated so they
+     inform without shouting. No violet, no neon. ── */
+  --accent:         #d6633a;   /* muted ember — primary actions only */
+  --accent-2:       #e4dfda;   /* was violet → now bone (tracked / superlike / data) */
+  --accent-soft:    rgba(214, 99, 58, 0.14);
+  --up:             #6db48a;   /* muted sage — buy / profit */
+  --down:           #cf6f7e;   /* muted rose — sell / loss */
+  --gold:           #c9a24e;   /* muted brass — ALL IN / heat */
+  --up-soft:        rgba(109, 180, 138, 0.12);
+  --down-soft:      rgba(207, 111, 126, 0.12);
+  --gold-soft:      rgba(201, 162, 78, 0.12);
 
   /* ── legacy semantic slots (consumed across all components) ── */
   --color-aurora-magenta: var(--down);        /* negative PnL / danger */
-  --color-deep-iris:      #ffa87e;            /* soft ember tags */
+  --color-deep-iris:      var(--text-2);      /* soft tags → bone */
   --color-midnight-ink:   var(--text-1);      /* primary text */
-  --color-obsidian:       #46101f;            /* error-toast surface */
+  --color-obsidian:       #2a1417;            /* error-toast surface (muted) */
   --color-lavender-mist:  var(--bg-void);     /* page bg */
   --color-paper-white:    var(--surface-1);   /* card surface */
   --color-frost-shadow:   var(--surface-2);   /* inset surface */
@@ -98,24 +101,22 @@
   --color-aurora-green:   var(--up);
   --color-tag-violet:     var(--gold);        /* ALL IN overlay */
 
-  /* ── ambient page wash — deep crimson bloom behind the phone shell,
-     brightest at the top corners and falling to near-black at the base ── */
+  /* ── ambient page wash — a single faint warm bloom on near-black. No
+     crimson, no rainbow: just depth behind the flat surfaces. ── */
   --gradient-aurora-green:
-    radial-gradient(75% 55% at 50% -5%,  rgba(178, 22, 22, 0.55) 0%, transparent 62%),
-    radial-gradient(60% 45% at 8% 8%,    rgba(240, 81, 30, 0.22) 0%, transparent 60%),
-    radial-gradient(65% 50% at 95% 18%,  rgba(150, 16, 32, 0.30) 0%, transparent 58%),
-    radial-gradient(90% 60% at 50% 108%, rgba(90, 8, 14, 0.55)  0%, transparent 65%);
+    radial-gradient(80% 55% at 50% -8%, rgba(228, 223, 218, 0.05) 0%, transparent 60%),
+    radial-gradient(90% 60% at 50% 108%, rgba(0, 0, 0, 0.45) 0%, transparent 65%);
 
-  /* card hero — the orange→crimson bed the token identity sits on */
+  /* card hero — flat charcoal bed the token identity sits on (was orange→crimson) */
   --gradient-hero:
-    linear-gradient(168deg, #ff7a2f 0%, #f0511e 34%, #c9231f 68%, #8e1220 100%);
+    linear-gradient(168deg, #26271e 0%, #1c1d16 55%, #16170f 100%);
 
-  /* ── elevation ── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 4px 18px rgba(20, 2, 4, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-lg: 0 18px 48px rgba(12, 1, 3, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --glow-accent: 0 0 22px rgba(240, 81, 30, 0.45);
-  --glow-up:     0 0 18px rgba(70, 209, 107, 0.32);
+  /* ── elevation — near-flat, matching the Profile terminal cards ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.5);
+  --glow-accent: 0 0 18px rgba(214, 99, 58, 0.28);
+  --glow-up:     0 0 14px rgba(109, 180, 138, 0.22);
 
   --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
