@@ -38,7 +38,7 @@ const TOURS = {
 const TOUR_KEY = (tab) => `tour_${tab}_v1`;
 import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance, isTurboLinked, unlinkTurbo } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
-import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Star } from 'lucide-react';
+import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
 import {
   fetchWhaleDeck,
@@ -169,7 +169,7 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
   return (
     <>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 80, background: 'rgba(2,4,10,0.55)', backdropFilter: 'blur(6px)', borderRadius: 'inherit' }} />
-      <div className="animate-slide-up-modal" style={{ position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 81, background: 'var(--surface-1)', borderRadius: 24, padding: 20, boxShadow: 'var(--shadow-lg)', border: '1px solid var(--line-1)' }}>
+      <div className="animate-slide-up-modal" style={{ position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 81, background: 'var(--surface-1)', borderRadius: 0, padding: 20, boxShadow: 'none', border: '1px solid var(--line-1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>Copy Amount</span>
           <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 14, border: 'none', background: 'var(--color-frost-shadow)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-pebble)' }}><X size={15} /></button>
@@ -177,12 +177,12 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
 
         {/* sizing mode: fixed spend vs proportional mirror of the whale's size */}
         {onChangeSizing && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14, background: 'var(--color-frost-shadow)', borderRadius: 12, padding: 4 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14, background: 'var(--color-frost-shadow)', borderRadius: 9999, padding: 4 }}>
             {[{ id: 'fixed', label: 'Fixed amount' }, { id: 'mirror', label: '⚖️ Mirror whale' }].map((m) => {
               const on = (sizing?.mode || 'fixed') === m.id;
               return (
                 <button key={m.id} type="button" onClick={() => onChangeSizing({ mode: m.id })}
-                  style={{ flex: 1, padding: '8px 0', borderRadius: 9, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--color-tidewater-navy)' : 'transparent', color: on ? '#fff' : 'var(--color-pebble)' }}>
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 9999, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--color-tidewater-navy)' : 'transparent', color: on ? '#fff' : 'var(--color-pebble)' }}>
                   {m.label}
                 </button>
               );
@@ -197,7 +197,7 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
                 const on = (sizing?.mirrorPct || 5) === p;
                 return (
                   <button key={p} type="button" onClick={() => onChangeSizing({ mirrorPct: p })}
-                    style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: on ? '#fff' : 'var(--color-midnight-ink)' }}>
+                    style={{ flex: 1, padding: '9px 0', borderRadius: 9999, border: 'none', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: on ? '#fff' : 'var(--color-midnight-ink)' }}>
                     {p}%
                   </button>
                 );
@@ -223,7 +223,7 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
             const active = !isManual && amount === tier.value;
             return (
               <button key={tier.value} type="button" onClick={() => { setManualVal(''); onChangeAmount(tier.value); }}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                style={{ flex: 1, padding: '10px 0', borderRadius: 9999, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
                 {tier.label}
               </button>
             );
@@ -231,7 +231,7 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
           <input type="text" inputMode="decimal" placeholder="Custom" value={manualVal}
             onFocus={() => { if (isManual) setManualVal(String(amount)); }}
             onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); setManualVal(raw); const num = parseFloat(raw); if (!isNaN(num) && num > 0) onChangeAmount(num); }}
-            style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: `1px solid ${isManual ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)'}`, background: 'var(--color-frost-shadow)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none', minWidth: 0 }} />
+            style={{ flex: 1, padding: '10px 8px', borderRadius: 9999, border: `1px solid ${isManual ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)'}`, background: 'var(--color-frost-shadow)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 600, textAlign: 'center', outline: 'none', minWidth: 0 }} />
         </div>
         <div style={{ fontSize: 11, color: 'var(--color-pebble)', marginTop: 8, fontWeight: 600 }}>
           {monPriceUsd ? `≈ $${(amount * monPriceUsd).toFixed(4)} USD per copy` : `Each swipe buys the whale’s token with this much ${ACTIVE.nativeSymbol}`}
@@ -250,7 +250,7 @@ function TradeSettingsPopover({ open, onClose, amount, onChangeAmount, slippageB
               const active = slippageBps === s.bps;
               return (
                 <button key={s.bps} type="button" onClick={() => onChangeSlippage(s.bps)}
-                  style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 9999, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: active ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: active ? '#fff' : 'var(--color-midnight-ink)' }}>
                   {s.label}
                 </button>
               );
@@ -296,20 +296,20 @@ const Sk = ({ w, h, r = 8, style }) => (
 function DeckSkeleton() {
   return (
     <div className="card-deck-area">
-      <div style={{ height: '100%', borderRadius: 24, border: '1px solid var(--color-silver-lining)', background: 'var(--color-paper-white)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '100%', borderRadius: 0, border: '1px solid var(--color-silver-lining)', background: 'var(--color-paper-white)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 18px', borderBottom: '1px solid var(--line-2)' }}>
           <Sk w={64} h={22} r={100} /><Sk w={90} h={12} /><Sk w={40} h={12} style={{ marginLeft: 'auto' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px 0' }}>
-          <Sk w={46} h={46} r={12} />
+          <Sk w={46} h={46} r={0} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Sk w={120} h={16} /><Sk w={90} h={11} /></div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '22px 18px 0' }}>
-          <Sk w={140} h={30} r={10} /><Sk w={180} h={38} r={12} /><Sk w={150} h={12} />
+          <Sk w={140} h={30} r={0} /><Sk w={180} h={38} r={0} /><Sk w={150} h={12} />
         </div>
-        <div style={{ margin: '16px 18px 0' }}><Sk w="100%" h={54} r={16} /></div>
+        <div style={{ margin: '16px 18px 0' }}><Sk w="100%" h={54} r={0} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '10px 18px 0' }}>
-          <Sk w="100%" h={46} r={12} /><Sk w="100%" h={46} r={12} /><Sk w="100%" h={46} r={12} /><Sk w="100%" h={46} r={12} />
+          <Sk w="100%" h={46} r={0} /><Sk w="100%" h={46} r={0} /><Sk w="100%" h={46} r={0} /><Sk w="100%" h={46} r={0} />
         </div>
       </div>
     </div>
@@ -470,6 +470,9 @@ export default function App() {
   const DECKTIER_LS = LSK('deckTier', 'monad_deckTier');
   const [deckTier, setDeckTier] = useState(() => loadLS(DECKTIER_LS, 'all'));
   useEffect(() => { saveLS(DECKTIER_LS, deckTier); }, [deckTier]);
+  // Desktop sidebar collapse — icon-only rail to reclaim width on wide screens.
+  const [navCollapsed, setNavCollapsed] = useState(() => loadLS('degen_nav_collapsed_v1', false));
+  useEffect(() => { saveLS('degen_nav_collapsed_v1', navCollapsed); }, [navCollapsed]);
   const topCardRef = useRef(null);
 
   // Viewport scale — the phone shell is 393×852. On mobile it fills the screen
@@ -1082,7 +1085,7 @@ export default function App() {
     return (
       <div className="app-container">
         <div style={{ position: 'absolute', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22 }}>
-          <div style={{ maxWidth: 440, width: '100%', background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 24, padding: 24, boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ maxWidth: 440, width: '100%', background: 'var(--surface-1)', border: '1px solid var(--line-1)', borderRadius: 0, padding: 24, boxShadow: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <div className="brand-mark" style={{ width: 34, height: 34 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L20 8.5V15.5L12 22L4 15.5V8.5L12 2Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" fill="rgba(255,255,255,0.14)"/><path d="M8.5 12.5L11 15L15.5 9.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1096,7 +1099,7 @@ export default function App() {
               <li style={{ fontSize: 12.5, color: 'var(--text-2)', fontWeight: 500, lineHeight: 1.55 }}>Provided “as is”, no warranty. Nothing here is a solicitation to trade where restricted — using it is your responsibility.</li>
             </ul>
             <button onClick={() => { setDisclaimerOk(true); saveLS('degen_disclaimer_v1', true); }}
-              style={{ width: '100%', marginTop: 18, padding: '13px 0', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 800, cursor: 'pointer', background: 'var(--color-tidewater-navy)', color: '#fff' }}>
+              style={{ width: '100%', marginTop: 18, padding: '13px 0', borderRadius: 9999, border: 'none', fontSize: 14, fontWeight: 800, cursor: 'pointer', background: 'var(--color-tidewater-navy)', color: '#fff' }}>
               I understand &amp; accept the risks
             </button>
           </div>
@@ -1151,36 +1154,47 @@ export default function App() {
         />
       )}
 
-      {/* ── Desktop sidebar (hidden on mobile) — brand, vertical nav, Turbo ── */}
-      <aside className="side-nav">
-        <div className="brand" style={{ padding: '4px 6px 0' }}>
-          <div className="brand-mark">
-            <img src="/favicon.png" alt="DegenSlide" className="brand-logo-img" />
-          </div>
-          <div>
-            <div className="brand-word">DegenSlide</div>
-            <div className="brand-sub">
-              <span className={`live-dot ${indexerUp ? 'on' : ''}`} />
-              {indexerUp ? `${ACTIVE.label} live` : 'feed offline'} · {clock}
+      {/* ── Desktop sidebar (hidden on mobile) — brand, vertical nav, Turbo.
+          Collapsible to an icon-only rail; state persists across visits. ── */}
+      <aside className={`side-nav ${navCollapsed ? 'collapsed' : ''}`}>
+        <div className="side-nav-head">
+          {navCollapsed ? (
+            <img src="/favicon.png?v=3" alt="DegenSlide" className="side-nav-mono" title="DegenSlide" />
+          ) : (
+            <div className="brand" style={{ padding: '4px 6px 0' }}>
+              <img src="/favicon.png?v=3" alt="DegenSlide" className="brand-logo-icon" />
+              <div>
+                <div className="brand-word">DegenSlide</div>
+                <div className="brand-sub">
+                  <span className={`live-dot ${indexerUp ? 'on' : ''}`} />
+                  {indexerUp ? `${ACTIVE.label} live` : 'feed offline'} · {clock}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+          <button type="button" className="side-nav-toggle" onClick={() => setNavCollapsed((v) => !v)}
+            title={navCollapsed ? 'Expand menu' : 'Collapse menu'}>
+            {navCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
         </div>
         <nav className="side-nav-list">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id} type="button" className={`side-nav-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+              <button key={tab.id} type="button" className={`side-nav-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)} title={navCollapsed ? tab.label : undefined}>
                 <div className="nav-icon"><tab.Icon active={isActive} /></div>
-                <span>{tab.label}</span>
+                {!navCollapsed && <span>{tab.label}</span>}
               </button>
             );
           })}
         </nav>
         <button onClick={() => setActiveTab('profile')} className={`side-turbo ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
           <span style={{ fontSize: 13 }}>⚡</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {turboAddr ? (monBalance != null ? `${monBalance.toFixed(3)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`) : 'Turbo'}
-          </span>
+          {!navCollapsed && (
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {turboAddr ? (monBalance != null ? `${monBalance.toFixed(3)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`) : 'Turbo'}
+            </span>
+          )}
         </button>
       </aside>
 
@@ -1188,9 +1202,7 @@ export default function App() {
       {/* ── App bar: brand identity (mobile only — desktop shows it in the sidebar) ── */}
       <header className="app-bar">
         <div className="brand">
-          <div className="brand-mark">
-            <img src="/favicon.png" alt="DegenSlide" className="brand-logo-img" />
-          </div>
+          <img src="/favicon.png?v=3" alt="DegenSlide" className="brand-logo-icon" />
           <div>
             <div className="brand-word">DegenSlide</div>
             <div className="brand-sub">
@@ -1257,8 +1269,8 @@ export default function App() {
                     </p>
                   </div>
                 ) : hotTokens.map((h) => (
-                  <div key={h.tokenAddress} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 14px', marginBottom: 8, borderRadius: 16, background: 'var(--color-paper-white)', border: '1px solid rgba(255,157,77,0.3)', boxShadow: 'var(--shadow-md)' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,157,77,0.1)', fontSize: 16 }}>🔥</div>
+                  <div key={h.tokenAddress} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 14px', marginBottom: 8, borderRadius: 0, background: 'var(--color-paper-white)', border: '1px solid rgba(255,157,77,0.3)', boxShadow: 'none' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 0, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,157,77,0.1)', fontSize: 16 }}>🔥</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--color-midnight-ink)' }}>${h.symbol}</div>
                       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-pebble)', fontFamily: '"JetBrains Mono", monospace', marginTop: 2 }}>
@@ -1271,7 +1283,7 @@ export default function App() {
                     </a>
                     {h.lastCard && h.lastCard.copyable !== false && (
                       <button onClick={() => sendCopy(h.lastCard, tradeAmount)}
-                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'var(--accent)', boxShadow: 'var(--glow-accent)' }}>
+                        style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', padding: '7px 13px', borderRadius: 100, background: 'var(--accent)', boxShadow: 'none' }}>
                         Copy
                       </button>
                     )}
@@ -1321,7 +1333,7 @@ export default function App() {
                 </div>
                 <div className="action-row" data-tour="deck-actions">
                   <button type="button" data-tour="trade-settings" onClick={() => setShowTradeSettings(true)} title={sizing.mode === 'mirror' ? `Mirror ${sizing.mirrorPct}% of whale size (cap ${tradeAmount} ${ACTIVE.nativeSymbol})` : `${tradeAmount} ${ACTIVE.nativeSymbol} / copy`}
-                    style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+                    style={{ width: 40, height: 40, borderRadius: 20, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', boxShadow: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
                     <Settings size={18} color="var(--color-pebble)" />
                     <span style={{ position: 'absolute', top: -2, right: -2, fontSize: 8, fontWeight: 700, background: 'var(--color-tidewater-navy)', color: '#fff', borderRadius: 8, padding: '1px 5px', lineHeight: '14px' }}>{sizing.mode === 'mirror' ? `${sizing.mirrorPct}%` : tradeAmount}</span>
                   </button>
@@ -1361,7 +1373,7 @@ export default function App() {
             )}
           </div>
         ) : activeTab === 'portfolio' ? (
-          <div className="h-full px-1"><Portfolio portfolio={portfolio} monPriceUsd={monPriceUsd} tradeAmount={tradeAmount} autoSell={settings.autoSell} onRemove={removePosition} onBuyMore={buyMorePosition} onSetTargets={setPositionTargets} onSell={sellPosition} /></div>
+          <div className="h-full px-1"><Portfolio portfolio={portfolio} monPriceUsd={monPriceUsd} tradeAmount={tradeAmount} autoSell={settings.autoSell} onRemove={removePosition} onBuyMore={buyMorePosition} onSetTargets={setPositionTargets} onSell={sellPosition} onGoToDeck={() => setActiveTab('deck')} /></div>
         ) : (
           <ProfilePage
             walletAddress={turboAddr} monBalance={monBalance} monPriceUsd={monPriceUsd}
@@ -1373,6 +1385,7 @@ export default function App() {
             onTurboChanged={() => { setTurboAddr(getTurboAddress()); refreshBalance(); }}
             autoCopy={autoCopy} updateAutoCopy={updateAutoCopy} autoCopyDefaults={AUTOCOPY_DEFAULTS}
             autoSpentToday={autoSpentToday()} autoSpendTick={autoSpendTick} onReplayTours={replayTours}
+            onSell={sellPosition} onGoToDeck={() => setActiveTab('deck')}
           />
         )}
       </main>
