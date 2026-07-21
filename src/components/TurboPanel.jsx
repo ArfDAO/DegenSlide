@@ -27,7 +27,7 @@ const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '');
  *     from it (recoverable anywhere).
  *   • Linked → deposit / withdraw / export, with the linked wallet shown.
  */
-export default function TurboActions({ externalWallet, onConnect, showToast, onChanged, turboBalance }) {
+export default function TurboActions({ externalWallet, onConnect, showToast, onChanged, turboBalance, turboAddress }) {
   const [agreed, setAgreed] = useState(false);
   const [linked, setLinked] = useState(() => isTurboLinked());
   const [linkedAddr, setLinkedAddr] = useState(() => getLinkedAddress());
@@ -50,6 +50,10 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
     setLinkedAddr(getLinkedAddress());
     setLegacyUnlinked(turboWalletExists() && !isTurboLinked());
   }, []);
+
+  // Re-sync when the account is linked or cleared elsewhere (e.g. Disconnect
+  // sets the turbo address to null → this panel must flip back to "connect").
+  useEffect(() => { refreshLinkState(); }, [turboAddress, refreshLinkState]);
 
   // Connect the external wallet (if needed), sign once, derive/link the wallet.
   const doLink = useCallback(async () => {

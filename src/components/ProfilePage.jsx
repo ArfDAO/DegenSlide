@@ -261,7 +261,7 @@ export default function ProfilePage({
             <BalanceChart history={balanceHistory} />
 
             {/* Turbo actions live right here — agreement once, then deposit/withdraw/export */}
-            <TurboActions externalWallet={externalWallet} onConnect={onConnect} showToast={showToast} onChanged={onTurboChanged} turboBalance={monBalance} />
+            <TurboActions externalWallet={externalWallet} onConnect={onConnect} showToast={showToast} onChanged={onTurboChanged} turboBalance={monBalance} turboAddress={walletAddress} />
           </div>
         </div>
 

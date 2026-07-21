@@ -41,19 +41,37 @@ const mmCall = (method, params = []) => window.ethereum.request({ method, params
 
 // Read-only RPC straight to Monad — used for quotes so they don't depend on the
 // user's wallet balance or MetaMask's eth_call quirks.
-async function rpcEthCall(tx) {
-  try {
-    const res = await fetch(MONAD_MAINNET.rpcUrls[0], {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [tx, 'latest'] }),
-    });
-    const j = await res.json();
-    return j.error ? '0x' : (j.result || '0x');
-  } catch {
-    return '0x';
+//
+// A quote returning '0x' means "no output" and the caller reads it as no
+// liquidity — so a TRANSIENT network/RPC blip must NOT be reported as '0x', or
+// every route reads as NO_LIQUIDITY and the copy fails for a healthy token.
+// We retry transient failures (network error, non-2xx, rate limit) a couple of
+// times; only a real `execution reverted` (no pool at that fee) returns '0x'.
+async function rpcEthCall(tx, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(MONAD_MAINNET.rpcUrls[0], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [tx, 'latest'] }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) { await sleep(250 * (i + 1)); continue; } // 429 / 5xx → retry
+      const j = await res.json();
+      if (j.error) {
+        const msg = String(j.error.message || '').toLowerCase();
+        // A genuine revert = no pool / no liquidity at this route → legitimate '0x'.
+        if (msg.includes('revert') || msg.includes('execution')) return '0x';
+        await sleep(250 * (i + 1)); continue; // transient node error → retry
+      }
+      return j.result || '0x';
+    } catch {
+      await sleep(250 * (i + 1)); // network error / timeout → retry
+    }
   }
+  return '0x';
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── hex / abi helpers ──
 const strip = (h) => h.replace(/^0x/, '');

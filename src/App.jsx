@@ -8,7 +8,6 @@ import ProfilePage from './components/ProfilePage';
 import Onboarding from './components/Onboarding';
 import WhaleDossier from './components/WhaleDossier';
 import Tour from './components/Tour';
-import WhaleRail from './components/WhaleRail';
 import UserAvatar from './components/UserAvatar';
 import TokenImage from './components/TokenImage';
 
@@ -1202,24 +1201,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Contextual page head — 3-column grid so the chain switcher sits
-          dead-centre and the profile avatar always anchors the top-right,
-          on every breakpoint. ── */}
+      {/* ── Contextual page head — page identity on the left, the network
+          switcher always anchored top-right on every page. ── */}
       <div className="page-head" data-tour={activeTab === 'portfolio' ? 'portfolio-head' : undefined}>
         <div className="page-head-left">
           {activeTab === 'deck' ? (
-            <>
-              <span className="page-meta">{deckCards.length} live signals</span>
-              {/* Story rail lives up here beside the signal counter — the deck
-                  below keeps the full height for the card. */}
-              <WhaleRail
-                compact
-                watched={watchlistView}
-                curated={curatedWhalesList}
-                onOpenDossier={setDossierAddr}
-                onAdd={() => { setActiveTab('leaderboard'); setLbMode('watchlist'); }}
-              />
-            </>
+            <span className="page-meta">{deckCards.length} live signals</span>
           ) : (
             <h1 className="page-title">
               {activeTab === 'leaderboard' ? 'Leaderboard' : activeTab === 'portfolio' ? 'Portfolio' : 'Profile'}
@@ -1227,30 +1214,20 @@ export default function App() {
           )}
         </div>
 
-        <div className="page-head-center">
-          {activeTab === 'deck' && (
-            /* Network switcher — persists choice, reloads onto the selected chain's indexer */
-            <div className="seg-track" data-tour="chain-switch">
-              {Object.values(CHAINS).map((c) => {
-                const on = ACTIVE.id === c.id;
-                return (
-                  <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
-                    onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
-                    {c.nativeSymbol}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         <div className="page-head-right">
-          {(activeTab === 'leaderboard' || activeTab === 'portfolio') && (
-            <span className="page-meta">
-              {activeTab === 'leaderboard' ? `${curatedWhalesList.length} tracked whales` :
-               `${portfolio.length} position${portfolio.length === 1 ? '' : 's'}`}
-            </span>
-          )}
+          {/* Network switcher — top-right on every page. Persists the choice and
+              reloads onto the selected chain's indexer. */}
+          <div className="seg-track" data-tour="chain-switch">
+            {Object.values(CHAINS).map((c) => {
+              const on = ACTIVE.id === c.id;
+              return (
+                <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
+                  onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
+                  {c.nativeSymbol}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
