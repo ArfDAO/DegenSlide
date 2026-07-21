@@ -74,14 +74,14 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
         <div style={{ position: 'relative', marginBottom: 8 }}>
           <Search size={14} color="var(--color-pebble)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search address, token or KOL…"
-            style={{ width: '100%', padding: '9px 11px 9px 32px', borderRadius: 12, border: '1px solid var(--color-silver-lining)', background: 'var(--color-paper-white)', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600, outline: 'none', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '9px 11px 9px 32px', borderRadius: 12, border: '1px solid var(--color-silver-lining)', background: 'var(--color-paper-white)', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600, outline: 'none', boxShadow: 'none', boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {SORTS.map((s) => {
             const active = sort === s.id;
             return (
               <button key={s.id} type="button" onClick={() => setSort(s.id)}
-                style={{ flexShrink: 0, borderRadius: 100, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', background: active ? 'var(--accent)' : 'var(--color-paper-white)', border: active ? '1px solid var(--accent)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', boxShadow: active ? 'none' : 'var(--shadow-md)' }}>
+                style={{ flexShrink: 0, borderRadius: 100, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', background: active ? 'var(--accent)' : 'var(--color-paper-white)', border: active ? '1px solid var(--accent)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', boxShadow: 'none' }}>
                 {s.label}
               </button>
             );
@@ -101,8 +101,8 @@ export default function CuratedWhales({ whales = [], favorites = [], onToggleFav
           const rank = ranked.findIndex((r) => r.w === w) + 1;
           const win = perf.winRate != null ? Math.round(perf.winRate * 100) : null;
           return (
-            <div key={w.address} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 6, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', borderRadius: 14, boxShadow: 'var(--shadow-md)' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: rank <= 3 ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: rank <= 3 ? '#fff' : 'var(--color-pebble)', fontSize: 11, fontWeight: 700 }}>{rank}</div>
+            <div key={w.address} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 6, background: 'var(--color-paper-white)', border: '1px solid var(--color-silver-lining)', borderRadius: 0, boxShadow: 'none' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 0, flexShrink: 0, display: 'grid', placeItems: 'center', background: rank <= 3 ? 'var(--color-tidewater-navy)' : 'var(--color-frost-shadow)', color: rank <= 3 ? '#fff' : 'var(--color-pebble)', fontSize: 11, fontWeight: 700 }}>{rank}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <a href={EXPLORER_ADDR_URL(w.address)} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: 'monospace', textDecoration: 'none' }}>

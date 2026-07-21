@@ -202,7 +202,7 @@ function BackLabel({ children }) {
 }
 function BackKV({ k, v, sub }) {
   return (
-    <div style={{ borderRadius: 10, border: '1px solid var(--color-silver-lining)', padding: '8px 10px' }}>
+    <div style={{ borderRadius: 0, border: '1px solid var(--color-silver-lining)', padding: '8px 10px' }}>
       <div style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</div>
       <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-midnight-ink)', fontFamily: '"JetBrains Mono", monospace', marginTop: 2 }}>{v}</div>
       {sub && <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--color-pebble)', fontFamily: '"JetBrains Mono", monospace', marginTop: 1 }}>{sub}</div>}
@@ -217,7 +217,7 @@ export function BlockieAvatar({ addr, size = 42 }) {
   const initials = (addr || '?').replace(/^0x/, '').slice(0, 2).toUpperCase();
   return (
     <div style={{
-      width: size, height: size, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+      width: size, height: size, borderRadius: 0, overflow: 'hidden', flexShrink: 0,
       display: 'grid', placeItems: 'center',
       border: '1px solid var(--color-silver-lining)', background: 'var(--color-frost-shadow)',
     }}>
@@ -429,8 +429,8 @@ const SwipeCard = forwardRef(function SwipeCard(
         <div style={{
           zIndex: 30 - stackIndex,
           transform: `translateY(${stackIndex * 12}px) scale(${1 - stackIndex * 0.04})`,
-          borderRadius: 24, background: 'var(--color-paper-white)',
-          border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-md)',
+          borderRadius: 0, background: 'var(--color-paper-white)',
+          border: '1px solid var(--color-silver-lining)', boxShadow: 'none',
           pointerEvents: 'none', width: '100%', height: '100%',
           opacity: 1 - stackIndex * 0.2, overflow: 'hidden',
         }} />
@@ -448,7 +448,7 @@ const SwipeCard = forwardRef(function SwipeCard(
     const pos = dir === 'right' ? { top: 56, left: 24 } : dir === 'left' ? { top: 56, right: 24 } : { top: 56, left: '50%', transform: 'translateX(-50%)' };
     return (
       <div style={{ position: 'absolute', inset: 0, zIndex: 50, borderRadius: 'inherit', opacity: Math.min(op, 1), pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', ...pos, border: `3px solid ${cfg.color}`, borderRadius: 6, padding: '6px 16px', transform: pos.transform || `rotate(${cfg.rot}deg)` }}>
+        <div style={{ position: 'absolute', ...pos, border: `3px solid ${cfg.color}`, borderRadius: 0, padding: '6px 16px', transform: pos.transform || `rotate(${cfg.rot}deg)` }}>
           <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '0.12em', color: cfg.color, fontFamily: '"JetBrains Mono", monospace' }}>{cfg.text}</span>
         </div>
       </div>
@@ -465,7 +465,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         className="relative flex h-full w-full flex-col"
         onClick={handleCardClick}
         style={{
-          zIndex: 30, borderRadius: 24,
+          zIndex: 30, borderRadius: 0,
           // when flipped, allow vertical touch-scrolling of the detail side
           pointerEvents: isTopCard ? 'auto' : 'none', userSelect: 'none', touchAction: showDeepDive ? 'pan-y' : 'none',
           cursor: isTopCard && !showDeepDive ? 'grab' : 'default',
@@ -490,8 +490,8 @@ const SwipeCard = forwardRef(function SwipeCard(
         <div style={{
           position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
           backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-          borderRadius: 24, overflow: 'hidden',
-          border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
+          borderRadius: 0, overflow: 'hidden',
+          border: '1px solid var(--color-silver-lining)', boxShadow: 'none',
           background: 'var(--color-paper-white)',
           // While flipped, the rotated-away front face can still win pointer
           // hit-testing (browser backface quirk) and its handlers swallow the
@@ -505,9 +505,7 @@ const SwipeCard = forwardRef(function SwipeCard(
         {/* ══ SIGNAL BANNER — side-tinted strip announcing the trade ══ */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: 'min(12px, 1.5vh) 18px',
-          background: isBuy
-            ? 'linear-gradient(100deg, var(--up-soft) 0%, transparent 60%)'
-            : 'linear-gradient(100deg, var(--down-soft) 0%, transparent 60%)',
+          background: isBuy ? 'var(--up-soft)' : 'var(--down-soft)',
           borderBottom: '1px solid var(--line-2)',
         }}>
           <span style={{
@@ -577,7 +575,7 @@ const SwipeCard = forwardRef(function SwipeCard(
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>
               <a href={EXPLORER_ADDR_URL(trader.address)} target="_blank" rel="noreferrer"
                 data-no-drag="true" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
-                style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-3)', fontFamily: '"JetBrains Mono", monospace', textDecoration: 'none', background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 6 }}>
+                style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-3)', fontFamily: '"JetBrains Mono", monospace', textDecoration: 'none', background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 0 }}>
                 {trader.address.slice(0, 6)}…{trader.address.slice(-4)} ↗
               </a>
               <WhaleScore score={trader.traderScore} />
@@ -596,10 +594,10 @@ const SwipeCard = forwardRef(function SwipeCard(
           margin: 'min(14px, 1.4vh) 12px 0',
           padding: 'min(16px, 1.6vh) 14px min(14px, 1.5vh)',
           textAlign: 'center',
-          borderRadius: 22,
+          borderRadius: 0,
           background: 'var(--gradient-hero)',
           border: '1px solid var(--line-1)',
-          boxShadow: 'var(--shadow-md)',
+          boxShadow: 'none',
           overflow: 'hidden',
         }}>
           {/* darkens the lower half so the numbers keep contrast on the gradient */}
@@ -650,7 +648,7 @@ const SwipeCard = forwardRef(function SwipeCard(
             chart absorbs whatever height remains, so nothing clips. ══ */}
         <div style={{
           flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-          margin: 'min(14px, 1.8vh) 18px 0', borderRadius: 16,
+          margin: 'min(14px, 1.8vh) 18px 0', borderRadius: 0,
           border: '1px solid var(--line-2)', background: 'var(--surface-2)',
           padding: 'min(9px, 1.2vh) 13px 6px', overflow: 'hidden',
         }}>
@@ -720,8 +718,8 @@ const SwipeCard = forwardRef(function SwipeCard(
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            borderRadius: 24, overflow: 'hidden', touchAction: 'pan-y',
-            border: '1px solid var(--color-silver-lining)', boxShadow: 'var(--shadow-lg)',
+            borderRadius: 0, overflow: 'hidden', touchAction: 'pan-y',
+            border: '1px solid var(--color-silver-lining)', boxShadow: 'none',
             background: 'var(--color-paper-white)',
             // mirror of the front-face guard: only the visible face is hit-testable
             pointerEvents: showDeepDive ? 'auto' : 'none',
@@ -744,7 +742,7 @@ const SwipeCard = forwardRef(function SwipeCard(
 
                 {/* ── THE WHALE'S PLAY — what you'd actually be copying ── */}
                 <BackLabel>The whale&apos;s play</BackLabel>
-                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 0, padding: '12px 14px', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <BlockieAvatar addr={trader.address} size={30} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -769,7 +767,7 @@ const SwipeCard = forwardRef(function SwipeCard(
                 {dBreak && dTier && (
                   <>
                     <BackLabel>Degen score</BackLabel>
-                    <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+                    <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 0, padding: '12px 14px', marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
                         <span style={{ fontSize: 26, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', color: dTier.color }}>{dScore}</span>
                         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: dTier.color }}>{dTier.label}</span>
@@ -790,7 +788,7 @@ const SwipeCard = forwardRef(function SwipeCard(
 
                 {/* ── MOMENTUM — price change + volume, all timeframes ── */}
                 <BackLabel>Momentum</BackLabel>
-                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 12, padding: '14px', marginBottom: 16 }}>
+                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 0, padding: '14px', marginBottom: 16 }}>
                   {pair ? (
                     <>
                       <ChangeBars change={pair.priceChange} />
@@ -821,7 +819,7 @@ const SwipeCard = forwardRef(function SwipeCard(
 
                 {/* ── MARKET + honest risk flags from the same live numbers ── */}
                 <BackLabel>Market</BackLabel>
-                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 12, padding: '4px 14px', marginBottom: 12 }}>
+                <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 0, padding: '4px 14px', marginBottom: 12 }}>
                   {[
                     ['Liquidity', fmtUsd(pair?.liquidity)],
                     ['Market Cap', fmtUsd(pair?.marketCap)],
@@ -841,13 +839,13 @@ const SwipeCard = forwardRef(function SwipeCard(
                   if (ageRisky) flags.push('Pair younger than 24h — unproven');
                   if (pair.fdv && pair.liquidity && pair.fdv / pair.liquidity > 100) flags.push(`FDV is ${(pair.fdv / pair.liquidity).toFixed(0)}× liquidity — little real backing`);
                   return flags.length ? (
-                    <div style={{ borderRadius: 12, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.07)', padding: '10px 13px', marginBottom: 16 }}>
+                    <div style={{ borderRadius: 0, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.07)', padding: '10px 13px', marginBottom: 16 }}>
                       {flags.map((f, i) => (
                         <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--gold)', lineHeight: 1.6 }}>⚠ {f}</div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ borderRadius: 12, border: '1px solid rgba(70, 209, 107,0.35)', background: 'rgba(70, 209, 107,0.06)', padding: '10px 13px', marginBottom: 16, fontSize: 10.5, fontWeight: 700, color: 'var(--color-aurora-green)' }}>
+                    <div style={{ borderRadius: 0, border: '1px solid rgba(70, 209, 107,0.35)', background: 'rgba(70, 209, 107,0.06)', padding: '10px 13px', marginBottom: 16, fontSize: 10.5, fontWeight: 700, color: 'var(--color-aurora-green)' }}>
                       ✓ No red flags in live market data
                     </div>
                   );
@@ -857,17 +855,17 @@ const SwipeCard = forwardRef(function SwipeCard(
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <button
                     onClick={() => { navigator.clipboard?.writeText(trader.tokenAddress).then(() => { setCopiedAddr(true); setTimeout(() => setCopiedAddr(false), 1400); }).catch(() => {}); }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 10, background: 'var(--color-frost-shadow)', border: 'none', cursor: 'pointer', color: copiedAddr ? 'var(--color-aurora-green)' : 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 0, background: 'var(--color-frost-shadow)', border: 'none', cursor: 'pointer', color: copiedAddr ? 'var(--color-aurora-green)' : 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{copiedAddr ? 'Copied ✓' : `${trader.tokenAddress?.slice(0, 8)}…${trader.tokenAddress?.slice(-6)}`}</span>
                     {copiedAddr ? <Check size={13} /> : <Copy size={13} />}
                   </button>
                   <a href={EXPLORER_TX_URL(trader.txHash)} target="_blank" rel="noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 10, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 0, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
                     View whale&apos;s tx on {ACTIVE.kind === 'evm' ? 'MonadScan' : 'Solscan'} <ExternalLink size={14} />
                   </a>
                   {/* dexUrl comes from an external API — only trust an https link (no javascript:/data: XSS) */}
                   <a href={(typeof pair?.dexUrl === 'string' && /^https:\/\//i.test(pair.dexUrl)) ? pair.dexUrl : `https://dexscreener.com/${DEXSCREENER_CHAIN}/${trader.tokenAddress}`} target="_blank" rel="noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 10, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 0, background: 'var(--color-frost-shadow)', textDecoration: 'none', color: 'var(--color-midnight-ink)', fontSize: 12, fontWeight: 600 }}>
                     ${trader.tokenSymbol} chart on DexScreener <ExternalLink size={14} />
                   </a>
                 </div>

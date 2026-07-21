@@ -30,7 +30,7 @@ const fmtUsd = (v) => {
 
 function StatCell({ label, value, color }) {
   return (
-    <div style={{ textAlign: 'center', padding: '10px 4px', borderRadius: 12, background: 'var(--color-frost-shadow)' }}>
+    <div style={{ textAlign: 'center', padding: '10px 4px', borderRadius: 0, background: 'var(--color-frost-shadow)' }}>
       <div style={{ fontSize: 15, fontWeight: 800, color: color || 'var(--color-midnight-ink)', fontFamily: '"JetBrains Mono", monospace' }}>{value}</div>
       <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-pebble)', marginTop: 3 }}>{label}</div>
     </div>
@@ -64,8 +64,8 @@ export default function WhaleDossier({
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(5,7,12,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', maxWidth: 430, maxHeight: '86vh', display: 'flex', flexDirection: 'column',
-        borderRadius: 24, overflow: 'hidden', background: 'var(--color-paper-white)',
-        border: '1px solid var(--color-silver-lining)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+        borderRadius: 0, overflow: 'hidden', background: 'var(--color-paper-white)',
+        border: '1px solid var(--color-silver-lining)',
       }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 18px', borderBottom: '1px solid var(--color-frost-shadow)' }}>
@@ -97,7 +97,7 @@ export default function WhaleDossier({
           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
             <button onClick={() => onToggleWatch?.(address)}
               style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', borderRadius: 9999, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
                 border: `1px solid ${isWatched ? 'rgba(160, 107, 255,0.5)' : 'var(--color-silver-lining)'}`,
                 background: isWatched ? 'rgba(160, 107, 255,0.1)' : 'var(--color-frost-shadow)',
                 color: isWatched ? 'var(--accent-2)' : 'var(--color-midnight-ink)',
@@ -108,7 +108,7 @@ export default function WhaleDossier({
               <button onClick={() => onToggleAuto(address)}
                 title={autoEnabled ? '' : 'Auto-Copy master switch is off — enable it in Profile'}
                 style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 0', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 0', borderRadius: 9999, cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
                   border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
                   background: isAuto ? 'var(--accent)' : 'var(--color-frost-shadow)',
                   color: isAuto ? '#fff' : 'var(--color-midnight-ink)',
@@ -126,7 +126,7 @@ export default function WhaleDossier({
           ) : trades.length === 0 ? (
             <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 11.5, fontWeight: 600, color: 'var(--color-pebble)' }}>No trades captured by the indexer yet.</div>
           ) : (
-            <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 12, padding: '2px 13px' }}>
+            <div style={{ background: 'var(--color-frost-shadow)', borderRadius: 0, padding: '2px 13px' }}>
               {trades.map((t, i) => {
                 const buy = t.side === 'BUY';
                 return (

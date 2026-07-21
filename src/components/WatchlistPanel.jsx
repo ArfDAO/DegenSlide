@@ -16,8 +16,8 @@ function WalletRow({ wallet, onRemove, onOpenDossier, isAuto, onToggleAuto, auto
       style={{
         background: 'var(--color-paper-white)',
         border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.4)' : 'var(--color-silver-lining)'}`,
-        boxShadow: 'var(--shadow-md)',
-        borderRadius: 16,
+        boxShadow: 'none',
+        borderRadius: 0,
         marginBottom: 10,
         padding: '12px 14px',
         display: 'flex', alignItems: 'center', gap: 11,
@@ -41,9 +41,9 @@ function WalletRow({ wallet, onRemove, onOpenDossier, isAuto, onToggleAuto, auto
               display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
               padding: '4px 9px', borderRadius: 100, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
               border: `1px solid ${isAuto ? 'rgba(240, 81, 30,0.6)' : 'var(--color-silver-lining)'}`,
-              background: isAuto ? 'linear-gradient(135deg, var(--accent) 0%, #b5502680 100%)' : 'transparent',
+              background: isAuto ? 'var(--accent)' : 'transparent',
               color: isAuto ? '#fff' : 'var(--color-pebble)',
-              boxShadow: isAuto ? '0 2px 10px rgba(240, 81, 30,0.4)' : 'none',
+              boxShadow: 'none',
               opacity: isAuto && !autoEnabled ? 0.55 : 1,
             }}
           >
@@ -112,7 +112,7 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove, autoWhales = 
               background: 'var(--color-paper-white)',
               color: 'var(--color-midnight-ink)', fontSize: 11, fontFamily: 'monospace', fontWeight: 600,
               outline: 'none',
-              boxShadow: 'var(--shadow-md)',
+              boxShadow: 'none',
             }}
           />
           <button
@@ -121,7 +121,7 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove, autoWhales = 
               padding: '10px 14px', borderRadius: 12, border: 'none', flexShrink: 0,
               background: 'var(--color-tidewater-navy)',
               color: 'var(--color-paper-white)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              boxShadow: 'var(--shadow-md)',
+              boxShadow: 'none',
             }}
           >
             Add
@@ -147,7 +147,7 @@ export default function WatchlistPanel({ wallets, onAdd, onRemove, autoWhales = 
         ) : (
           <>
             {onToggleAuto && autoWhales.length > 0 && !autoEnabled && (
-              <div style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.08)', fontSize: 10.5, fontWeight: 700, color: '#ffb02e', lineHeight: 1.5 }}>
+              <div style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 0, border: '1px solid rgba(255, 176, 46,0.4)', background: 'rgba(255, 176, 46,0.08)', fontSize: 10.5, fontWeight: 700, color: '#ffb02e', lineHeight: 1.5 }}>
                 🤖 {autoWhales.length} whale{autoWhales.length === 1 ? '' : 's'} marked AUTO, but Auto-Copy is off — enable it in Profile to start hands-free copying.
               </div>
             )}

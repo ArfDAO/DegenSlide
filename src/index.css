@@ -185,13 +185,21 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 10px;
   min-width: 0;
   flex-shrink: 0;
 }
 
 .brand-mark { display: none; }
 .brand-logo-img { display: none; }
+
+.brand-logo-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+}
 
 /* Wordmark: Yinger aesthetic blocky masthead */
 .brand-word {
@@ -396,8 +404,8 @@ body {
 
 .nav-item.active {
   color: #fff;
-  background: linear-gradient(135deg, #ff6a3d 0%, #f0511e 100%);
-  box-shadow: 0 4px 16px rgba(240, 81, 30, 0.45);
+  background: var(--accent);
+  box-shadow: none;
   border-bottom: none;
 }
 
@@ -541,7 +549,7 @@ body {
   border: none;
   color: #fff;
   font-size: 22px;
-  box-shadow: var(--glow-accent);
+  box-shadow: none;
 }
 
 .btn-copy:hover {
@@ -567,8 +575,9 @@ body {
 
 /* saved state — brightened + ringed so it reads as "already on the list" */
 .btn-like.saved {
-  background: linear-gradient(160deg, #b98cff 0%, #8355f0 100%);
-  box-shadow: 0 0 0 3px rgba(155, 107, 255, 0.28), 0 6px 20px rgba(109, 63, 224, 0.5);
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  box-shadow: none;
 }
 
 .btn-like:active { transform: scale(0.94); }
@@ -674,9 +683,7 @@ body {
     border-radius: 0; box-shadow: none;
     transform: none !important;
     flex-direction: row;
-    background:
-      radial-gradient(70% 55% at 12% -8%, rgba(240, 81, 30, 0.14) 0%, transparent 55%),
-      var(--bg-app);
+    background: var(--bg-app);
   }
   .app-container::before { display: none; }
 
@@ -690,33 +697,55 @@ body {
     background: rgba(12, 15, 23, 0.55);
     backdrop-filter: blur(16px);
     z-index: 30;
+    transition: width 0.2s cubic-bezier(0.4,0,0.2,1), padding 0.2s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
   }
+  .side-nav.collapsed { width: 76px; padding-left: 12px; padding-right: 12px; }
+
+  .side-nav-head { display: flex; align-items: center; gap: 6px; }
+  .side-nav.collapsed .side-nav-head { justify-content: center; }
+  .side-nav-mono {
+    width: 34px; height: 34px; flex-shrink: 0; border-radius: 4px;
+    object-fit: cover; border: 1px solid var(--color-charcoal-vein);
+  }
+  .side-nav-toggle {
+    width: 26px; height: 26px; flex-shrink: 0; margin-left: auto;
+    display: grid; place-items: center; border-radius: 9999px;
+    border: 1px solid var(--color-charcoal-vein); background: transparent;
+    color: var(--text-3); cursor: pointer;
+    transition: color 0.18s ease, border-color 0.18s ease;
+  }
+  .side-nav-toggle:hover { color: var(--text-1); border-color: var(--text-2); }
+  .side-nav.collapsed .side-nav-toggle { margin-left: 0; }
+
   .side-nav-list { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
   .side-nav-item {
     display: flex; align-items: center; gap: 12px;
-    padding: 11px 13px; border-radius: 14px;
+    padding: 11px 13px; border-radius: 9999px;
     background: none; border: none; cursor: pointer;
     color: var(--text-3); font-size: 14px; font-weight: 600;
     font-family: var(--font-display); text-align: left;
     transition: background 0.18s ease, color 0.18s ease;
   }
+  .side-nav.collapsed .side-nav-item { justify-content: center; padding: 11px 0; }
   .side-nav-item:hover { color: var(--text-1); background: rgba(255, 255, 255, 0.04); }
   .side-nav-item.active {
     color: var(--text-1);
     background: var(--accent-soft);
-    box-shadow: inset 0 0 0 1px rgba(240, 81, 30, 0.3);
+    box-shadow: none;
   }
   .side-turbo {
     margin-top: auto;
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 14px; border-radius: 14px;
-    border: 1px solid rgba(255, 176, 46, 0.4);
-    background: rgba(255, 176, 46, 0.08);
+    padding: 12px 14px; border-radius: 0;
+    border: 1px solid var(--color-charcoal-vein);
+    background: var(--surface-2);
     color: var(--text-1); font-size: 13px; font-weight: 700;
     font-family: var(--font-mono); cursor: pointer;
     transition: background 0.18s ease, border-color 0.18s ease;
   }
-  .side-turbo:hover { border-color: rgba(255, 176, 46, 0.85); background: rgba(255, 176, 46, 0.14); }
+  .side-nav.collapsed .side-turbo { justify-content: center; padding: 12px 0; }
+  .side-turbo:hover { border-color: var(--accent); background: var(--surface-3); }
 
   /* main column */
   .app-main-col {
@@ -726,11 +755,11 @@ body {
   .app-bar { display: none; }
   .bottom-nav { display: none; }
 
-  .page-head { padding: 24px 44px 14px; }
+  .page-head { padding: 24px 0 14px; }
   .page-title { font-size: 30px; }
 
-  .main-content { padding: 0 44px 30px; align-items: center; }
-  .main-content > * { width: 100%; max-width: 780px; }
+  .main-content { padding: 0; align-items: stretch; }
+  .main-content > * { width: 100%; }
 
   /* ── the deck reads as a phone standing in the middle of the workspace:
      a narrow, tall bezel column instead of a wide squat card ── */

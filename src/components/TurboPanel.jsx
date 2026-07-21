@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Download, ArrowUpRight, ShieldAlert, Link2, RefreshCw } from 'lucide-react';
+import { Check, Download, ArrowUpRight, ShieldAlert, Link2, RefreshCw, Fingerprint, Zap, KeyRound, RotateCcw, FileWarning } from 'lucide-react';
 import { ACTIVE } from '../config/chain.js';
 import { WALLET_NAME } from '../services/activeWallet.js';
 import {
@@ -9,14 +9,28 @@ import {
 } from '../services/turboWallet.js';
 
 const TERMS = [
-  `Your in-app trading wallet is DERIVED from a one-time signature by your ${WALLET_NAME} wallet. Signing the same message with the same wallet on any device restores the exact same trading wallet — your funds are never trapped on one browser.`,
-  `One-swipe trading: every COPY / ALL-IN swipe executes IMMEDIATELY on-chain with no further confirmations.`,
-  `The derived key is cached in this browser (localStorage) for popup-free trading. Anyone with access to this device or its browser data can control its funds — so deposit only what you can afford to lose.`,
-  `You are self-custodial. You can recover the wallet any time by reconnecting and re-signing, or back up the raw key with Export.`,
-  `Software is provided as-is, no warranty; you are solely responsible for your keys and every trade executed by your swipes.`,
+  { icon: Fingerprint, title: 'Derived, not custodial', desc: `A one-time signature from your ${WALLET_NAME} wallet derives this trading wallet. Re-sign the same wallet on any device to restore it — funds are never trapped on one browser.` },
+  { icon: Zap, title: 'Instant execution', desc: 'Every COPY / ALL-IN swipe executes immediately on-chain — no further confirmations.' },
+  { icon: KeyRound, title: 'Device-local key', desc: 'The derived key is cached in this browser. Anyone with access to this device can control its funds — deposit only what you can afford to lose.' },
+  { icon: RotateCcw, title: 'You control recovery', desc: 'Recover the wallet any time by reconnecting and re-signing, or back up the raw key with Export.' },
+  { icon: FileWarning, title: 'No warranty', desc: 'Provided as-is. You are solely responsible for your keys and every trade your swipes execute.' },
 ];
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '');
+
+/* ── themed checkbox — square, bone-glow when checked, matches Toggle's palette ── */
+function Checkbox({ checked, onChange }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)} style={{
+      width: 18, height: 18, flexShrink: 0, borderRadius: 4, padding: 0, cursor: 'pointer',
+      display: 'grid', placeItems: 'center', transition: 'background 0.15s, border-color 0.15s',
+      background: checked ? 'var(--color-bone-glow)' : 'transparent',
+      border: `1px solid ${checked ? 'var(--color-bone-glow)' : 'var(--color-charcoal-vein)'}`,
+    }}>
+      {checked && <Check size={12} strokeWidth={3} color="var(--color-midnight-carbon)" />}
+    </button>
+  );
+}
 
 /**
  * Turbo actions — inline section rendered inside the Profile identity card
@@ -141,7 +155,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
 
         {/* Legacy local-only key: warn before we overwrite it with the derived key */}
         {legacyUnlinked && (
-          <div style={{ border: '1px solid rgba(255, 77, 106, 0.45)', padding: '9px 11px', marginBottom: 10 }}>
+          <div style={{ background: 'var(--surface-2)', border: '1px solid rgba(255, 77, 106, 0.35)', borderRadius: 10, padding: '11px 12px', marginBottom: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--down)', textTransform: 'uppercase', letterSpacing: '-0.3px', fontFamily: MONO, marginBottom: 5 }}>
               Existing local wallet found
             </div>
@@ -152,25 +166,37 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
               <Download size={12} /> {exported ? 'Hide key' : 'Export current key'}
             </button>
             {exported && (
-              <div style={{ marginTop: 8, border: '1px solid rgba(255, 77, 106, 0.45)', padding: '9px 11px' }}>
+              <div style={{ marginTop: 8, border: '1px solid rgba(255, 77, 106, 0.45)', borderRadius: 8, padding: '9px 11px' }}>
                 <div style={{ fontSize: 9.5, fontWeight: 400, color: 'var(--down)', textTransform: 'uppercase', letterSpacing: '-0.3px', fontFamily: MONO, marginBottom: 4 }}>Private key — never share this</div>
                 <div style={{ fontSize: 9.5, fontFamily: MONO, color: 'var(--color-bone-glow)', wordBreak: 'break-all', userSelect: 'all' }}>{exported}</div>
               </div>
             )}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, cursor: 'pointer', userSelect: 'none' }}>
-              <input type="checkbox" checked={legacyBackedUp} onChange={(e) => setLegacyBackedUp(e.target.checked)} style={{ width: 14, height: 14, accentColor: 'var(--color-bone-glow)' }} />
+              <Checkbox checked={legacyBackedUp} onChange={setLegacyBackedUp} />
               <span style={{ fontSize: 10.5, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>I've backed up or emptied my current wallet.</span>
             </label>
           </div>
         )}
 
-        <ol style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {TERMS.map((t, i) => (
-            <li key={i} style={{ fontSize: 10.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45 }}>{t}</li>
-          ))}
-        </ol>
+        {/* Key terms — scannable rows instead of a paragraph wall */}
+        <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '4px 12px' }}>
+          {TERMS.map((t, i) => {
+            const Icon = t.icon;
+            return (
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--color-charcoal-vein)' }}>
+                <div style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 6, display: 'grid', placeItems: 'center', background: 'var(--surface-3)', marginTop: 1 }}>
+                  <Icon size={12} color="var(--color-bone-glow)" />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>{t.title}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.4, marginTop: 2 }}>{t.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, cursor: 'pointer', userSelect: 'none' }}>
-          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--color-bone-glow)' }} />
+          <Checkbox checked={agreed} onChange={setAgreed} />
           <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>I have read and accept the Turbo Trading Agreement.</span>
         </label>
         <button onClick={doLink} disabled={!canActivate || busy}

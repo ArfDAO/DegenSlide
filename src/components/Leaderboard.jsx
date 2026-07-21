@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Eye, Waves, BadgeCheck } from 'lucide-react';
+import { Check, Eye, Waves, BadgeCheck, Copy } from 'lucide-react';
 import { EXPLORER_ADDR_URL, ACTIVE } from '../config/chain.js';
 import { whalePerf, fmtUsdSigned } from '../services/whaleStats.js';
 
@@ -33,9 +33,9 @@ function alias(addr, i) {
 }
 
 const RANK_STYLE = {
-  1: { bg: 'linear-gradient(135deg, #ffb02e, #d98e1f)', glow: '0 3px 12px rgba(255, 176, 46,0.4)' },
-  2: { bg: 'linear-gradient(135deg, #c7cede, #8d96ac)', glow: '0 3px 12px rgba(199,206,222,0.25)' },
-  3: { bg: 'linear-gradient(135deg, #d99e6d, #a96b3c)', glow: '0 3px 12px rgba(217,158,109,0.3)' },
+  1: { bg: '#ffb02e' },
+  2: { bg: '#c7cede' },
+  3: { bg: '#d99e6d' },
 };
 
 function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) {
@@ -46,15 +46,13 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
   const volShare = maxVol > 0 ? Math.max(0.03, (t.volumeMon || 0) / maxVol) : 0;
   return (
     <div style={{
-      position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '12px 14px 13px',
+      position: 'relative', overflow: 'hidden', borderRadius: 0, padding: '12px 14px 13px',
       background: 'var(--surface-1)', border: '1px solid var(--line-2)',
-      boxShadow: medal ? 'var(--shadow-md)' : 'none',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <div style={{
-          width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+          width: 30, height: 30, borderRadius: 0, flexShrink: 0, display: 'grid', placeItems: 'center',
           background: medal ? medal.bg : 'var(--surface-2)',
-          boxShadow: medal?.glow || 'none',
           color: medal ? '#1a0507' : 'var(--text-3)', fontSize: medal ? 14 : 11, fontWeight: 800,
           fontFamily: 'var(--font-display)',
         }}>
@@ -96,8 +94,79 @@ function Row({ t, rank, monPriceUsd, onWatch, watched, maxVol, onOpenDossier }) 
       </div>
       {/* relative volume bar — instantly shows who moves real size */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: 'rgba(255,255,255,0.03)' }}>
-        <div style={{ width: `${volShare * 100}%`, height: '100%', background: medal ? 'linear-gradient(90deg, var(--accent), var(--accent-2))' : 'rgba(240, 81, 30,0.35)' }} />
+        <div style={{ width: `${volShare * 100}%`, height: '100%', background: medal ? 'var(--accent)' : 'rgba(240, 81, 30,0.35)' }} />
       </div>
+    </div>
+  );
+}
+
+/* ── Podium — the top 3 pulled out of the list and given room to breathe.
+   Flat, no glow: rank is read from a slim top accent bar + badge colour,
+   not a shiny gradient. Rank 1 sits centre and slightly taller. ── */
+function PodiumCard({ t, rank, monPriceUsd, onWatch, watched, onOpenDossier }) {
+  const [copied, setCopied] = useState(false);
+  const perf = t.perf || whalePerf(t, monPriceUsd);
+  const pnlUp = (perf.pnlUsd ?? 0) >= 0;
+  const win = perf.winRate != null ? Math.round(perf.winRate * 100) : null;
+  const medal = RANK_STYLE[rank];
+  const lead = rank === 1;
+  const initials = (t.address || '?').replace(/^0x/, '').slice(0, 2).toUpperCase();
+
+  const copyAddr = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    navigator.clipboard?.writeText(t.address).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1400); }).catch(() => {});
+  };
+
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      textAlign: 'center', position: 'relative', overflow: 'hidden',
+      background: 'var(--surface-1)', border: '1px solid var(--line-2)',
+      paddingTop: lead ? 16 : 12, paddingBottom: 12, paddingInline: 8,
+      marginTop: lead ? 0 : 16,
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: medal.bg }} />
+      <div style={{
+        width: lead ? 40 : 34, height: lead ? 40 : 34, flexShrink: 0, borderRadius: 0,
+        display: 'grid', placeItems: 'center', border: '1px solid var(--color-charcoal-vein)',
+        background: 'var(--surface-2)', color: 'var(--text-1)', fontFamily: '"JetBrains Mono", monospace',
+        fontSize: lead ? 14 : 12, fontWeight: 700,
+      }}>{initials}</div>
+      <span style={{
+        marginTop: 6, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', color: medal.bg,
+        fontFamily: '"JetBrains Mono", monospace',
+      }}>#{rank}</span>
+
+      <a href={onOpenDossier ? undefined : EXPLORER_ADDR_URL(t.address)} target="_blank" rel="noreferrer"
+        onClick={(e) => { if (onOpenDossier) { e.preventDefault(); onOpenDossier(t.address); } }}
+        style={{ marginTop: 4, fontSize: 10.5, fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-1)', fontWeight: 700, textDecoration: 'none', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {t.address.slice(0, 5)}…{t.address.slice(-3)}
+      </a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+        {t.verified && (<BadgeCheck size={11} color="var(--accent-2)" />)}
+        <button onClick={copyAddr} title="Copy address" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: copied ? 'var(--up)' : 'var(--text-3)', display: 'flex' }}>
+          {copied ? <Check size={11} /> : <Copy size={11} />}
+        </button>
+      </div>
+
+      <span style={{ marginTop: 8, fontSize: lead ? 17 : 14.5, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', color: perf.pnlUsd != null ? (pnlUp ? 'var(--up)' : 'var(--down)') : 'var(--text-3)' }}>
+        {perf.pnlUsd != null ? fmtUsdSigned(perf.pnlUsd) : '—'}
+      </span>
+      <span style={{ fontSize: 8, color: 'var(--text-3)', fontWeight: 600, marginTop: 1 }}>PNL</span>
+
+      {win != null && (
+        <span style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: win >= 50 ? 'var(--up)' : 'var(--text-3)', fontFamily: '"JetBrains Mono", monospace' }}>{win}% win</span>
+      )}
+
+      <button onClick={() => onWatch?.(t.address)} disabled={watched} title="Add to watchlist"
+        style={{
+          marginTop: 8, width: '100%', padding: '6px 0', border: `1px solid ${watched ? 'var(--up)' : 'var(--color-charcoal-vein)'}`,
+          background: 'transparent', color: watched ? 'var(--up)' : 'var(--text-2)', cursor: watched ? 'default' : 'pointer',
+          fontSize: 9.5, fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.04em',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+        }}>
+        {watched ? <Check size={11} /> : <Eye size={11} />} {watched ? 'Tracked' : 'Track'}
+      </button>
     </div>
   );
 }
@@ -147,13 +216,13 @@ export default function Leaderboard({ traders = [], roster = [], monPriceUsd, on
         {SORTS.map((s) => {
           const active = sort === s.id;
           return (
-            <button key={s.id} type="button" onClick={() => setSort(s.id)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px]" style={{ background: active ? 'var(--accent)' : 'var(--color-paper-white)', border: active ? '1px solid var(--accent)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', fontWeight: 600, boxShadow: active ? 'none' : 'var(--shadow-md)' }}>
+            <button key={s.id} type="button" onClick={() => setSort(s.id)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px]" style={{ background: active ? 'var(--accent)' : 'var(--color-paper-white)', border: active ? '1px solid var(--accent)' : '1px solid var(--color-silver-lining)', color: active ? '#fff' : 'var(--color-pebble)', fontWeight: 600 }}>
               {s.label}
             </button>
           );
         })}
         {hasVerified && (
-          <button type="button" onClick={() => setVerifiedOnly((v) => !v)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] flex items-center gap-1" style={{ marginLeft: 'auto', background: verifiedOnly ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', border: verifiedOnly ? '1px solid var(--color-tidewater-navy)' : '1px solid var(--color-silver-lining)', color: verifiedOnly ? '#fff' : 'var(--color-pebble)', fontWeight: 600, boxShadow: verifiedOnly ? 'none' : 'var(--shadow-md)' }}>
+          <button type="button" onClick={() => setVerifiedOnly((v) => !v)} className="flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] flex items-center gap-1" style={{ marginLeft: 'auto', background: verifiedOnly ? 'var(--color-tidewater-navy)' : 'var(--color-paper-white)', border: verifiedOnly ? '1px solid var(--color-tidewater-navy)' : '1px solid var(--color-silver-lining)', color: verifiedOnly ? '#fff' : 'var(--color-pebble)', fontWeight: 600 }}>
             <BadgeCheck size={12} /> Verified
           </button>
         )}
@@ -167,11 +236,26 @@ export default function Leaderboard({ traders = [], roster = [], monPriceUsd, on
             <p className="text-xs" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>The indexer ranks wallets as live whale trades stream in.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {(() => { const maxVol = Math.max(...sorted.map((x) => x.volumeMon || 0), 0); return sorted.map((t, i) => (
-              <Row key={t.address} t={t} rank={i + 1} monPriceUsd={monPriceUsd} onWatch={onWatch} watched={watchlist.includes(t.address)} maxVol={maxVol} onOpenDossier={onOpenDossier} />
-            )); })()}
-          </div>
+          <>
+            {(() => {
+              const top3 = sorted.slice(0, 3).map((t, i) => ({ t, rank: i + 1 }));
+              const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
+              return (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 18 }}>
+                  {podiumOrder.map(({ t, rank }) => (
+                    <PodiumCard key={t.address} t={t} rank={rank} monPriceUsd={monPriceUsd} onWatch={onWatch} watched={watchlist.includes(t.address)} onOpenDossier={onOpenDossier} />
+                  ))}
+                </div>
+              );
+            })()}
+            {sorted.length > 3 && (
+              <div className="flex flex-col gap-2">
+                {(() => { const maxVol = Math.max(...sorted.map((x) => x.volumeMon || 0), 0); return sorted.slice(3).map((t, i) => (
+                  <Row key={t.address} t={t} rank={i + 4} monPriceUsd={monPriceUsd} onWatch={onWatch} watched={watchlist.includes(t.address)} maxVol={maxVol} onOpenDossier={onOpenDossier} />
+                )); })()}
+              </div>
+            )}
+          </>
         )}
         <p className="text-center text-[10px] mt-4 mb-1" style={{ color: 'var(--color-pebble)', fontWeight: 600 }}>
           {ACTIVE.kind === 'svm' ? 'Win rate & PnL from GMGN 7-day portfolio stats · live trades fill the gaps' : 'Win rate & PnL from the deep on-chain scan · live trades fill the gaps'}

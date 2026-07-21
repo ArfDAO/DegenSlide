@@ -71,9 +71,9 @@ function Summary({ rows, monData }) {
   const ch24 = monData?.priceChange?.h24 ?? null;
   return (
     <div style={{
-      position: 'relative', overflow: 'hidden', borderRadius: 22, padding: '18px 18px 14px', marginBottom: 12,
-      background: `radial-gradient(130% 90% at 20% 0%, ${up ? 'rgba(70, 209, 107,0.09)' : 'rgba(255, 77, 106,0.09)'} 0%, transparent 55%), var(--surface-1)`,
-      border: '1px solid var(--line-1)', boxShadow: 'var(--shadow-md)',
+      position: 'relative', overflow: 'hidden', borderRadius: 0, padding: '18px 18px 14px', marginBottom: 12,
+      background: 'var(--surface-1)',
+      border: '1px solid var(--line-1)', boxShadow: 'none',
     }}>
       <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.22em', fontFamily: '"JetBrains Mono", monospace' }}>Portfolio value</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
@@ -153,10 +153,10 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
   const inputStyle = { width: '100%', padding: '9px 10px', borderRadius: 10, border: '1px solid var(--color-silver-lining)', background: 'var(--color-frost-shadow)', color: 'var(--color-midnight-ink)', fontSize: 13, fontWeight: 700, outline: 'none', boxSizing: 'border-box' };
 
   return (
-    <div style={{ background: 'var(--color-paper-white)', border: `1px solid ${slHit ? 'var(--color-aurora-magenta)' : tpHit ? 'var(--color-aurora-green)' : 'var(--color-silver-lining)'}`, borderRadius: 18, padding: 14, marginBottom: 10, boxShadow: 'var(--shadow-md)' }}>
+    <div style={{ background: 'var(--color-paper-white)', border: `1px solid ${slHit ? 'var(--color-aurora-magenta)' : tpHit ? 'var(--color-aurora-green)' : 'var(--color-silver-lining)'}`, borderRadius: 0, padding: 14, marginBottom: 10, boxShadow: 'none' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--color-frost-shadow)', border: '1px solid var(--color-silver-lining)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 0, background: 'var(--color-frost-shadow)', border: '1px solid var(--color-silver-lining)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
           {pair?.imageUrl ? <img src={pair.imageUrl} alt="" width={40} height={40} style={{ objectFit: 'cover' }} /> : <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-midnight-ink)' }}>{sym.slice(0, 2).toUpperCase()}</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -222,7 +222,7 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
             border: p.sellOnWhaleExit ? '1px solid rgba(160, 107, 255,0.5)' : '1px solid var(--color-silver-lining)',
             background: p.sellOnWhaleExit ? 'rgba(160, 107, 255,0.12)' : 'transparent',
             color: p.sellOnWhaleExit ? 'var(--accent-2)' : 'var(--color-pebble)',
-            boxShadow: p.sellOnWhaleExit ? '0 0 14px rgba(160, 107, 255,0.2)' : 'none',
+            boxShadow: 'none',
           }}>
           {p.sellOnWhaleExit ? 'ON' : 'OFF'}
         </button>
@@ -323,7 +323,7 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
 }
 
 /* ── main ── */
-export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, autoSell = true, onRemove, onBuyMore, onSetTargets, onSell }) {
+export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, autoSell = true, onRemove, onBuyMore, onSetTargets, onSell, onGoToDeck }) {
   const [monData, setMonData] = useState(null);
   const [pairMap, setPairMap] = useState({});
   const [loading, setLoading] = useState(false);
@@ -351,10 +351,31 @@ export default function Portfolio({ portfolio, monPriceUsd, tradeAmount = 1, aut
 
   if (portfolio.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingBottom: 80, gap: 12 }}>
-        <PieChart size={40} strokeWidth={1.5} color="var(--color-pebble)" style={{ opacity: 0.4 }} />
-        <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-midnight-ink)' }}>No positions yet</div>
-        <div style={{ fontSize: 13, color: 'var(--color-pebble)', maxWidth: 230, fontWeight: 600 }}>Swipe right on a whale to copy it. Manage the position here — buy more, sell any % , set stop-loss / take-profit, track live PnL.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 4px 24px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 10 }}>
+          <PieChart size={34} strokeWidth={1.5} color="var(--color-pebble)" style={{ opacity: 0.4 }} />
+          <div style={{ fontFamily: '"Space Grotesk", "Inter", sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--color-midnight-ink)' }}>No positions yet</div>
+          <div style={{ fontSize: 13, color: 'var(--color-pebble)', maxWidth: 230, fontWeight: 600 }}>Swipe right on a whale to copy it. Manage the position here — buy more, sell any %, set stop-loss / take-profit, track live PnL.</div>
+        </div>
+
+        {/* placeholder position card — previews what shows up here once you copy a trade */}
+        <div style={{ margin: '0 12px 16px', borderRadius: 0, border: '1px dashed var(--color-silver-lining)', padding: 14, opacity: 0.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 0, background: 'var(--color-frost-shadow)', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ height: 12, width: '55%', borderRadius: 4, background: 'var(--color-frost-shadow)' }} />
+              <div style={{ height: 9, width: '35%', borderRadius: 4, background: 'var(--color-frost-shadow)', marginTop: 6 }} />
+            </div>
+            <div style={{ height: 12, width: 44, borderRadius: 4, background: 'var(--color-frost-shadow)' }} />
+          </div>
+        </div>
+
+        <button type="button" onClick={onGoToDeck} disabled={!onGoToDeck} style={{
+          margin: '0 12px', padding: '13px 0', borderRadius: 100, border: 'none', cursor: onGoToDeck ? 'pointer' : 'default',
+          background: 'var(--color-tidewater-navy)', color: '#fff', fontSize: 14, fontWeight: 700, boxShadow: 'none',
+        }}>
+          Go to Deck
+        </button>
       </div>
     );
   }

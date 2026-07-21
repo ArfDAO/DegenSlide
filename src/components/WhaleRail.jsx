@@ -20,12 +20,12 @@ function RailAvatar({ addr, size = 54, ring }) {
   const initials = (addr || '?').replace(/^0x/, '').slice(0, 2).toUpperCase();
   return (
     <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      width: size, height: size, borderRadius: 0, flexShrink: 0,
       padding: 2,
       background: ring || 'var(--line-1)',
     }}>
       <div style={{
-        width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden',
+        width: '100%', height: '100%', borderRadius: 0, overflow: 'hidden',
         background: 'var(--surface-2)',
         display: 'grid', placeItems: 'center',
         border: '2px solid var(--bg-app)',
@@ -63,9 +63,7 @@ export default function WhaleRail({ watched = [], curated = [], onOpenDossier, o
           <RailAvatar
             addr={addr}
             size={size}
-            ring={usingWatched
-              ? 'linear-gradient(160deg, var(--accent), var(--accent) 55%, #a8482270)'
-              : undefined}
+            ring={usingWatched ? 'var(--accent)' : undefined}
           />
           {!compact && <span className="rail-name">{generateAlias(addr).split(' ')[0]}</span>}
         </button>
