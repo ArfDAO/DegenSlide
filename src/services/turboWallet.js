@@ -24,6 +24,7 @@ import { Keypair, VersionedTransaction, Transaction, SystemProgram, PublicKey } 
 import { Wallet as EthWallet, JsonRpcProvider, keccak256, sha256, getBytes } from 'ethers';
 import { ACTIVE, MONAD_MAINNET, DEFAULT_SLIPPAGE_BPS } from '../config/chain.js';
 import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx, signMessage as evmSignMessage, ensureMonadMainnet } from './wallet.js';
+import { buildNadfunBuy, buildNadfunSell, isNadfunToken } from './nadfunWallet.js';
 import {
   rpc as solRpc, jupQuote, jupSwapTx, confirmOnChain, actualTokenDelta,
   mintDecimals, dexLabel, getTokenInfo as solTokenInfo, sendRawTransaction, signMessage as solSignMessage,
@@ -305,7 +306,18 @@ export async function turboCopyBuy(tokenAddress, amountNative, opts = {}) {
   }
   const w = evmWallet();
   const bal = await w.provider.getBalance(w.address);
-  const { tx, meta } = await buildBuyTx(w.address, tokenAddress, amountNative, opts);
+
+  // nad.fun memecoins can't route through Uniswap/Pancake — they need nad.fun's
+  // own router. The card's `source` tells us; if unknown, probe the LENS.
+  const wantNadfun = opts.source === 'nadfun' || (opts.source !== 'v3' && await isNadfunToken(tokenAddress));
+  let tx, meta;
+  if (wantNadfun) {
+    const amountWei = BigInt(Math.round(amountNative * 1e9)) * 10n ** 9n;
+    ({ tx, meta } = await buildNadfunBuy(w.address, tokenAddress, amountWei, opts));
+  } else {
+    ({ tx, meta } = await buildBuyTx(w.address, tokenAddress, amountNative, opts));
+  }
+
   if (bal < tx.value + EVM_GAS_BUFFER_WEI) {
     throw Object.assign(new Error('INSUFFICIENT_FUNDS'), { needMon: Number(tx.value + EVM_GAS_BUFFER_WEI) / 1e18, haveMon: Number(bal) / 1e18, turbo: true });
   }
@@ -319,7 +331,7 @@ export async function turboCopyBuy(tokenAddress, amountNative, opts = {}) {
   const sent = await w.sendTransaction({ ...tx, gasLimit });
   const rec = await sent.wait();
   if (!rec || rec.status === 0) throw Object.assign(new Error('TX_FAILED'), { hash: sent.hash });
-  return { hash: sent.hash, ...meta, decimals: null, turbo: true, turboAddress: w.address.toLowerCase() };
+  return { hash: sent.hash, ...meta, decimals: null, turbo: true, turboAddress: w.address.toLowerCase(), source: wantNadfun ? 'nadfun' : 'v3' };
 }
 
 /* ── TURBO SELL: close a Turbo position, signed locally ── */
@@ -347,6 +359,24 @@ export async function turboSellToken(tokenAddress, opts = {}) {
   if (balance <= 0n) throw new Error('NO_BALANCE');
   let amountIn = balance;
   if (opts.amountRaw) { try { const want = BigInt(opts.amountRaw); if (want > 0n && want < balance) amountIn = want; } catch {} }
+
+  // nad.fun memecoins sell through nad.fun's own router (approve → sell).
+  const wantNadfun = opts.source === 'nadfun' || (opts.source !== 'v3' && await isNadfunToken(tokenAddress));
+  if (wantNadfun) {
+    const plan = await buildNadfunSell(from, tokenAddress, amountIn.toString(), opts);
+    if (plan.approveTx) {
+      const a = await w.sendTransaction({ to: plan.approveTx.to, data: plan.approveTx.data });
+      const arec = await a.wait();
+      if (!arec || arec.status === 0) throw new Error('APPROVE_FAILED');
+    }
+    let gl;
+    try { gl = await w.provider.estimateGas({ ...plan.tx, from }); }
+    catch (e) { const s = String(e?.message || '').toLowerCase(); if (s.includes('reserve balance')) gl = 800000n; else throw Object.assign(new Error('SELL_REVERT'), { cause: e }); }
+    const sent = await w.sendTransaction({ ...plan.tx, gasLimit: gl });
+    const rec = await sent.wait();
+    if (!rec || rec.status === 0) throw Object.assign(new Error('TX_FAILED'), { hash: sent.hash });
+    return { hash: sent.hash, ...plan.meta, turbo: true };
+  }
 
   // Approve the sell router FIRST — otherwise the quote's simulated transferFrom
   // reverts and every route reads as 0 ("no liquidity"). Approve the DEX the

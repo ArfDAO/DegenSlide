@@ -698,7 +698,7 @@ export default function App() {
 
   // Record a confirmed buy into the portfolio (shared by every execution path).
   // Turbo and wallet positions never merge — their tokens sit in different wallets.
-  const recordBuy = useCallback((trader, amountMon, action, { hash, expectedOut, dex, decimals: liveDecimals, turbo }) => {
+  const recordBuy = useCallback((trader, amountMon, action, { hash, expectedOut, dex, decimals: liveDecimals, turbo, source }) => {
     setLastTxHash(hash);
     showToast('tx_sent');
     try { navigator.vibrate?.([10, 30, 45]); } catch { /* unsupported */ } // trade confirmed on-chain
@@ -726,6 +726,7 @@ export default function App() {
         action,
         token: { symbol: trader.tokenSymbol, address: trader.tokenAddress, decimals },
         dex: dex || trader.dex || null,
+        source: source || trader.source || null, // 'nadfun' | 'v3' — routes sells to the right engine
         amountMon,
         tokensRaw: gotTokens,
         investedUsd: invested,
@@ -762,7 +763,7 @@ export default function App() {
     }
     try {
       showToast('copy_pending', `${action === 'AUTO' ? '🤖 Auto-copying' : '⚡ Copying'} $${trader.tokenSymbol}…`);
-      const res = await turboCopyBuy(trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, slippageBps });
+      const res = await turboCopyBuy(trader.tokenAddress, amountMon, { preferredFee: trader.feeTier, preferredDex: trader.dex, source: trader.source, slippageBps });
       recordBuy(trader, amountMon, action, res);
       refreshBalance();
       return true;
@@ -874,7 +875,7 @@ export default function App() {
           amountRaw = ((raw * BigInt(Math.round(fraction * 1e6))) / 1000000n).toString();
           if (amountRaw === '0') throw new Error('NO_BALANCE');
         }
-        const { hash } = await turboSellToken(p.token.address, { slippageBps, preferredDex: p.dex, amountRaw });
+        const { hash } = await turboSellToken(p.token.address, { slippageBps, preferredDex: p.dex, source: p.source, amountRaw });
         setLastTxHash(hash);
         showToast('sell_sent', sellAll ? 'Position closed' : `Sold ${Math.round(fraction * 100)}%`);
         logActivity({ kind: 'SELL', symbol: p.token.symbol, tokenAddress: p.token.address, fraction, usd: (p.investedUsd ?? 0) * fraction || null, hash, auto: opts.auto || null });
