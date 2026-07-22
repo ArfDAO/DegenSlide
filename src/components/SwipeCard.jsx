@@ -628,13 +628,24 @@ const SwipeCard = forwardRef(function SwipeCard(
               {fmtUsd(tradeUsd)}
             </div>
           )}
-          <div style={{ position: 'relative', marginTop: 'min(6px, 0.7vh)', fontSize: 11, color: 'rgba(255,255,255,0.86)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace' }}>
+          {/* Flex-wrap row with per-item nowrap: the "×N buys" pill and the
+              since-entry chip wrap onto their own line cleanly instead of
+              splitting mid-pill (which used to collide with the line below). */}
+          <div style={{ position: 'relative', marginTop: 'min(6px, 0.7vh)', fontSize: 11, color: 'rgba(255,255,255,0.86)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: '"JetBrains Mono", monospace', lineHeight: 1.35, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '4px 8px' }}>
             {/* USDC-quoted Solana trades carry no native amount — fall back to the trade size we do know */}
-            whale {isBuy ? 'bought' : 'sold'} · {trader.amountMon >= 0.01
-              ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}`
-              : (tradeUsd != null ? fmtUsd(tradeUsd) : `— ${ACTIVE.nativeSymbol}`)}
+            <span style={{ whiteSpace: 'nowrap' }}>
+              whale {isBuy ? 'bought' : 'sold'}{trader.buyCount > 1 ? ' total' : ''} · {trader.amountMon >= 0.01
+                ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}`
+                : (tradeUsd != null ? fmtUsd(tradeUsd) : `— ${ACTIVE.nativeSymbol}`)}
+            </span>
+            {trader.buyCount > 1 && (
+              <span style={{ whiteSpace: 'nowrap', display: 'inline-block', padding: '2px 8px', borderRadius: 100, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.4)', color: '#fff', fontWeight: 800, letterSpacing: '0.04em' }}
+                title={`${trader.buyCount} separate buys of $${trader.tokenSymbol} recently — summed into one signal`}>
+                ×{trader.buyCount} buys
+              </span>
+            )}
             {sinceEntry != null && (
-              <span style={{ marginLeft: 8, color: sinceEntry >= 0 ? 'var(--up)' : 'var(--down)', letterSpacing: '0.04em', fontWeight: 800 }}
+              <span style={{ whiteSpace: 'nowrap', color: sinceEntry >= 0 ? 'var(--up)' : 'var(--down)', letterSpacing: '0.04em', fontWeight: 800 }}
                 title="Price move since the whale's entry — negative means you'd enter cheaper than the whale">
                 since entry {sinceEntry >= 0 ? '+' : ''}{Math.abs(sinceEntry) >= 100 ? sinceEntry.toFixed(0) : sinceEntry.toFixed(1)}%
               </span>
@@ -758,8 +769,30 @@ const SwipeCard = forwardRef(function SwipeCard(
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 11 }}>
                     <BackKV k="Entry size" v={tradeUsd != null ? fmtUsd(tradeUsd) : '—'} sub={trader.amountMon >= 0.01 ? `${trader.amountMon >= 1000 ? (trader.amountMon / 1000).toFixed(2) + 'K' : trader.amountMon.toFixed(2)} ${ACTIVE.nativeSymbol}` : null} />
-                    <BackKV k="Entry price" v={whaleEntryPrice != null ? fmtUsd(whaleEntryPrice) : '—'} sub={pair?.priceUsd ? `now ${fmtUsd(pair.priceUsd)}` : null} />
+                    <BackKV k={trader.buyCount > 1 ? 'Avg entry price' : 'Entry price'} v={whaleEntryPrice != null ? fmtUsd(whaleEntryPrice) : '—'} sub={pair?.priceUsd ? `now ${fmtUsd(pair.priceUsd)}` : null} />
                   </div>
+                  {/* Per-buy breakdown — the individual purchases that were summed
+                      into this one signal, so the card stays clean but the detail
+                      is all here. Newest first. */}
+                  {trader.buyCount > 1 && trader.legs?.length > 1 && (
+                    <div style={{ marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--color-silver-lining)' }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--color-pebble)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 7 }}>
+                        {trader.buyCount} buys · {fmtUsd(tradeUsd)} total
+                      </div>
+                      {trader.legs.slice(0, 8).map((leg, i) => (
+                        <div key={leg.txHash || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--color-midnight-ink)', fontFamily: '"JetBrains Mono", monospace' }}>
+                            {leg.amountUsd != null ? fmtUsd(leg.amountUsd) : '—'}
+                            {leg.amountMon >= 0.01 && <span style={{ color: 'var(--color-pebble)', fontWeight: 600 }}> · {leg.amountMon >= 1000 ? (leg.amountMon / 1000).toFixed(2) + 'K' : leg.amountMon.toFixed(2)} {ACTIVE.nativeSymbol}</span>}
+                          </span>
+                          <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--color-pebble)', fontFamily: '"JetBrains Mono", monospace' }}>{timeAgo(leg.ts)}</span>
+                        </div>
+                      ))}
+                      {trader.legs.length > 8 && (
+                        <div style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--color-pebble)', marginTop: 4 }}>+{trader.legs.length - 8} more</div>
+                      )}
+                    </div>
+                  )}
                   <WhaleScore score={trader.traderScore} />
                 </div>
 

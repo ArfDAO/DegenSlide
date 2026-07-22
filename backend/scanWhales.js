@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
+import * as db from './db.js';
 
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
 const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap floor (discovery gathers cumulative behaviour)
@@ -42,11 +43,12 @@ const QUOTE_TOKENS = new Map([
 ]);
 const V3_SWAP_TOPIC = '0xc42079f94a6350f1a2cf73efd65a4d103d6d4a46513037101b0f199f1746e32d';
 const PANCAKE_V3_SWAP_TOPIC = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83';
-const SWAP_TOPICS = new Set([V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC]);
+const NADFUN_SWAP_TOPIC = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67'; // nad.fun v3-fork DEX (memecoins)
+const SWAP_TOPICS = new Set([V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC]);
 // Uniswap/PancakeSwap v3 Mint(address,address,int24,int24,uint128,uint256,uint256) —
 // fired when someone ADDS liquidity. Big LP providers = market-maker whales.
 const MINT_TOPIC = '0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde';
-const ALL_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, MINT_TOPIC];
+const ALL_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC, MINT_TOPIC];
 
 const coder = AbiCoder.defaultAbiCoder();
 const POOL_ABI = ['function token0() view returns (address)', 'function token1() view returns (address)', 'function fee() view returns (uint24)'];
@@ -146,77 +148,105 @@ function isCleanSymbol(s) {
   return /^[A-Za-z0-9][A-Za-z0-9._+-]{0,11}$/.test(s);
 }
 
-async function processLog(log) {
+// ── Mint (add liquidity) → market-maker whale signal (per-event) ──
+async function processMint(log) {
   const pool = await getPoolInfo(log.address);
   if (!pool) return;
-  const isMint = log.topics[0] === MINT_TOPIC;
+  let m0, m1;
+  try { ({ amount0: m0, amount1: m1 } = decodeMint(log.data)); } catch { return; }
+  const qAbs = pool.quoteIsToken0 ? m0 : m1;
+  const usdLp = pool.quote.kind === 'usd'
+    ? Number(formatUnits(qAbs, pool.quote.decimals))
+    : Number(formatUnits(qAbs, 18)) * monPriceUsd;
+  const lpUsd = usdLp * 2; // rough total position value (both legs)
+  if (lpUsd < SCAN_MIN_USD) return;
+  const liq = await getTokenLiquidity(pool.tokenAddr);
+  if (liq < MIN_LIQ_USD) return;
+  const from = await txFrom(log.transactionHash);
+  if (!from) return;
+  const w = ensureWhale(from);
+  w.lpAddedUsd += lpUsd;
+  w.lpEvents += 1;
+  w.maxLiq = Math.max(w.maxLiq, liq);
+  w.tokens.set(pool.meta.symbol, (w.tokens.get(pool.meta.symbol) || 0) + lpUsd);
+  if (!w.lastToken) w.lastToken = pool.meta.symbol;
+}
 
-  // ── Mint (add liquidity) → market-maker whale signal ──
-  if (isMint) {
-    let m0, m1;
-    try { ({ amount0: m0, amount1: m1 } = decodeMint(log.data)); } catch { return; }
-    const qAbs = pool.quoteIsToken0 ? m0 : m1;
-    const usdLp = pool.quote.kind === 'usd'
+// ── Swap attribution via NET-FLOW per transaction ──
+// A whale's real trade is the token they NET acquired/disposed across the whole
+// tx — not every intermediate hop. Aggregating per-leg inflated volume and
+// polluted each whale's token list with pass-through tokens; a pure arb loop
+// (buy+sell same token in one tx) counted as two "trades". Net-flow fixes both:
+// one trade per tx, attributed to the genuinely-moved token; arb loops net to
+// ~zero → dropped and flagged as bot behaviour instead of counted as volume.
+async function processSwapTx(txHash, logs) {
+  const from = await txFrom(txHash);
+  if (!from) return;
+
+  const flow = new Map(); // tokenAddr -> { net, gross, spentUsd, recvUsd, meta, block }
+  for (const log of logs) {
+    const pool = await getPoolInfo(log.address);
+    if (!pool) continue;
+    let a0, a1;
+    try { ({ amount0: a0, amount1: a1 } = decodeAmounts(log.data)); } catch { continue; }
+    const quoteSigned = pool.quoteIsToken0 ? a0 : a1;
+    const tokenSigned = pool.quoteIsToken0 ? a1 : a0;
+    if (quoteSigned === 0n) continue;
+    const traderTokenDelta = -tokenSigned;
+    const qAbs = quoteSigned > 0n ? quoteSigned : -quoteSigned;
+    const usd = pool.quote.kind === 'usd'
       ? Number(formatUnits(qAbs, pool.quote.decimals))
       : Number(formatUnits(qAbs, 18)) * monPriceUsd;
-    const lpUsd = usdLp * 2; // rough total position value (both legs)
-    if (lpUsd < SCAN_MIN_USD) return;
-    const liq = await getTokenLiquidity(pool.tokenAddr);
-    if (liq < MIN_LIQ_USD) return;
-    const from = await txFrom(log.transactionHash);
-    if (!from) return;
-    const w = ensureWhale(from);
-    w.lpAddedUsd += lpUsd;
-    w.lpEvents += 1;
-    w.maxLiq = Math.max(w.maxLiq, liq);
-    w.tokens.set(pool.meta.symbol, (w.tokens.get(pool.meta.symbol) || 0) + lpUsd);
-    if (!w.lastToken) w.lastToken = pool.meta.symbol;
+    const f = flow.get(pool.tokenAddr) || { net: 0n, gross: 0n, spentUsd: 0, recvUsd: 0, meta: pool.meta, block: log.blockNumber };
+    f.net += traderTokenDelta;
+    f.gross += traderTokenDelta < 0n ? -traderTokenDelta : traderTokenDelta;
+    if (quoteSigned > 0n) f.spentUsd += usd; else f.recvUsd += usd;
+    f.block = log.blockNumber;
+    flow.set(pool.tokenAddr, f);
+  }
+  if (!flow.size) return;
+
+  // Winner = the token with the largest genuine net position change.
+  let best = null, passthrough = false;
+  for (const [addr, f] of flow) {
+    const absNet = f.net < 0n ? -f.net : f.net;
+    if (absNet === 0n) { passthrough = true; continue; }
+    if (f.gross > 0n && (absNet * 100n) / f.gross < 40n) { passthrough = true; continue; } // routed through, not owned
+    const usd = f.spentUsd + f.recvUsd;
+    if (!best || usd > best.usd) best = { addr, f, usd };
+  }
+  // A tx whose tokens all net to ~zero is an arb/MM loop — flag it, don't bank it.
+  if (!best) {
+    if (passthrough) { const w = ensureWhale(from); w.arbHits += 1; whales.set(from, w); }
     return;
   }
 
-  // ── Swap ──
-  let a0, a1;
-  try { ({ amount0: a0, amount1: a1 } = decodeAmounts(log.data)); } catch { return; }
-  const quoteSigned = pool.quoteIsToken0 ? a0 : a1;
-  const tokenSigned = pool.quoteIsToken0 ? a1 : a0;
-  if (quoteSigned === 0n) return;
-  const side = quoteSigned > 0n ? 'BUY' : 'SELL';
-  const quoteAbs = quoteSigned > 0n ? quoteSigned : -quoteSigned;
-  const tokenAbs = tokenSigned > 0n ? tokenSigned : -tokenSigned;
-  const usd = pool.quote.kind === 'usd'
-    ? Number(formatUnits(quoteAbs, pool.quote.decimals))
-    : Number(formatUnits(quoteAbs, 18)) * monPriceUsd;
+  const f = best.f;
+  const side = f.net > 0n ? 'BUY' : 'SELL';
+  const usd = side === 'BUY' ? (f.spentUsd || best.usd) : (f.recvUsd || best.usd);
   if (usd < SCAN_MIN_USD) return;
 
-  // high-liquidity gate — only real markets
-  const liq = await getTokenLiquidity(pool.tokenAddr);
-  if (liq < MIN_LIQ_USD) return;
+  const liq = await getTokenLiquidity(best.addr);
+  if (liq < MIN_LIQ_USD) return; // high-liquidity gate — only real markets, no rugs/junk
 
-  const from = await txFrom(log.transactionHash);
-  if (!from) return;
-  const tokenAmount = Number(formatUnits(tokenAbs, pool.meta.decimals));
+  const absNet = f.net < 0n ? -f.net : f.net;
+  const tokenAmount = Number(formatUnits(absNet, f.meta.decimals));
 
   const w = ensureWhale(from);
   w.volumeUsd += usd;
   w.trades += 1;
   if (side === 'BUY') w.buys += 1; else w.sells += 1;
-  w.tokens.set(pool.meta.symbol, (w.tokens.get(pool.meta.symbol) || 0) + usd);
-  w.lastToken = pool.meta.symbol;
-  w.lastSeen = log.blockNumber;
+  w.tokens.set(f.meta.symbol, (w.tokens.get(f.meta.symbol) || 0) + usd);
+  w.lastToken = f.meta.symbol;
+  w.lastSeen = f.block;
   w.maxLiq = Math.max(w.maxLiq, liq);
-
-  // same-block round-trip (atomic arb) detection
-  const bk = `${from}|${log.blockNumber}|${pool.tokenAddr}`;
-  const seen = blockSides.get(bk) || new Set();
-  if ((side === 'BUY' && seen.has('SELL')) || (side === 'SELL' && seen.has('BUY'))) w.arbHits += 1;
-  seen.add(side);
-  blockSides.set(bk, seen);
+  if (passthrough) w.arbHits += 1; // tx had a real leg AND a routed-through leg → still bot-ish
 
   // realized PnL (avg cost, USD)
-  const p = w.pos.get(pool.tokenAddr) || { boughtTok: 0, spentUsd: 0, soldTok: 0, realizedUsd: 0 };
+  const p = w.pos.get(best.addr) || { boughtTok: 0, spentUsd: 0, soldTok: 0, realizedUsd: 0 };
   if (side === 'BUY') { p.boughtTok += tokenAmount; p.spentUsd += usd; }
   else { const avg = p.boughtTok > 0 ? p.spentUsd / p.boughtTok : 0; if (avg > 0) p.realizedUsd += usd - avg * tokenAmount; p.soldTok += tokenAmount; }
-  w.pos.set(pool.tokenAddr, p);
+  w.pos.set(best.addr, p);
   whales.set(from, w);
 }
 
@@ -239,7 +269,16 @@ async function scanRange(fromBlock, toBlock, label) {
     let logs = [];
     try { logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [ALL_TOPICS] }); }
     catch { to = from - 1; continue; }
-    for (const log of logs) { await processLog(log).catch(() => {}); }
+    // LP mints are per-event; swaps are grouped by tx for net-flow attribution.
+    for (const log of logs) if (log.topics[0] === MINT_TOPIC) await processMint(log).catch(() => {});
+    const byTx = new Map();
+    for (const log of logs) {
+      if (!SWAP_TOPICS.has(log.topics[0])) continue;
+      const arr = byTx.get(log.transactionHash) || [];
+      arr.push(log);
+      byTx.set(log.transactionHash, arr);
+    }
+    for (const [txHash, txLogs] of byTx) await processSwapTx(txHash, txLogs).catch(() => {});
     scanned += (to - from + 1);
     if (scanned % (CHUNK * 25) < CHUNK) console.log(`[scan:${label}] ~${scanned} blocks · ${whales.size} candidates (block ${from})`);
     to = from - 1;
@@ -382,6 +421,11 @@ async function main() {
   try { prevWhales = JSON.parse(fs.readFileSync(outFile, 'utf8')).whales || []; } catch { /* first run */ }
   const mergedByAddr = new Map(prevWhales.filter((w) => w.address).map((w) => [w.address.toLowerCase(), w]));
   for (const w of ranked) mergedByAddr.set(w.address.toLowerCase(), w); // fresh stats win
+  // Drop any address the live indexer's validation pass has since banned as a
+  // contract/protocol/rug — the curated file must not keep re-seeding known junk.
+  let bannedDropped = 0;
+  for (const addr of [...mergedByAddr.keys()]) if (db.isBlacklisted(addr)) { mergedByAddr.delete(addr); bannedDropped += 1; }
+  if (bannedDropped) console.log(`[scan] dropped ${bannedDropped} blacklisted (contract/rug) wallets from the roster file`);
   const mergedWhales = [...mergedByAddr.values()].sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
   fs.writeFileSync(outFile, JSON.stringify({
     source: 'Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)',

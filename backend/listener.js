@@ -60,29 +60,8 @@ const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 25000);
 const REGISTERED_MIN_USD = Number(process.env.REGISTERED_MIN_USD || 100); // dust floor for known whales — this is a WHALE app, no sub-$100 cards
 
 // ── Manually-pinned VIP wallets (always tracked, regardless of discovery) ──
-const VIP_WHALES = new Set([
-  '0x4cd934beae89200b3e5f16783897c9424e25f3df',
-  '0xe1aa0010b4c25f38a7c8a724fdd79c6e8ce543fe',
-  '0xe50f5af8a97379b6ebd968121186c71b88dc0b69',
-  '0x69c350da1c843093aff7aae118af7fa73e7736f8',
-  '0x15ddce897d76ac39c188ade4d353711a60395315',
-  '0xa9615d22b2d1f8836d60fe7e1c13c56ec7a342e3',
-  '0xe50585bd466bff569da0a1737b299fdb31aa368e',
-  '0x33a458ea4cad5c7943f8ae2a58dc5dcd3bb2fb07',
-  '0x5a8bcbdb13fdad13d622ffac3e30ea17eea06fed',
-  '0x05ca0b7b8626ae142c90219cc3cf42faca0dd103',
-  '0xa99767ff6874018935af8924eeb3de3c7b578edc',
-  '0xb3a41293d166b21ccb8c61ae9011cbc7559d348f',
-  '0x0f3f5ffc9f100c11335ac8b9e89dc91bb5f41c98',
-  '0xb11e96e929c64cfe12c28f1c0417bb8ddaf5f6b6',
-  '0x8524a3a88e9d9672b33e34de03e174f140ef6663',
-  '0xbb34dab96850d0b453c1f984a81bb497efb229e7',
-  '0x988d179a9e8a174cc92ebd51492281dd2f19fa9e',
-  '0xc0ea1c03bb9d466d506c0fb1621f256e291c38e2',
-  '0x17b04ada408086bb37743d8589e5e18c522be159',
-  '0xb42f812a44c22cc6b861478900401ee759ebead6',
-  '0xa581a60fdea3c390ff08f033733c6b678f5f9f49',
-]);
+// Shared with cleanRoster.js so the purge never bans a pinned wallet.
+import { VIP_WHALES } from './vipWhales.js';
 
 // The live tracked roster = VIP + the verified/bot-filtered discovery roster.
 // Rebuilt (hot-reloaded) whenever the discovery scan rewrites curatedWhales.json.
@@ -95,20 +74,62 @@ function loadRoster() {
   REGISTERED_WHALES.clear();
   for (const v of VIP_WHALES) REGISTERED_WHALES.add(v);
   for (const p of LIVE_PROMOTED) REGISTERED_WHALES.add(p);
-  let curatedCount = 0;
+  let curatedCount = 0, bannedSkipped = 0;
   try {
     const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
     for (const w of curated.whales || []) if (w.address) {
+      const addr = w.address.toLowerCase();
+      // A wallet a previous validation pass proved to be a contract/rug is vetoed —
+      // never re-import it from the (append-only, possibly stale) curated file.
+      if (db.isBlacklisted(addr)) { bannedSkipped += 1; continue; }
       // durable registry: a future rescan that misses this wallet can't erase it
-      db.registerWhale(w.address.toLowerCase(), 'scan', { volumeUsd: w.volumeUsd ?? null, stats: w });
+      db.registerWhale(addr, 'scan', { volumeUsd: w.volumeUsd ?? null, stats: w });
       curatedCount += 1;
     }
   } catch (e) { console.warn('[whales] curated roster not loaded:', e.message); }
   let registryCount = 0;
-  for (const r of db.loadWhaleRegistry()) { REGISTERED_WHALES.add(r.address); registryCount += 1; }
-  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (${VIP_WHALES.size} VIP · registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size})`);
+  for (const r of db.loadWhaleRegistry()) {
+    if (db.isBlacklisted(r.address)) continue; // registry rows are deleted on ban, but be defensive
+    REGISTERED_WHALES.add(r.address); registryCount += 1;
+  }
+  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (${VIP_WHALES.size} VIP · registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size} · banned skipped ${bannedSkipped})`);
 }
 loadRoster();
+
+// ── Roster hygiene: prove every tracked wallet is a real whale EOA ──
+// The complaint: the roster sometimes holds protocols / routers / smart-account
+// contracts (and rug deployers), not real whale wallets. Discovery already
+// EXTCODESIZE-filters, but the append-only curated file + old registry rows can
+// carry pre-filter contamination. This pass re-checks each NON-VIP wallet on
+// chain: any address with bytecode is not an EOA → banned (removed + vetoed).
+// Runs at boot and on a slow schedule; VIP pins are trusted and never banned.
+const VALIDATE_BATCH = Number(process.env.VALIDATE_BATCH || 40);
+const validateQueue = [];
+let validateCursor = 0;
+async function validateRosterBatch() {
+  if (!validateQueue.length) {
+    for (const a of REGISTERED_WHALES) if (!VIP_WHALES.has(a)) validateQueue.push(a);
+  }
+  let banned = 0, checked = 0;
+  for (let i = 0; i < VALIDATE_BATCH && validateQueue.length; i++) {
+    const addr = validateQueue[validateCursor % validateQueue.length];
+    validateCursor += 1;
+    checked += 1;
+    if (VIP_WHALES.has(addr)) continue;
+    let isContract = false;
+    try { const code = await provider.getCode(addr); isContract = !!code && code !== '0x'; }
+    catch { continue; } // RPC hiccup → re-check next round, don't ban on uncertainty
+    if (isContract) {
+      db.blacklistWhale(addr, 'contract');
+      REGISTERED_WHALES.delete(addr);
+      LIVE_PROMOTED.delete(addr);
+      codeCache.set(addr, false); // remember: not an EOA
+      banned += 1;
+      console.log(`[validate] banned ${addr.slice(0, 12)}… — has bytecode (contract/protocol, not a whale)`);
+    }
+  }
+  if (checked) console.log(`[validate] checked ${checked} roster wallets · ${banned} banned · roster now ${REGISTERED_WHALES.size}`);
+}
 
 // Hot-reload the roster when the discovery scan rewrites the file (debounced).
 let rosterReloadTimer = null;
@@ -118,6 +139,20 @@ try {
     rosterReloadTimer = setTimeout(loadRoster, 1500);
   });
 } catch { /* fs.watch unsupported → rely on post-scan reload */ }
+
+// Node's setInterval/setTimeout delay is a 32-bit signed int (max ~24.85 days).
+// A larger value doesn't throw — it silently wraps to ~1ms, turning a "run every
+// N hours" schedule into a runaway loop firing hundreds of times per second
+// (this bit us: DISCOVERY_HOURS=999 → ~900 calls/sec, 98MB of logs in minutes).
+// Every interval/timeout built from an operator-configurable env var goes
+// through this so a misconfigured value degrades to "fire at the safe max"
+// instead of flooding the process.
+const MAX_TIMER_MS = 2_147_483_647;
+function safeEvery(fn, ms, label) {
+  const clamped = Math.min(Math.max(1, ms), MAX_TIMER_MS);
+  if (clamped !== ms) console.warn(`[timer] ${label}: ${ms}ms exceeds the 32-bit timer max — clamped to ${clamped}ms (~${(clamped / 3600000).toFixed(1)}h)`);
+  return setInterval(fn, clamped);
+}
 
 // ── Periodic auto-discovery: re-run the whale scan on a schedule in a child
 // process (so the live indexer never blocks), then hot-reload the fresh roster.
@@ -196,7 +231,13 @@ async function refreshMonPrice() {
 // Swap event topic hashes seen live on Monad mainnet (verified on-chain).
 const V3_SWAP_TOPIC = '0xc42079f94a6350f1a2cf73efd65a4d103d6d4a46513037101b0f199f1746e32d'; // Uniswap v3
 const PANCAKE_V3_SWAP_TOPIC = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83'; // PancakeSwap v3
-const V3_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC];
+// nad.fun (Monad's memecoin launchpad) graduated tokens trade on its OWN v3-fork
+// DEX — MON-paired, real liquidity. Same pool ABI (token0/token1/fee) and same
+// Swap data layout (amount0/amount1 first), just a distinct event topic. This is
+// where all the real memecoin/degen whale activity lives; v3 (Uni/Pancake) only
+// carries blue-chips + stables. Copyable via nad.fun's own router (see frontend).
+const NADFUN_SWAP_TOPIC = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67';
+const V3_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC];
 
 // For both Uniswap v3 and PancakeSwap v3, the Swap event data begins with
 // int256 amount0, int256 amount1 — so we decode those two words generically.
@@ -405,6 +446,8 @@ function recordWhale(card) {
 function rowToCard(r) {
   return {
     id: r.id, txHash: r.id.split(':')[0], trader: r.trader, side: r.side, dex: r.dex,
+    groupId: r.trader + ':' + r.token + ':' + r.side,
+    source: r.dex === 'NadFun' ? 'nadfun' : 'v3', // routing hint (derived from dex)
     poolAddress: r.pool, tokenAddress: r.token, tokenSymbol: r.tokenSymbol,
     tokenDecimals: r.tokenDecimals, isStable: !!r.isStable, feeTier: r.feeTier,
     amountMon: r.amountMon, amountUsd: r.amountUsd, tokenAmount: r.tokenAmount,
@@ -455,77 +498,115 @@ let lastBlock = null;
 const DEX_BY_TOPIC = {
   [V3_SWAP_TOPIC]: 'UniswapV3',
   [PANCAKE_V3_SWAP_TOPIC]: 'PancakeV3',
+  [NADFUN_SWAP_TOPIC]: 'NadFun',
 };
 
-async function processLog(log) {
-  const dex = DEX_BY_TOPIC[log.topics[0]];
-  if (!dex) return;
-
-  const pool = await getPoolInfo(log.address, true);
-  if (!pool) return;                                  // not a quote-anchored pool (or unreadable)
-
-  let amount0, amount1;
-  try { ({ amount0, amount1 } = decodeAmounts(log.data)); } catch { return; }
-
-  // Quote leg drives price + direction; token leg = the traded asset.
-  const quoteSigned = pool.quoteIsToken0 ? amount0 : amount1;
-  const tokenSigned = pool.quoteIsToken0 ? amount1 : amount0;
-  if (quoteSigned === 0n) return;
-  const side = quoteSigned > 0n ? 'BUY' : 'SELL';      // quote INTO pool = buying the token
-  const quoteAbs = quoteSigned > 0n ? quoteSigned : -quoteSigned;
-  const tokenAbs = tokenSigned > 0n ? tokenSigned : -tokenSigned;
-
-  // Real USD value straight from the quote leg — stables ≈ $1 (most reliable),
-  // MON-quoted priced by the live MON price.
-  const amountUsd = pool.quote.kind === 'usd'
-    ? Number(formatUnits(quoteAbs, pool.quote.decimals))
-    : Number(formatUnits(quoteAbs, 18)) * monPriceUsd;
-  const amountMon = monPriceUsd > 0 ? amountUsd / monPriceUsd : 0; // MON-equivalent (display + copy sizing)
-
-  // trader = EOA behind the swap (resolved early for the VIP bypass check).
+// ── Net-flow attribution (tx-level) ──────────────────────────────────────
+// A single transaction can emit MANY swap logs: multi-hop routes, aggregator
+// splits, arb loops. Attributing every leg to tx.from is exactly what surfaced
+// tokens a wallet never actually bought (e.g. a WBTC hop mid-route). Instead we
+// NET all quote-anchored legs of the tx per token and emit ONE card for the
+// token the trader genuinely acquired (BUY) or disposed (SELL). Pass-through
+// hops net to ~zero and are dropped. This is the single source of "correct
+// transactions + correct whales".
+async function processTx(txHash, logs) {
+  // Resolve the trader (always an EOA — tx.from) once for the whole tx.
   let trader = null;
-  try {
-    const tx = await provider.getTransaction(log.transactionHash);
-    if (tx?.from) trader = tx.from.toLowerCase();
-  } catch { /* skip if unfetchable */ }
+  try { const tx = await provider.getTransaction(txHash); if (tx?.from) trader = tx.from.toLowerCase(); }
+  catch { return; }
   if (!trader) return;
 
   const isVIP = REGISTERED_WHALES.has(trader);
 
-  // Size gate: known whales pass on any real trade; everyone else must move big USD.
-  if (isVIP) {
-    if (amountUsd < REGISTERED_MIN_USD) return;
-  } else if (amountUsd < WHALE_MIN_USD) {
-    return;
-  }
+  // Per traded-token flow: net trader delta (received +, sent −), gross throughput,
+  // USD spent/received, and the dominant leg's pool/fee/block for the card.
+  const flow = new Map();
+  for (const log of logs) {
+    const dex = DEX_BY_TOPIC[log.topics[0]]; if (!dex) continue;
+    const pool = await getPoolInfo(log.address, true); if (!pool) continue; // not a single-quote-anchored pool
+    let amount0, amount1;
+    try { ({ amount0, amount1 } = decodeAmounts(log.data)); } catch { continue; }
+    const quoteSigned = pool.quoteIsToken0 ? amount0 : amount1;
+    const tokenSigned = pool.quoteIsToken0 ? amount1 : amount0;
+    if (quoteSigned === 0n) continue;
+    const traderTokenDelta = -tokenSigned; // token OUT of pool = trader received it
+    const qAbs = quoteSigned > 0n ? quoteSigned : -quoteSigned;
+    const usd = pool.quote.kind === 'usd'
+      ? Number(formatUnits(qAbs, pool.quote.decimals))
+      : Number(formatUnits(qAbs, 18)) * monPriceUsd;
 
-  // High-liquidity gate (skip junk / illiquid tokens). VIPs bypass.
-  const market = await getTokenMarket(pool.tokenAddr);
+    const f = flow.get(pool.tokenAddr) || { net: 0n, gross: 0n, spentUsd: 0, recvUsd: 0, topLegUsd: 0, pool, dex, poolAddress: log.address.toLowerCase(), blockNumber: log.blockNumber };
+    f.net += traderTokenDelta;
+    f.gross += traderTokenDelta < 0n ? -traderTokenDelta : traderTokenDelta;
+    if (quoteSigned > 0n) f.spentUsd += usd; else f.recvUsd += usd; // quote INTO pool = trader spent
+    if (usd > f.topLegUsd) { f.topLegUsd = usd; f.pool = pool; f.dex = dex; f.poolAddress = log.address.toLowerCase(); f.blockNumber = log.blockNumber; }
+    flow.set(pool.tokenAddr, f);
+  }
+  if (!flow.size) return;
+
+  // Pick the token the trader NET moved the most (by USD). Require the net to be
+  // a genuine position change, not a routed-through hop (|net| must dominate the
+  // gross throughput for that token) — this is what drops arb/aggregator noise.
+  let best = null;
+  for (const [addr, f] of flow) {
+    const absNet = f.net < 0n ? -f.net : f.net;
+    if (absNet === 0n) continue;
+    if (f.gross > 0n && (absNet * 100n) / f.gross < 40n) continue; // <40% net kept → pass-through, not owned
+    const usd = f.spentUsd + f.recvUsd;
+    if (!best || usd > best.usd) best = { addr, f, usd, absNet };
+  }
+  if (!best) return;
+
+  const f = best.f;
+  const side = f.net > 0n ? 'BUY' : 'SELL';                 // net token received = a real BUY
+  const amountUsd = side === 'BUY' ? (f.spentUsd || best.usd) : (f.recvUsd || best.usd);
+  const amountMon = monPriceUsd > 0 ? amountUsd / monPriceUsd : 0;
+
+  // Size gate: known whales pass on any real trade; everyone else must move big USD.
+  if (isVIP) { if (amountUsd < REGISTERED_MIN_USD) return; }
+  else if (amountUsd < WHALE_MIN_USD) return;
+
+  // Correct-whale gate: a non-registered trader must be a plain EOA. Filters
+  // protocol/router/aggregator/AA-bot contracts that are not real "whales".
+  if (!isVIP && !(await isEOA(trader))) return;
+
+  // Liquidity / rug gate: a live market must exist. Zero liquidity = rugged or
+  // dead token → never surface it. Non-VIPs also need the high-liquidity floor.
+  const market = await getTokenMarket(best.addr);
+  if (market.liquidity <= 0) return;                        // rugged / no live pair
   if (!isVIP && market.liquidity < MIN_LIQ_USD) return;
 
-  const tokenAmount = Number(formatUnits(tokenAbs, pool.meta.decimals));
-  const copyable = pool.quote.kind === 'mon' || market.hasWmonPair; // can we route MON → token?
+  const meta = f.pool.meta;
+  const tokenAmount = Number(formatUnits(best.absNet, meta.decimals));
+  const isNadfun = f.dex === 'NadFun';
+  // nad.fun tokens route through nad.fun's own router (frontend), so they're
+  // always copyable; v3 tokens need a MON route on Uniswap/Pancake.
+  const copyable = isNadfun || f.pool.quote.kind === 'mon' || market.hasWmonPair;
 
   const card = {
-    id: log.transactionHash + ':' + log.index,
-    txHash: log.transactionHash,
+    id: txHash + ':' + trader.slice(2, 10), // one card per (tx, trader) — no per-leg dupes
+    // Deck identity: all buys by the SAME whale of the SAME token collapse into
+    // one card (summed on the deck). One tx is a "leg" of that group.
+    groupId: trader + ':' + best.addr + ':' + side,
+    txHash,
     trader,
     side,
-    dex,
-    poolAddress: log.address.toLowerCase(),
-    tokenAddress: pool.tokenAddr,
-    tokenSymbol: pool.meta.symbol,
-    tokenDecimals: pool.meta.decimals,
-    quoteSymbol: pool.quote.symbol,
+    dex: f.dex,
+    source: isNadfun ? 'nadfun' : 'v3', // frontend picks the execution engine off this
+    poolAddress: f.poolAddress,
+    tokenAddress: best.addr,
+    tokenSymbol: meta.symbol,
+    tokenDecimals: meta.decimals,
+    quoteSymbol: f.pool.quote.symbol,
     isStable: false,
-    feeTier: pool.fee,
+    feeTier: f.pool.fee,
     amountMon,
     amountUsd,
     tokenAmount,
     liquidityUsd: market.liquidity,
     copyable,
     isRegisteredWhale: isVIP,
-    blockNumber: log.blockNumber,
+    blockNumber: f.blockNumber,
     ts: Date.now(),
   };
 
@@ -534,10 +615,29 @@ async function processLog(log) {
     broadcast(card);
     const tag = isVIP ? '[VIP]' : '[WHALE]';
     console.log(
-      `${tag} ${side} $${amountUsd.toFixed(0).padStart(6)}  ${card.tokenSymbol.padEnd(8)}/${pool.quote.symbol.padEnd(5)} ` +
-      `${trader.slice(0, 10)}…  (${dex}${copyable ? '' : ' · no-MON-route'})`,
+      `${tag} ${side} $${amountUsd.toFixed(0).padStart(6)}  ${card.tokenSymbol.padEnd(8)}/${f.pool.quote.symbol.padEnd(5)} ` +
+      `${trader.slice(0, 10)}…  (${f.dex}${copyable ? '' : ' · no-MON-route'})`,
     );
+  } else if (isNew && side === 'SELL' && isVIP) {
+    // A tracked whale SELLING a token is NOT a deck card (you can't copy an exit),
+    // but the app uses it to auto-close a user's copy when they enabled
+    // "sell when the whale sells" for that position. Broadcast it as a signal.
+    broadcast(card);
+    console.log(`[EXIT] SELL $${amountUsd.toFixed(0).padStart(6)}  ${card.tokenSymbol.padEnd(8)} ${trader.slice(0, 10)}… → whale-exit signal`);
   }
+}
+
+// Group a batch of swap logs by transaction so net-flow attribution sees the
+// whole route at once (and getTransaction is called once per tx, not per log).
+async function processLogs(logs) {
+  const byTx = new Map();
+  for (const log of logs) {
+    if (!DEX_BY_TOPIC[log.topics[0]]) continue;
+    const arr = byTx.get(log.transactionHash) || [];
+    arr.push(log);
+    byTx.set(log.transactionHash, arr);
+  }
+  for (const [txHash, txLogs] of byTx) await processTx(txHash, txLogs).catch(() => {});
 }
 
 // Scan recent history once at boot so the deck is populated with real whales
@@ -553,7 +653,7 @@ async function backfill() {
       try {
         logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [V3_TOPICS] });
       } catch { continue; }
-      for (const log of logs) await processLog(log).catch(() => {});
+      await processLogs(logs);
     }
     lastBlock = current;
     console.log(`[Backfill] done · ${recentWhales.length} whales seeded`);
@@ -583,9 +683,7 @@ async function poll() {
         toBlock: to,
         topics: [V3_TOPICS],
       });
-      for (const log of logs) {
-        await processLog(log).catch(() => {});
-      }
+      await processLogs(logs);
       lastBlock = to;
     }
   } catch (err) {
@@ -593,6 +691,32 @@ async function poll() {
   } finally {
     setTimeout(poll, POLL_MS);
   }
+}
+
+// ── Deck aggregation: collapse repeat buys into one card ──────────────────
+// A whale that buys the same token 5 times used to produce 5 near-identical
+// deck cards. Instead we fold every buy by the same whale of the same token
+// (same groupId) into ONE card: amounts are SUMMED (real total position added),
+// entry price becomes the size-weighted average, and each individual buy is
+// preserved as a `leg` for the card's detail view. `cards` is newest-first, so
+// the first card seen per group carries the freshest metadata/price.
+function aggregateDeck(cards) {
+  const groups = new Map();
+  for (const c of cards) {
+    const gid = c.groupId || (c.trader + ':' + c.tokenAddress + ':' + c.side);
+    let g = groups.get(gid);
+    if (!g) {
+      g = { ...c, id: gid, groupId: gid, buyCount: 0, amountUsd: 0, amountMon: 0, tokenAmount: 0, legs: [] };
+      groups.set(gid, g);
+    }
+    g.buyCount += 1;
+    g.amountUsd += c.amountUsd || 0;
+    g.amountMon += c.amountMon || 0;
+    g.tokenAmount += c.tokenAmount || 0;
+    g.legs.push({ txHash: c.txHash, amountUsd: c.amountUsd, amountMon: c.amountMon, tokenAmount: c.tokenAmount, ts: c.ts, blockNumber: c.blockNumber });
+  }
+  // Preserve the deck's newest-first ordering by the most recent leg.
+  return [...groups.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
 }
 
 // Compact profitability score derived from a trader's aggregate (realized only).
@@ -609,10 +733,22 @@ function scoreFromAgg(agg) {
 }
 
 // ── HTTP API ──
-const sendJson = (res, code, body) => {
+// Locked to the real production frontend (+ local dev) instead of '*' — an
+// open CORS policy meant ANY site (including stale/duplicate Vercel
+// deployments from old imports) could call this backend and would silently
+// work. Only an explicitly allowed Origin gets echoed back; everyone else's
+// browser blocks the response. Override/extend via ALLOWED_ORIGINS (CSV).
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || 'https://deepswap-zeta.vercel.app,http://localhost:5173,http://localhost:5174')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+);
+function corsHeadersFor(origin) {
+  return origin && ALLOWED_ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+}
+const sendJson = (req, res, code, body) => {
   res.writeHead(code, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    ...corsHeadersFor(req.headers.origin),
   });
   res.end(JSON.stringify(body));
 };
@@ -622,7 +758,7 @@ server.on('request', async (req, res) => {
   const path = url.pathname;
 
   if (path === '/health') {
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       ok: true, lastBlock, whales: recentWhales.length,
       traders: traderAgg.size, whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD, monPriceUsd,
       registered: REGISTERED_WHALES.size, deckRosterOnly: DECK_ROSTER_ONLY,
@@ -632,17 +768,19 @@ server.on('request', async (req, res) => {
   }
   if (path === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
-    const whales = recentWhales.slice(0, limit).map((c) => ({
+    // Aggregate first (repeat buys → one card), THEN limit, so the cap counts
+    // distinct whale·token signals rather than raw legs.
+    const whales = aggregateDeck(recentWhales).slice(0, limit).map((c) => ({
       ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader.toLowerCase())),
     }));
-    return sendJson(res, 200, { whales });
+    return sendJson(req, res, 200, { whales });
   }
   if (path === '/leaderboard') {
     const board = [...traderAgg.values()]
       .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
       .sort((a, b) => b.volumeMon - a.volumeMon)
       .slice(0, 80);
-    return sendJson(res, 200, { traders: board });
+    return sendJson(req, res, 200, { traders: board });
   }
   if (path === '/roster') {
     // Verified Smart Money roster — served from the DURABLE whale_registry
@@ -680,7 +818,7 @@ server.on('request', async (req, res) => {
       });
     }
     const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
-    return sendJson(res, 200, { count: whales.length, whales });
+    return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = path.match(/^\/address\/(0x[0-9a-fA-F]{40})$/);
   if (m) {
@@ -689,7 +827,7 @@ server.on('request', async (req, res) => {
     try { balanceMon = Number(formatUnits(await provider.getBalance(a), 18)); } catch {}
     // Full history straight from disk (survives restarts, deeper than the live cap).
     const trades = db.tradesByAddress(a, 30).map(rowToCard);
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       address: a,
       balanceMon,
       aggregate: traderAgg.get(a) || null,
@@ -697,7 +835,7 @@ server.on('request', async (req, res) => {
       trades: trades.length ? trades : (addressTrades.get(a) || []),
     });
   }
-  sendJson(res, 404, { error: 'not found' });
+  sendJson(req, res, 404, { error: 'not found' });
 });
 server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 
@@ -708,13 +846,21 @@ initFromDb();
 await backfill();
 poll();
 
+// Roster hygiene: ban any tracked wallet that is actually a contract/protocol
+// (not a real whale EOA). First pass after backfill; then on a slow rotation so
+// the whole roster gets re-verified over time as new wallets are promoted in.
+const VALIDATE_MINUTES = Number(process.env.VALIDATE_MINUTES || 7);
+setTimeout(validateRosterBatch, 60000);
+safeEvery(validateRosterBatch, VALIDATE_MINUTES * 60 * 1000, 'validate interval');
+console.log(`[validate] roster hygiene every ${VALIDATE_MINUTES}m (${VALIDATE_BATCH}/batch · bans contracts)`);
+
 // Live promotion: catch brand-new whales within minutes (deck stays fresh).
 setTimeout(promoteWhales, 45000); // first pass shortly after backfill settles
-setInterval(promoteWhales, PROMOTE_MINUTES * 60 * 1000);
+safeEvery(promoteWhales, PROMOTE_MINUTES * 60 * 1000, 'promote interval');
 console.log(`[promote] live whale promotion every ${PROMOTE_MINUTES}m (≥ $${PROMOTE_MIN_USD} directional EOA)`);
 
 // Deep re-rank + persistence of the whole roster on a slower schedule.
-setInterval(() => runDiscovery('scheduled'), DISCOVERY_HOURS * 3600 * 1000);
+safeEvery(() => runDiscovery('scheduled'), DISCOVERY_HOURS * 3600 * 1000, 'discovery interval');
 if (rosterAgeHours() > DISCOVERY_HOURS) {
   setTimeout(() => runDiscovery('stale at boot'), 30000); // let backfill settle first
   console.log(`[discovery] roster is ${rosterAgeHours() === Infinity ? 'missing' : rosterAgeHours().toFixed(1) + 'h'} old → scan queued`);
