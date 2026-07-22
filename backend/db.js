@@ -41,6 +41,11 @@ CREATE TABLE IF NOT EXISTS whale_registry (
   solBalance REAL,
   stats TEXT              -- JSON blob of the richest stats we have for this wallet
 );
+CREATE TABLE IF NOT EXISTS whale_blacklist (
+  address TEXT PRIMARY KEY,
+  reason TEXT,           -- 'contract' | 'program' | 'rug' | 'manual' | ...
+  ts INTEGER             -- ms epoch when banned
+);
 `);
 
 const insTrade = db.prepare(`INSERT OR IGNORE INTO trades
@@ -111,11 +116,15 @@ const upWhale = db.prepare(`INSERT INTO whale_registry (address,source,firstSeen
    stats=COALESCE(@stats, stats)`);
 
 export function registerWhale(address, source, { volumeUsd = null, solBalance = null, stats = null } = {}) {
+  // A banned wallet (contract / program / rug) must never be re-added by a later
+  // discovery pass — the blacklist is the durable veto over the append-only registry.
+  if (blacklistHas.get(address)) return false;
   upWhale.run({
     address: address, source, now: Date.now(),
     volumeUsd, solBalance,
     stats: stats ? JSON.stringify(stats) : null,
   });
+  return true;
 }
 export function loadWhaleRegistry() {
   return db.prepare('SELECT * FROM whale_registry ORDER BY volumeUsd DESC').all().map((r) => ({
@@ -123,10 +132,38 @@ export function loadWhaleRegistry() {
   }));
 }
 
+// ── Whale blacklist: wallets that turned out NOT to be real whale EOAs
+// (protocol/router/AA contracts on EVM, programs/PDAs on Solana) or rugged
+// projects. Banning removes the row from the registry AND vetoes any future
+// re-registration, so a wallet only has to be caught once. ──
+const insBan = db.prepare('INSERT OR REPLACE INTO whale_blacklist (address,reason,ts) VALUES (?,?,?)');
+const delWhale = db.prepare('DELETE FROM whale_registry WHERE address=?');
+const blacklistHas = db.prepare('SELECT 1 FROM whale_blacklist WHERE address=?').pluck();
+
+export function blacklistWhale(address, reason = 'manual') {
+  insBan.run(address, reason, Date.now());
+  const info = delWhale.run(address);
+  return info.changes > 0; // true = a registry row was actually removed
+}
+export function isBlacklisted(address) {
+  return !!blacklistHas.get(address);
+}
+// Soft removal: drop a wallet from the roster WITHOUT a permanent veto — used
+// for "not active enough" / "no gas" wallets that could legitimately return as
+// whales later (unlike contracts/programs, which get blacklistWhale). Discovery
+// is free to re-add them if they resume real whale-sized trading.
+export function removeWhale(address) {
+  return delWhale.run(address).changes > 0;
+}
+export function loadBlacklist() {
+  return db.prepare('SELECT * FROM whale_blacklist').all();
+}
+
 export function stats() {
   return {
     dbTrades: db.prepare('SELECT COUNT(*) c FROM trades').get().c,
     dbTraders: db.prepare('SELECT COUNT(*) c FROM traders').get().c,
     dbRegistry: db.prepare('SELECT COUNT(*) c FROM whale_registry').get().c,
+    dbBlacklist: db.prepare('SELECT COUNT(*) c FROM whale_blacklist').get().c,
   };
 }

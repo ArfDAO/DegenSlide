@@ -345,9 +345,14 @@ export default function App() {
   }, []);
   const copyAmountFor = useCallback((card) => {
     if (sizing.mode !== 'mirror') return tradeAmount;
-    const whaleNative = (card.amountMon || 0) > 0
+    // A deck card can now be several buys folded into one (buyCount>1) with its
+    // amounts SUMMED. Mirror must scale off a single representative buy — the
+    // whale's average buy size — not the whole accumulated position, or a 7-buy
+    // signal would always slam the cap. buyCount=1 (live legs) → unchanged.
+    const totalNative = (card.amountMon || 0) > 0
       ? card.amountMon
       : (card.amountUsd && monPriceUsd ? card.amountUsd / monPriceUsd : 0);
+    const whaleNative = card.buyCount > 1 ? totalNative / card.buyCount : totalNative;
     if (!(whaleNative > 0)) return tradeAmount;
     const minCopy = ACTIVE.id === 'monad' ? 0.05 : 0.005; // dust floor so swaps don't revert
     return +Math.max(minCopy, Math.min(tradeAmount, whaleNative * (sizing.mirrorPct / 100))).toFixed(4);
@@ -620,7 +625,25 @@ export default function App() {
       autoCopyRef.current?.(card); // hands-free copy for whales marked AUTO (guarded)
       if (!settingsRef.current.liveFeed) return; // live feed paused in settings
       if (dismissedRef.current.has(card.id)) return; // already swiped away
-      setCards((prev) => (prev.find((c) => c.id === card.id) ? prev : [card, ...prev].slice(0, 60)));
+      // Same whale buying the same token again folds into the existing card:
+      // amounts sum, the buy is added as a leg, and the card bubbles to the top
+      // (fresh activity) — instead of spawning a near-duplicate card.
+      setCards((prev) => {
+        const idx = prev.findIndex((c) => c.id === card.id);
+        if (idx === -1) return [card, ...prev].slice(0, 60);
+        const ex = prev[idx];
+        if (ex.legs?.some((l) => l.txHash === card.txHash)) return prev; // already folded (WS+poll overlap)
+        const merged = {
+          ...ex,
+          amountUsd: (ex.amountUsd || 0) + (card.amountUsd || 0),
+          amountMon: (ex.amountMon || 0) + (card.amountMon || 0),
+          tokenAmount: (ex.tokenAmount || 0) + (card.tokenAmount || 0),
+          buyCount: (ex.buyCount || 1) + 1,
+          legs: [card.legs[0], ...(ex.legs || [])],
+          ts: card.ts,
+        };
+        return [merged, ...prev.filter((_, i) => i !== idx)].slice(0, 60);
+      });
       maybeNotifyWhale(card); // opt-in browser alert for the biggest whale buys
     });
 
@@ -635,12 +658,21 @@ export default function App() {
       if (!state.alive || !deck.length) return;
       setIndexerUp(true);
       setCards((prev) => {
+        // Server snapshot is authoritative for each group's totals — heal the
+        // buyCount/amounts/legs of cards already on the deck (in case the socket
+        // dropped a repeat-buy leg), keeping their position so the user isn't
+        // jolted mid-swipe.
+        const byId = new Map(deck.map((c) => [c.id, c]));
+        const updated = prev.map((c) => {
+          const s = byId.get(c.id);
+          return s ? { ...c, amountUsd: s.amountUsd, amountMon: s.amountMon, tokenAmount: s.tokenAmount, buyCount: s.buyCount, legs: s.legs } : c;
+        });
         const known = new Set(prev.map((c) => c.id));
         const fresh = deck.filter((c) => !known.has(c.id) && !dismissedRef.current.has(c.id));
         // trades the socket missed still auto-copy — the executor's own 90s
         // freshness guard rejects anything that's actually old
         for (const c of fresh) autoCopyRef.current?.(c);
-        return fresh.length ? [...fresh, ...prev].slice(0, 60) : prev;
+        return fresh.length ? [...fresh, ...updated].slice(0, 60) : updated;
       });
     }, 15000);
 

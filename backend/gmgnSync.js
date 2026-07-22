@@ -76,15 +76,30 @@ function cliJson(args) {
   catch (e) { console.warn(`[gmgn-sync] ${args.slice(0, 3).join(' ')} failed:`, (e.message || '').split('\n')[0]); return null; }
 }
 
-async function rpcBalance(addr) {
+async function solRpc(method, params) {
   const res = await fetch(SOL_RPC, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [addr] }),
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
     signal: AbortSignal.timeout(15000),
   });
   const j = await res.json();
   if (j.error) throw new Error(j.error.message);
-  return (j.result?.value || 0) / 1e9;
+  return j.result;
+}
+async function rpcBalance(addr) {
+  return (await solRpc('getBalance', [addr]))?.value / 1e9 || 0;
+}
+
+// The System Program owns every ordinary wallet. A candidate whose account is
+// executable, is owned by any other program (a PDA / token account / protocol
+// vault), or doesn't exist is NOT a real whale wallet — reject it so smart
+// contracts and program addresses never enter the roster.
+const SYSTEM_PROGRAM = '11111111111111111111111111111111';
+async function isRealWallet(addr) {
+  const info = (await solRpc('getAccountInfo', [addr, { encoding: 'base64' }]))?.value;
+  if (!info) return true; // account not yet on chain (0-lamport EOA) → allow; getBalance still gates
+  if (info.executable) return false;               // a program (smart contract)
+  return info.owner === SYSTEM_PROGRAM;             // real wallet iff System-owned
 }
 
 // candidate pool: addr -> { volUsd, tags:Set, vector, fromFeed }
@@ -226,6 +241,8 @@ async function main() {
     try {
       const { pass, stats } = statsGate(addr, c);
       if (!pass) { rejected += 1; continue; }
+      // Reject programs / PDAs / vaults — only real System-owned wallets qualify.
+      if (!(await isRealWallet(addr))) { rejected += 1; db.blacklistWhale(addr, 'program'); console.log(`[gmgn-sync] reject ${addr.slice(0, 10)}… — not a real wallet (program/PDA)`); continue; }
       const bal = await rpcBalance(addr); // real on-chain confirmation
       db.registerWhale(addr, 'gmgn', {
         volumeUsd: Math.round(c.volUsd * 100) / 100, solBalance: bal,

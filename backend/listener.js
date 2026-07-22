@@ -60,29 +60,8 @@ const MIN_LIQ_USD = Number(process.env.MIN_LIQ_USD || 25000);
 const REGISTERED_MIN_USD = Number(process.env.REGISTERED_MIN_USD || 100); // dust floor for known whales — this is a WHALE app, no sub-$100 cards
 
 // ── Manually-pinned VIP wallets (always tracked, regardless of discovery) ──
-const VIP_WHALES = new Set([
-  '0x4cd934beae89200b3e5f16783897c9424e25f3df',
-  '0xe1aa0010b4c25f38a7c8a724fdd79c6e8ce543fe',
-  '0xe50f5af8a97379b6ebd968121186c71b88dc0b69',
-  '0x69c350da1c843093aff7aae118af7fa73e7736f8',
-  '0x15ddce897d76ac39c188ade4d353711a60395315',
-  '0xa9615d22b2d1f8836d60fe7e1c13c56ec7a342e3',
-  '0xe50585bd466bff569da0a1737b299fdb31aa368e',
-  '0x33a458ea4cad5c7943f8ae2a58dc5dcd3bb2fb07',
-  '0x5a8bcbdb13fdad13d622ffac3e30ea17eea06fed',
-  '0x05ca0b7b8626ae142c90219cc3cf42faca0dd103',
-  '0xa99767ff6874018935af8924eeb3de3c7b578edc',
-  '0xb3a41293d166b21ccb8c61ae9011cbc7559d348f',
-  '0x0f3f5ffc9f100c11335ac8b9e89dc91bb5f41c98',
-  '0xb11e96e929c64cfe12c28f1c0417bb8ddaf5f6b6',
-  '0x8524a3a88e9d9672b33e34de03e174f140ef6663',
-  '0xbb34dab96850d0b453c1f984a81bb497efb229e7',
-  '0x988d179a9e8a174cc92ebd51492281dd2f19fa9e',
-  '0xc0ea1c03bb9d466d506c0fb1621f256e291c38e2',
-  '0x17b04ada408086bb37743d8589e5e18c522be159',
-  '0xb42f812a44c22cc6b861478900401ee759ebead6',
-  '0xa581a60fdea3c390ff08f033733c6b678f5f9f49',
-]);
+// Shared with cleanRoster.js so the purge never bans a pinned wallet.
+import { VIP_WHALES } from './vipWhales.js';
 
 // The live tracked roster = VIP + the verified/bot-filtered discovery roster.
 // Rebuilt (hot-reloaded) whenever the discovery scan rewrites curatedWhales.json.
@@ -95,20 +74,62 @@ function loadRoster() {
   REGISTERED_WHALES.clear();
   for (const v of VIP_WHALES) REGISTERED_WHALES.add(v);
   for (const p of LIVE_PROMOTED) REGISTERED_WHALES.add(p);
-  let curatedCount = 0;
+  let curatedCount = 0, bannedSkipped = 0;
   try {
     const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
     for (const w of curated.whales || []) if (w.address) {
+      const addr = w.address.toLowerCase();
+      // A wallet a previous validation pass proved to be a contract/rug is vetoed —
+      // never re-import it from the (append-only, possibly stale) curated file.
+      if (db.isBlacklisted(addr)) { bannedSkipped += 1; continue; }
       // durable registry: a future rescan that misses this wallet can't erase it
-      db.registerWhale(w.address.toLowerCase(), 'scan', { volumeUsd: w.volumeUsd ?? null, stats: w });
+      db.registerWhale(addr, 'scan', { volumeUsd: w.volumeUsd ?? null, stats: w });
       curatedCount += 1;
     }
   } catch (e) { console.warn('[whales] curated roster not loaded:', e.message); }
   let registryCount = 0;
-  for (const r of db.loadWhaleRegistry()) { REGISTERED_WHALES.add(r.address); registryCount += 1; }
-  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (${VIP_WHALES.size} VIP · registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size})`);
+  for (const r of db.loadWhaleRegistry()) {
+    if (db.isBlacklisted(r.address)) continue; // registry rows are deleted on ban, but be defensive
+    REGISTERED_WHALES.add(r.address); registryCount += 1;
+  }
+  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (${VIP_WHALES.size} VIP · registry ${registryCount} · scan file ${curatedCount} · live ${LIVE_PROMOTED.size} · banned skipped ${bannedSkipped})`);
 }
 loadRoster();
+
+// ── Roster hygiene: prove every tracked wallet is a real whale EOA ──
+// The complaint: the roster sometimes holds protocols / routers / smart-account
+// contracts (and rug deployers), not real whale wallets. Discovery already
+// EXTCODESIZE-filters, but the append-only curated file + old registry rows can
+// carry pre-filter contamination. This pass re-checks each NON-VIP wallet on
+// chain: any address with bytecode is not an EOA → banned (removed + vetoed).
+// Runs at boot and on a slow schedule; VIP pins are trusted and never banned.
+const VALIDATE_BATCH = Number(process.env.VALIDATE_BATCH || 40);
+const validateQueue = [];
+let validateCursor = 0;
+async function validateRosterBatch() {
+  if (!validateQueue.length) {
+    for (const a of REGISTERED_WHALES) if (!VIP_WHALES.has(a)) validateQueue.push(a);
+  }
+  let banned = 0, checked = 0;
+  for (let i = 0; i < VALIDATE_BATCH && validateQueue.length; i++) {
+    const addr = validateQueue[validateCursor % validateQueue.length];
+    validateCursor += 1;
+    checked += 1;
+    if (VIP_WHALES.has(addr)) continue;
+    let isContract = false;
+    try { const code = await provider.getCode(addr); isContract = !!code && code !== '0x'; }
+    catch { continue; } // RPC hiccup → re-check next round, don't ban on uncertainty
+    if (isContract) {
+      db.blacklistWhale(addr, 'contract');
+      REGISTERED_WHALES.delete(addr);
+      LIVE_PROMOTED.delete(addr);
+      codeCache.set(addr, false); // remember: not an EOA
+      banned += 1;
+      console.log(`[validate] banned ${addr.slice(0, 12)}… — has bytecode (contract/protocol, not a whale)`);
+    }
+  }
+  if (checked) console.log(`[validate] checked ${checked} roster wallets · ${banned} banned · roster now ${REGISTERED_WHALES.size}`);
+}
 
 // Hot-reload the roster when the discovery scan rewrites the file (debounced).
 let rosterReloadTimer = null;
@@ -425,6 +446,7 @@ function recordWhale(card) {
 function rowToCard(r) {
   return {
     id: r.id, txHash: r.id.split(':')[0], trader: r.trader, side: r.side, dex: r.dex,
+    groupId: r.trader + ':' + r.token + ':' + r.side,
     source: r.dex === 'NadFun' ? 'nadfun' : 'v3', // routing hint (derived from dex)
     poolAddress: r.pool, tokenAddress: r.token, tokenSymbol: r.tokenSymbol,
     tokenDecimals: r.tokenDecimals, isStable: !!r.isStable, feeTier: r.feeTier,
@@ -563,6 +585,9 @@ async function processTx(txHash, logs) {
 
   const card = {
     id: txHash + ':' + trader.slice(2, 10), // one card per (tx, trader) — no per-leg dupes
+    // Deck identity: all buys by the SAME whale of the SAME token collapse into
+    // one card (summed on the deck). One tx is a "leg" of that group.
+    groupId: trader + ':' + best.addr + ':' + side,
     txHash,
     trader,
     side,
@@ -668,6 +693,32 @@ async function poll() {
   }
 }
 
+// ── Deck aggregation: collapse repeat buys into one card ──────────────────
+// A whale that buys the same token 5 times used to produce 5 near-identical
+// deck cards. Instead we fold every buy by the same whale of the same token
+// (same groupId) into ONE card: amounts are SUMMED (real total position added),
+// entry price becomes the size-weighted average, and each individual buy is
+// preserved as a `leg` for the card's detail view. `cards` is newest-first, so
+// the first card seen per group carries the freshest metadata/price.
+function aggregateDeck(cards) {
+  const groups = new Map();
+  for (const c of cards) {
+    const gid = c.groupId || (c.trader + ':' + c.tokenAddress + ':' + c.side);
+    let g = groups.get(gid);
+    if (!g) {
+      g = { ...c, id: gid, groupId: gid, buyCount: 0, amountUsd: 0, amountMon: 0, tokenAmount: 0, legs: [] };
+      groups.set(gid, g);
+    }
+    g.buyCount += 1;
+    g.amountUsd += c.amountUsd || 0;
+    g.amountMon += c.amountMon || 0;
+    g.tokenAmount += c.tokenAmount || 0;
+    g.legs.push({ txHash: c.txHash, amountUsd: c.amountUsd, amountMon: c.amountMon, tokenAmount: c.tokenAmount, ts: c.ts, blockNumber: c.blockNumber });
+  }
+  // Preserve the deck's newest-first ordering by the most recent leg.
+  return [...groups.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+}
+
 // Compact profitability score derived from a trader's aggregate (realized only).
 function scoreFromAgg(agg) {
   if (!agg) return null;
@@ -717,7 +768,9 @@ server.on('request', async (req, res) => {
   }
   if (path === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
-    const whales = recentWhales.slice(0, limit).map((c) => ({
+    // Aggregate first (repeat buys → one card), THEN limit, so the cap counts
+    // distinct whale·token signals rather than raw legs.
+    const whales = aggregateDeck(recentWhales).slice(0, limit).map((c) => ({
       ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader.toLowerCase())),
     }));
     return sendJson(req, res, 200, { whales });
@@ -792,6 +845,14 @@ setInterval(refreshMonPrice, 60000);
 initFromDb();
 await backfill();
 poll();
+
+// Roster hygiene: ban any tracked wallet that is actually a contract/protocol
+// (not a real whale EOA). First pass after backfill; then on a slow rotation so
+// the whole roster gets re-verified over time as new wallets are promoted in.
+const VALIDATE_MINUTES = Number(process.env.VALIDATE_MINUTES || 7);
+setTimeout(validateRosterBatch, 60000);
+safeEvery(validateRosterBatch, VALIDATE_MINUTES * 60 * 1000, 'validate interval');
+console.log(`[validate] roster hygiene every ${VALIDATE_MINUTES}m (${VALIDATE_BATCH}/batch · bans contracts)`);
 
 // Live promotion: catch brand-new whales within minutes (deck stays fresh).
 setTimeout(promoteWhales, 45000); // first pass shortly after backfill settles

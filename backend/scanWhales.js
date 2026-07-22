@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
+import * as db from './db.js';
 
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
 const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap floor (discovery gathers cumulative behaviour)
@@ -420,6 +421,11 @@ async function main() {
   try { prevWhales = JSON.parse(fs.readFileSync(outFile, 'utf8')).whales || []; } catch { /* first run */ }
   const mergedByAddr = new Map(prevWhales.filter((w) => w.address).map((w) => [w.address.toLowerCase(), w]));
   for (const w of ranked) mergedByAddr.set(w.address.toLowerCase(), w); // fresh stats win
+  // Drop any address the live indexer's validation pass has since banned as a
+  // contract/protocol/rug — the curated file must not keep re-seeding known junk.
+  let bannedDropped = 0;
+  for (const addr of [...mergedByAddr.keys()]) if (db.isBlacklisted(addr)) { mergedByAddr.delete(addr); bannedDropped += 1; }
+  if (bannedDropped) console.log(`[scan] dropped ${bannedDropped} blacklisted (contract/rug) wallets from the roster file`);
   const mergedWhales = [...mergedByAddr.values()].sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
   fs.writeFileSync(outFile, JSON.stringify({
     source: 'Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)',

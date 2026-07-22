@@ -103,19 +103,54 @@ const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedSolWhales.json'
 // found keeps being tracked forever. base58 addresses — NO lowercasing.
 function loadRoster() {
   REGISTERED_WHALES.clear();
-  let curatedCount = 0;
+  let curatedCount = 0, bannedSkipped = 0;
   try {
     const curated = JSON.parse(fs.readFileSync(CURATED_PATH, 'utf8'));
     for (const w of curated.whales || []) if (w.address) {
+      if (db.isBlacklisted(w.address)) { bannedSkipped += 1; continue; } // proven program/PDA — never re-import
       db.registerWhale(w.address, w.source || 'curated', { volumeUsd: w.volumeUsd ?? null, solBalance: w.solBalance ?? null, stats: w });
       curatedCount += 1;
     }
   } catch { /* file absent until first scan completes */ }
   let registryCount = 0;
-  for (const r of db.loadWhaleRegistry()) { REGISTERED_WHALES.add(r.address); registryCount += 1; }
-  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · curated file ${curatedCount})`);
+  for (const r of db.loadWhaleRegistry()) {
+    if (db.isBlacklisted(r.address)) continue;
+    REGISTERED_WHALES.add(r.address); registryCount += 1;
+  }
+  console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · curated file ${curatedCount} · banned skipped ${bannedSkipped})`);
 }
 loadRoster();
+
+// ── Roster hygiene: prove every tracked wallet is a real System-owned wallet ──
+// GMGN discovery can occasionally surface program / PDA / vault addresses (and
+// the curated file may carry pre-filter contamination). This pass re-checks each
+// wallet's account: executable, or owned by anything other than the System
+// Program → not a real whale → banned (removed + vetoed from re-import).
+const SYSTEM_PROGRAM = '11111111111111111111111111111111';
+const VALIDATE_BATCH = Number(process.env.VALIDATE_BATCH || 25);
+const validateQueue = [];
+let validateCursor = 0;
+async function validateRosterBatch() {
+  if (!validateQueue.length) validateQueue.push(...REGISTERED_WHALES);
+  let banned = 0, checked = 0;
+  for (let i = 0; i < VALIDATE_BATCH && validateQueue.length; i++) {
+    const addr = validateQueue[validateCursor % validateQueue.length];
+    validateCursor += 1;
+    checked += 1;
+    let info;
+    try { info = (await rpc('getAccountInfo', [addr, { encoding: 'base64' }]))?.value; }
+    catch { continue; } // RPC hiccup → re-check next round, never ban on uncertainty
+    if (info === undefined) continue;                 // request failed cleanly → skip
+    if (info === null) continue;                       // 0-lamport account → getBalance/quality gate covers it
+    if (!info.executable && info.owner === SYSTEM_PROGRAM) continue; // real wallet ✓
+    db.blacklistWhale(addr, info.executable ? 'program' : 'pda');
+    REGISTERED_WHALES.delete(addr);
+    banned += 1;
+    console.log(`[validate] banned ${addr.slice(0, 10)}… — ${info.executable ? 'executable program' : 'owned by ' + info.owner.slice(0, 8)} (not a whale)`);
+    await sleep(RPC_DELAY_MS);
+  }
+  if (checked) console.log(`[validate] checked ${checked} roster wallets · ${banned} banned · roster now ${REGISTERED_WHALES.size}`);
+}
 let rosterReloadTimer = null;
 try { fs.watch(CURATED_PATH, () => { clearTimeout(rosterReloadTimer); rosterReloadTimer = setTimeout(loadRoster, 1500); }); } catch { /* file may not exist yet */ }
 
@@ -127,6 +162,28 @@ function scoreFromAgg(agg) {
     winRate: closed > 0 ? agg.winTokens / closed : null,
     closedTokens: closed, activeTokens: agg.activeTokens || 0, trades: agg.trades || 0,
   };
+}
+
+// Collapse a whale's repeat buys of the same token into one deck card: amounts
+// summed, each buy kept as a `leg` for the detail view. See listener.js for the
+// full rationale. `cards` is newest-first; the first per group carries freshest
+// metadata (symbol/liquidity/price).
+function aggregateDeck(cards) {
+  const groups = new Map();
+  for (const c of cards) {
+    const gid = c.groupId || (c.trader + ':' + c.tokenAddress + ':' + c.side);
+    let g = groups.get(gid);
+    if (!g) {
+      g = { ...c, id: gid, groupId: gid, buyCount: 0, amountUsd: 0, amountMon: 0, tokenAmount: 0, legs: [] };
+      groups.set(gid, g);
+    }
+    g.buyCount += 1;
+    g.amountUsd += c.amountUsd || 0;
+    g.amountMon += c.amountMon || 0;
+    g.tokenAmount += c.tokenAmount || 0;
+    g.legs.push({ txHash: c.txHash, amountUsd: c.amountUsd, amountMon: c.amountMon, tokenAmount: c.tokenAmount, ts: c.ts, blockNumber: c.blockNumber });
+  }
+  return [...groups.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
 }
 
 // Deck = registered whales only (real Smart Money), across ANY token.
@@ -251,6 +308,7 @@ async function buildCard(sig, s) {
   const meta = await resolveToken(s.tokenMint);
   return {
     id: sig, txHash: sig, trader: s.owner, side: s.side, dex: meta.dex,
+    groupId: s.owner + ':' + s.tokenMint + ':' + s.side, // repeat buys collapse into one deck card
     poolAddress: null, tokenAddress: s.tokenMint, tokenSymbol: meta.symbol,
     tokenDecimals: s.decimals, quoteSymbol: QUOTE_TOKENS.get(s.quoteMint)?.symbol,
     isStable: meta.isStable, feeTier: null,
@@ -357,6 +415,7 @@ function initFromDb() {
     if (recentWhales.length >= RECENT_CAP) break;
     recentWhales.push({
       id: row.id, txHash: row.id, trader: row.trader, side: row.side, dex: row.dex,
+      groupId: row.trader + ':' + row.token + ':' + row.side,
       poolAddress: row.pool, tokenAddress: row.token, tokenSymbol: row.tokenSymbol,
       tokenDecimals: row.tokenDecimals, quoteSymbol: row.quoteSymbol, isStable: false, feeTier: null,
       amountMon: row.amountMon, amountUsd: row.amountUsd, tokenAmount: row.tokenAmount,
@@ -397,7 +456,7 @@ server.on('request', async (req, res) => {
   }
   if (p === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
-    const whales = recentWhales.slice(0, limit).map((c) => ({ ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader)) }));
+    const whales = aggregateDeck(recentWhales).slice(0, limit).map((c) => ({ ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader)) }));
     return sendJson(req, res, 200, { whales });
   }
   if (p === '/leaderboard') {
@@ -460,6 +519,12 @@ initFromDb();
 await backfill();
 whalePoll();  // THE feed: follow registered whale wallets across ALL tokens
 slotPoll();
+
+// Roster hygiene: ban programs / PDAs / vaults that slipped into the roster.
+const VALIDATE_MINUTES = Number(process.env.VALIDATE_MINUTES || 8);
+setTimeout(validateRosterBatch, 90 * 1000);
+setInterval(validateRosterBatch, VALIDATE_MINUTES * 60 * 1000);
+console.log(`[validate] roster hygiene every ${VALIDATE_MINUTES}m (${VALIDATE_BATCH}/batch · bans programs/PDAs)`);
 
 // GMGN whale discovery: periodically sweep GMGN (smart-money feed + KOL feed +
 // trending tokens' top traders) into the PERMANENT registry (source 'gmgn'),
