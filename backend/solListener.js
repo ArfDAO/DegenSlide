@@ -368,8 +368,17 @@ function initFromDb() {
 }
 
 // ── HTTP API (same shape as the Monad listener) ──
-const sendJson = (res, code, body) => {
-  res.writeHead(code, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+// Locked to the real production frontend (+ local dev) instead of '*' — see
+// listener.js for why. Override/extend via ALLOWED_ORIGINS (CSV).
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || 'https://deepswap-zeta.vercel.app,http://localhost:5173,http://localhost:5174')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+);
+function corsHeadersFor(origin) {
+  return origin && ALLOWED_ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+}
+const sendJson = (req, res, code, body) => {
+  res.writeHead(code, { 'Content-Type': 'application/json', ...corsHeadersFor(req.headers.origin) });
   res.end(JSON.stringify(body));
 };
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -378,7 +387,7 @@ server.on('request', async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (p === '/health') {
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       ok: true, chain: 'solana', lastBlock: lastSlot, whales: recentWhales.length,
       traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
       monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size,
@@ -389,13 +398,13 @@ server.on('request', async (req, res) => {
   if (p === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
     const whales = recentWhales.slice(0, limit).map((c) => ({ ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader)) }));
-    return sendJson(res, 200, { whales });
+    return sendJson(req, res, 200, { whales });
   }
   if (p === '/leaderboard') {
     const board = [...traderAgg.values()]
       .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
       .sort((a, b) => b.volumeMon - a.volumeMon).slice(0, 80);
-    return sendJson(res, 200, { traders: board });
+    return sendJson(req, res, 200, { traders: board });
   }
   if (p === '/roster') {
     // Verified Smart Money — served from the DURABLE whale_registry, which holds
@@ -426,7 +435,7 @@ server.on('request', async (req, res) => {
       });
     }
     const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
-    return sendJson(res, 200, { count: whales.length, whales });
+    return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = p.match(/^\/address\/(.+)$/);
   if (m && B58.test(m[1])) {
@@ -434,12 +443,12 @@ server.on('request', async (req, res) => {
     let balanceMon = null;
     try { balanceMon = (await rpc('getBalance', [a])).value / 1e9; } catch {}
     const trades = db.tradesByAddress(a, 30);
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       address: a, balanceMon, aggregate: traderAgg.get(a) || null,
       score: scoreFromAgg(traderAgg.get(a)), trades: trades.length ? trades : (addressTrades.get(a) || []),
     });
   }
-  sendJson(res, 404, { error: 'not found' });
+  sendJson(req, res, 404, { error: 'not found' });
 });
 server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 

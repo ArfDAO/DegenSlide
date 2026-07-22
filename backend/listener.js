@@ -682,10 +682,22 @@ function scoreFromAgg(agg) {
 }
 
 // ── HTTP API ──
-const sendJson = (res, code, body) => {
+// Locked to the real production frontend (+ local dev) instead of '*' — an
+// open CORS policy meant ANY site (including stale/duplicate Vercel
+// deployments from old imports) could call this backend and would silently
+// work. Only an explicitly allowed Origin gets echoed back; everyone else's
+// browser blocks the response. Override/extend via ALLOWED_ORIGINS (CSV).
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || 'https://deepswap-zeta.vercel.app,http://localhost:5173,http://localhost:5174')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+);
+function corsHeadersFor(origin) {
+  return origin && ALLOWED_ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+}
+const sendJson = (req, res, code, body) => {
   res.writeHead(code, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    ...corsHeadersFor(req.headers.origin),
   });
   res.end(JSON.stringify(body));
 };
@@ -695,7 +707,7 @@ server.on('request', async (req, res) => {
   const path = url.pathname;
 
   if (path === '/health') {
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       ok: true, lastBlock, whales: recentWhales.length,
       traders: traderAgg.size, whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD, monPriceUsd,
       registered: REGISTERED_WHALES.size, deckRosterOnly: DECK_ROSTER_ONLY,
@@ -708,14 +720,14 @@ server.on('request', async (req, res) => {
     const whales = recentWhales.slice(0, limit).map((c) => ({
       ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader.toLowerCase())),
     }));
-    return sendJson(res, 200, { whales });
+    return sendJson(req, res, 200, { whales });
   }
   if (path === '/leaderboard') {
     const board = [...traderAgg.values()]
       .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
       .sort((a, b) => b.volumeMon - a.volumeMon)
       .slice(0, 80);
-    return sendJson(res, 200, { traders: board });
+    return sendJson(req, res, 200, { traders: board });
   }
   if (path === '/roster') {
     // Verified Smart Money roster — served from the DURABLE whale_registry
@@ -753,7 +765,7 @@ server.on('request', async (req, res) => {
       });
     }
     const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
-    return sendJson(res, 200, { count: whales.length, whales });
+    return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = path.match(/^\/address\/(0x[0-9a-fA-F]{40})$/);
   if (m) {
@@ -762,7 +774,7 @@ server.on('request', async (req, res) => {
     try { balanceMon = Number(formatUnits(await provider.getBalance(a), 18)); } catch {}
     // Full history straight from disk (survives restarts, deeper than the live cap).
     const trades = db.tradesByAddress(a, 30).map(rowToCard);
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       address: a,
       balanceMon,
       aggregate: traderAgg.get(a) || null,
@@ -770,7 +782,7 @@ server.on('request', async (req, res) => {
       trades: trades.length ? trades : (addressTrades.get(a) || []),
     });
   }
-  sendJson(res, 404, { error: 'not found' });
+  sendJson(req, res, 404, { error: 'not found' });
 });
 server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
 
