@@ -1,16 +1,16 @@
 {
   "source": "Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)",
-  "scannedAt": "2026-07-22T04:09:36.211Z",
-  "scannedBlocks": 670822,
+  "scannedAt": "2026-07-22T14:40:33.603Z",
+  "scannedBlocks": 42480,
   "minUsdPerSwap": 5,
   "minLiquidityUsd": 150000,
-  "scanCursorBlock": 85104496,
+  "scanCursorBlock": 84504495,
   "botsRemoved": {
-    "contracts": 49,
-    "sameBlockArb": 12,
-    "churnMM": 6
+    "contracts": 8,
+    "sameBlockArb": 0,
+    "churnMM": 1
   },
-  "count": 477,
+  "count": 480,
   "whales": [
     {
       "address": "0xafbccbfa8016e55f2333d563e6fe2f7002609049",
@@ -329,31 +329,6 @@
       "winRate": null
     },
     {
-      "address": "0x5ef28a43ec9bdfda377676bac53030c3a4ba52d2",
-      "volumeUsd": 1036.16,
-      "volumeMon": 45847.91,
-      "trades": 52,
-      "buys": 32,
-      "sells": 20,
-      "directionality": 0.23,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6660973,
-      "tokens": [
-        "AUSD",
-        "LVMON",
-        "LV",
-        "EURW"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -2.68,
-      "realizedMon": -118.8,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
       "address": "0x1227559322811a91a525f3209245841b49f63f85",
       "volumeUsd": 985.1,
       "volumeMon": 43588.6,
@@ -437,52 +412,6 @@
       "lastToken": "AUSD",
       "realizedUsd": 7.27,
       "realizedMon": 315.19,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
-    },
-    {
-      "address": "0xdfd05b97d6ecd95eb909c77108db123ae4ff6ce0",
-      "volumeUsd": 903.66,
-      "volumeMon": 39187.38,
-      "trades": 10,
-      "buys": 5,
-      "sells": 5,
-      "directionality": 0,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "LVMON",
-        "LV",
-        "AUSD"
-      ],
-      "lastToken": "LV",
-      "realizedUsd": -0.68,
-      "realizedMon": -29.57,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "0x1b368ad35a9fe8c2c38c7d4ab862b40399b5b68a",
-      "volumeUsd": 860.51,
-      "volumeMon": 37315.93,
-      "trades": 16,
-      "buys": 1,
-      "sells": 15,
-      "directionality": 0.88,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0.62,
-      "realizedMon": 26.8,
       "closedTokens": 1,
       "winTokens": 1,
       "winRate": 1
@@ -624,6 +553,28 @@
       "winRate": null
     },
     {
+      "address": "0x000027655cf662254aae26e11371435fcfc1f077",
+      "volumeUsd": 673.2,
+      "volumeMon": 28598.16,
+      "trades": 28,
+      "buys": 14,
+      "sells": 14,
+      "directionality": 0,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": -2.7,
+      "realizedMon": -114.66,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
+    },
+    {
       "address": "0xde22222072e15cda9ea2010a3caf2ac6d5347ff4",
       "volumeUsd": 637.88,
       "volumeMon": 28224.85,
@@ -759,28 +710,6 @@
       "winRate": null
     },
     {
-      "address": "0xf70da97812cb96acdf810712aa562db8dfa3dbef",
-      "volumeUsd": 528.78,
-      "volumeMon": 22930.83,
-      "trades": 32,
-      "buys": 19,
-      "sells": 13,
-      "directionality": 0.19,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 1.72,
-      "realizedMon": 74.42,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
-    },
-    {
       "address": "0xde0000016d99f427da63a5439eec4eedd9a46dfd",
       "volumeUsd": 520.06,
       "volumeMon": 22552.3,
@@ -913,28 +842,6 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
-    },
-    {
-      "address": "0xbb3449a1c0d820fdf0c94b40b609bd17ab63ccb8",
-      "volumeUsd": 470.34,
-      "volumeMon": 22238.2,
-      "trades": 22,
-      "buys": 14,
-      "sells": 8,
-      "directionality": 0.27,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1944295,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -4.98,
-      "realizedMon": -235.29,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
     },
     {
       "address": "0xc066ac5d385419b1a8c43a0e146fa439837a8b8c",
@@ -1093,28 +1000,6 @@
       "winRate": null
     },
     {
-      "address": "0x254383c4bec0b745ebcd1961c0505db7b60bb71e",
-      "volumeUsd": 405.41,
-      "volumeMon": 17938.51,
-      "trades": 10,
-      "buys": 6,
-      "sells": 4,
-      "directionality": 0.2,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6660973,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -1.5,
-      "realizedMon": -66.24,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
       "address": "0xde22222112b60d6bfe871ab168ea331c525b2e0d",
       "volumeUsd": 399.28,
       "volumeMon": 17314.78,
@@ -1224,28 +1109,6 @@
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
-    },
-    {
-      "address": "0x5cea2e2038399abbf4452032462ca8b3c85f2e1e",
-      "volumeUsd": 360.65,
-      "volumeMon": 15639.76,
-      "trades": 17,
-      "buys": 10,
-      "sells": 7,
-      "directionality": 0.18,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 2.53,
-      "realizedMon": 109.85,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
     },
     {
       "address": "0x8880574c2317f83c38fe4b3c4e29230a5e38fabe",
@@ -1382,29 +1245,6 @@
       "winRate": 0
     },
     {
-      "address": "0x777067a9b55c4fed752f2d4d0b43520ecfb9c713",
-      "volumeUsd": 324.48,
-      "volumeMon": 14071.01,
-      "trades": 6,
-      "buys": 2,
-      "sells": 4,
-      "directionality": 0.33,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "EURW",
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 1.41,
-      "realizedMon": 61.35,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
-    },
-    {
       "address": "0x82e3fa7a38d9817077f0731efbd36b6db240d958",
       "volumeUsd": 321.13,
       "volumeMon": 13925.79,
@@ -1424,28 +1264,6 @@
       "lastToken": "AUSD",
       "realizedUsd": -11.11,
       "realizedMon": -482,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "0xbb34920bbd11eec19ff78265e9bee354d89e4e26",
-      "volumeUsd": 318.65,
-      "volumeMon": 15066.3,
-      "trades": 20,
-      "buys": 9,
-      "sells": 11,
-      "directionality": 0.1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1944295,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -4.07,
-      "realizedMon": -192.23,
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
@@ -1541,24 +1359,23 @@
       "winRate": null
     },
     {
-      "address": "0xaaa01e340e296178c269e124ab41c20a2e68078c",
-      "volumeUsd": 299.07,
-      "volumeMon": 12969.3,
-      "trades": 10,
-      "buys": 7,
-      "sells": 3,
-      "directionality": 0.4,
+      "address": "0x1b368ad35a9fe8c2c38c7d4ab862b40399b5b68a",
+      "volumeUsd": 296.09,
+      "volumeMon": 12578.24,
+      "trades": 6,
+      "buys": 1,
+      "sells": 5,
+      "directionality": 0.67,
       "lpAddedUsd": 0,
       "lpEvents": 0,
       "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
-        "AUSD",
-        "EURW"
+        "AUSD"
       ],
       "lastToken": "AUSD",
-      "realizedUsd": -1.19,
-      "realizedMon": -51.82,
+      "realizedUsd": -0.85,
+      "realizedMon": -35.93,
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
@@ -1851,50 +1668,6 @@
       "winRate": null
     },
     {
-      "address": "0x000027655cf662254aae26e11371435fcfc1f077",
-      "volumeUsd": 254.94,
-      "volumeMon": 11991.32,
-      "trades": 11,
-      "buys": 7,
-      "sells": 4,
-      "directionality": 0.27,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1944295,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -0.88,
-      "realizedMon": -41.58,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "0xbb343e1ccc9709c0cf11d93335b003f34c20eff5",
-      "volumeUsd": 252.52,
-      "volumeMon": 11962.09,
-      "trades": 18,
-      "buys": 8,
-      "sells": 10,
-      "directionality": 0.11,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1944295,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0.42,
-      "realizedMon": 19.93,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
-    },
-    {
       "address": "0xb9b94a138a4b3cf982dfbf8685b6652fda5051b4",
       "volumeUsd": 250.96,
       "volumeMon": 10439.24,
@@ -2027,28 +1800,6 @@
       "winRate": 1
     },
     {
-      "address": "0xe74a55d33b2a514487c6247666f101abc556fba9",
-      "volumeUsd": 235.98,
-      "volumeMon": 10441.59,
-      "trades": 6,
-      "buys": 3,
-      "sells": 3,
-      "directionality": 0,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6660973,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -1.25,
-      "realizedMon": -55.2,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
       "address": "0x57bc707afc7d707ac373bebd2614d32a2fcfac28",
       "volumeUsd": 231.83,
       "volumeMon": 10053.32,
@@ -2089,28 +1840,6 @@
       "lastToken": "AUSD",
       "realizedUsd": -4.06,
       "realizedMon": -179.77,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
-      "address": "0x02d23fed44d9e14deb37b8e45c667081304155ba",
-      "volumeUsd": 227.01,
-      "volumeMon": 10733.5,
-      "trades": 12,
-      "buys": 9,
-      "sells": 3,
-      "directionality": 0.5,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1944295,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -1.11,
-      "realizedMon": -52.32,
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
@@ -2296,28 +2025,6 @@
       "winRate": null
     },
     {
-      "address": "0x8b4bf4a9ff574d6023bb6536b9712c28adeb0514",
-      "volumeUsd": 208.03,
-      "volumeMon": 9204.94,
-      "trades": 5,
-      "buys": 4,
-      "sells": 1,
-      "directionality": 0.6,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6660973,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -0.05,
-      "realizedMon": -2.34,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
       "address": "0x14d78080dcc9edb16e4fd4ac41f52006f8ebd491",
       "volumeUsd": 206.96,
       "volumeMon": 9157.53,
@@ -2471,28 +2178,6 @@
       "closedTokens": 1,
       "winTokens": 0,
       "winRate": 0
-    },
-    {
-      "address": "0x043842dd1bb056f4486c1a1f0720f05b9bd43b5b",
-      "volumeUsd": 196.01,
-      "volumeMon": 8500.05,
-      "trades": 9,
-      "buys": 6,
-      "sells": 3,
-      "directionality": 0.33,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0.02,
-      "realizedMon": 1.07,
-      "closedTokens": 1,
-      "winTokens": 1,
-      "winRate": 1
     },
     {
       "address": "0x4e3a9949461384bef2bc09ba4f2539c4c6e4eed4",
@@ -3342,29 +3027,6 @@
       "winRate": null
     },
     {
-      "address": "0x4440d249176f6ac603b1518c8ac9e80eb5ff1dbe",
-      "volumeUsd": 144.09,
-      "volumeMon": 6248.61,
-      "trades": 10,
-      "buys": 7,
-      "sells": 3,
-      "directionality": 0.4,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD",
-        "EURW"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0.38,
-      "realizedMon": 16.3,
-      "closedTokens": 2,
-      "winTokens": 2,
-      "winRate": 1
-    },
-    {
       "address": "0xcb75b2eb6b1f5625d1307478463f4716e28c2892",
       "volumeUsd": 143.25,
       "volumeMon": 6338.43,
@@ -4027,28 +3689,6 @@
       "winRate": 0
     },
     {
-      "address": "0xef103b2259ecbea430248b03dc3445bc0990d055",
-      "volumeUsd": 117.95,
-      "volumeMon": 5114.74,
-      "trades": 2,
-      "buys": 0,
-      "sells": 2,
-      "directionality": 1,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
       "address": "0x9d3b01712628a17d2c2de375452f055bc3f20e68",
       "volumeUsd": 117.73,
       "volumeMon": 5027.04,
@@ -4302,6 +3942,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 6660973,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0xef103b2259ecbea430248b03dc3445bc0990d055",
+      "volumeUsd": 104.34,
+      "volumeMon": 4432.43,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -4979,29 +4641,6 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
-    },
-    {
-      "address": "0x5550b2311008604315ca2215c88a06500f797616",
-      "volumeUsd": 89.36,
-      "volumeMon": 3874.98,
-      "trades": 6,
-      "buys": 4,
-      "sells": 2,
-      "directionality": 0.33,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6347240,
-      "tokens": [
-        "AUSD",
-        "EURW"
-      ],
-      "lastToken": "EURW",
-      "realizedUsd": -1.23,
-      "realizedMon": -53.46,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
     },
     {
       "address": "0x98e1d0c1c2da2ccb0baa82cf605faf97ed9cbb73",
@@ -6040,6 +5679,28 @@
       "winRate": null
     },
     {
+      "address": "0xbb343e1ccc9709c0cf11d93335b003f34c20eff5",
+      "volumeUsd": 53.14,
+      "volumeMon": 2257.36,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x0183f0ac28e287cbbba6ef10dc01dc4c9a62e524",
       "volumeUsd": 52.37,
       "volumeMon": 2271.18,
@@ -6105,28 +5766,6 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
-    },
-    {
-      "address": "0xaf2ea21396bf4642b2c501c9771e71f977302644",
-      "volumeUsd": 51.55,
-      "volumeMon": 2280.89,
-      "trades": 4,
-      "buys": 3,
-      "sells": 1,
-      "directionality": 0.5,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 283823,
-      "tokens": [
-        "LVMON"
-      ],
-      "lastToken": "LVMON",
-      "realizedUsd": -0.13,
-      "realizedMon": -5.73,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
     },
     {
       "address": "0xce8b91c3a91187856dfd60517e65fbd7c75070ec",
@@ -6228,6 +5867,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0xdfd05b97d6ecd95eb909c77108db123ae4ff6ce0",
+      "volumeUsd": 49.75,
+      "volumeMon": 2113.53,
+      "trades": 3,
+      "buys": 3,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -6569,6 +6230,50 @@
       "winRate": null
     },
     {
+      "address": "0xf70da97812cb96acdf810712aa562db8dfa3dbef",
+      "volumeUsd": 46.99,
+      "volumeMon": 1996.36,
+      "trades": 3,
+      "buys": 3,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0xaf2ea21396bf4642b2c501c9771e71f977302644",
+      "volumeUsd": 46.95,
+      "volumeMon": 1994.64,
+      "trades": 2,
+      "buys": 1,
+      "sells": 1,
+      "directionality": 0,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 286180,
+      "tokens": [
+        "LVMON"
+      ],
+      "lastToken": "LVMON",
+      "realizedUsd": -0.15,
+      "realizedMon": -6.5,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
+    },
+    {
       "address": "0x5ab59a28f190e0bdeb73ad880fa0f7b8a063fdd7",
       "volumeUsd": 46.79,
       "volumeMon": 2070.18,
@@ -6669,6 +6374,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0xe74a55d33b2a514487c6247666f101abc556fba9",
+      "volumeUsd": 45.68,
+      "volumeMon": 1940.44,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -7054,6 +6781,28 @@
       "winRate": null
     },
     {
+      "address": "0x777067a9b55c4fed752f2d4d0b43520ecfb9c713",
+      "volumeUsd": 36.43,
+      "volumeMon": 1547.44,
+      "trades": 2,
+      "buys": 2,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x14a3aa7b7e994a89a783e57432181f639991d7cc",
       "volumeUsd": 35.75,
       "volumeMon": 1683.72,
@@ -7142,6 +6891,28 @@
       "winRate": 0
     },
     {
+      "address": "0xaaa01e340e296178c269e124ab41c20a2e68078c",
+      "volumeUsd": 32.9,
+      "volumeMon": 1397.43,
+      "trades": 2,
+      "buys": 2,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x250fae0d767941dc605ac7558f5c35eef0c4b11a",
       "volumeUsd": 32.81,
       "volumeMon": 1551.48,
@@ -7186,6 +6957,28 @@
       "winRate": null
     },
     {
+      "address": "0xbb3449a1c0d820fdf0c94b40b609bd17ab63ccb8",
+      "volumeUsd": 32.43,
+      "volumeMon": 1377.55,
+      "trades": 2,
+      "buys": 2,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0xe91db4e28501ae56c4cdb53cd64de738e0c4358e",
       "volumeUsd": 32.16,
       "volumeMon": 1523.43,
@@ -7219,6 +7012,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0x043842dd1bb056f4486c1a1f0720f05b9bd43b5b",
+      "volumeUsd": 31.15,
+      "volumeMon": 1323.47,
+      "trades": 2,
+      "buys": 2,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -7285,6 +7100,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0x254383c4bec0b745ebcd1961c0505db7b60bb71e",
+      "volumeUsd": 29.87,
+      "volumeMon": 1269.07,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -7427,6 +7264,28 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
+    },
+    {
+      "address": "0x5ef28a43ec9bdfda377676bac53030c3a4ba52d2",
+      "volumeUsd": 27.8,
+      "volumeMon": 1180.84,
+      "trades": 2,
+      "buys": 1,
+      "sells": 1,
+      "directionality": 0,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
     },
     {
       "address": "0x0dfe27b69dbdb18f60b3e6b9bbc17bd0d558894a",
@@ -7605,6 +7464,28 @@
       "winRate": null
     },
     {
+      "address": "0xbb34920bbd11eec19ff78265e9bee354d89e4e26",
+      "volumeUsd": 23.03,
+      "volumeMon": 978.48,
+      "trades": 1,
+      "buys": 0,
+      "sells": 1,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x2ed002d0e3c988dca40897d32ca7fd0068cd9b8a",
       "volumeUsd": 22.82,
       "volumeMon": 1056.55,
@@ -7665,6 +7546,28 @@
         "LV"
       ],
       "lastToken": "LV",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0x9843fe7fd6cd90ce0c7e2bd08aa673f981ef32a5",
+      "volumeUsd": 21.91,
+      "volumeMon": 930.72,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
       "realizedUsd": 0,
       "realizedMon": 0,
       "closedTokens": 0,
@@ -8004,6 +7907,28 @@
       "winRate": null
     },
     {
+      "address": "0x5550b2311008604315ca2215c88a06500f797616",
+      "volumeUsd": 17.7,
+      "volumeMon": 752.04,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0xe39cc4dc58e63d5b2b95e97fed6b1811bc8a0dbc",
       "volumeUsd": 17.29,
       "volumeMon": 800.46,
@@ -8015,6 +7940,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 7236568,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0x4440d249176f6ac603b1518c8ac9e80eb5ff1dbe",
+      "volumeUsd": 16.59,
+      "volumeMon": 704.74,
+      "trades": 1,
+      "buys": 0,
+      "sells": 1,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -8046,6 +7993,28 @@
       "closedTokens": 1,
       "winTokens": 1,
       "winRate": 1
+    },
+    {
+      "address": "0x5cea2e2038399abbf4452032462ca8b3c85f2e1e",
+      "volumeUsd": 15.41,
+      "volumeMon": 654.42,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
     },
     {
       "address": "0xf89d6e32ffbbc77bc512ef12d3c0905df1a87756",
@@ -8191,6 +8160,28 @@
       "lpEvents": 0,
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
+      "address": "0x8b4bf4a9ff574d6023bb6536b9712c28adeb0514",
+      "volumeUsd": 13.18,
+      "volumeMon": 559.79,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
       "tokens": [
         "AUSD"
       ],
@@ -8797,6 +8788,28 @@
       "winRate": 0
     },
     {
+      "address": "0xb1bfdebb235f627b2b11432bd92811b42e630fd6",
+      "volumeUsd": 11.69,
+      "volumeMon": 496.75,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x5f673d9bbcd8f92be7b4cce93c060c45a2cad4ce",
       "volumeUsd": 11.68,
       "volumeMon": 506.48,
@@ -8995,6 +9008,28 @@
       "winRate": null
     },
     {
+      "address": "0x02d23fed44d9e14deb37b8e45c667081304155ba",
+      "volumeUsd": 10.81,
+      "volumeMon": 459.15,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x84526ea7db2c29791122165ea4f5ad6ae6734d79",
       "volumeUsd": 10.62,
       "volumeMon": 500,
@@ -9139,29 +9174,6 @@
       "isMarketMaker": false,
       "maxLiquidityUsd": 1944295,
       "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "0x9843fe7fd6cd90ce0c7e2bd08aa673f981ef32a5",
-      "volumeUsd": 9.75,
-      "volumeMon": 431.39,
-      "trades": 1,
-      "buys": 1,
-      "sells": 0,
-      "directionality": 1,
-      "lpAddedUsd": 257.12,
-      "lpEvents": 1,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6660973,
-      "tokens": [
-        "shMON",
         "AUSD"
       ],
       "lastToken": "AUSD",
@@ -9634,6 +9646,28 @@
       "winRate": null
     },
     {
+      "address": "0x970ffb990aa2f42bd3a2318ee09c7ed8708cdeaa",
+      "volumeUsd": 6.35,
+      "volumeMon": 269.75,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x374519175b760be5412cde9a487f032317968471",
       "volumeUsd": 6.3,
       "volumeMon": 296.98,
@@ -10074,6 +10108,28 @@
       "winRate": null
     },
     {
+      "address": "0x41fa7a31edaed2bd74205cd0fb7fe0c37fb3021d",
+      "volumeUsd": 5.45,
+      "volumeMon": 231.6,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 6282116,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null
+    },
+    {
       "address": "0x9c40daa3210f14202090617a273f4860ef3d7fdc",
       "volumeUsd": 5.39,
       "volumeMon": 224.2,
@@ -10280,10 +10336,10 @@
       "buys": 0,
       "sells": 0,
       "directionality": 0,
-      "lpAddedUsd": 815.57,
-      "lpEvents": 26,
+      "lpAddedUsd": 59.96,
+      "lpEvents": 5,
       "isMarketMaker": false,
-      "maxLiquidityUsd": 151920,
+      "maxLiquidityUsd": 158228,
       "tokens": [
         "shMON"
       ],
