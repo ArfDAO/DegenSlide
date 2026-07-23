@@ -119,6 +119,23 @@ const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedSolWhales.json'
 // (SQLite) at boot — so a fresh container starts with the full roster even on
 // an ephemeral disk. The live roster is the FULL registry: everything ever
 // found keeps being tracked forever. base58 addresses — NO lowercasing.
+// Register / refresh the Helius webhook so its address list == the live roster.
+// Debounced, and gated on the server being reachable (Helius pings the URL on
+// create) — so it only fires after we're listening and past boot. Declared
+// BEFORE loadRoster() since loadRoster() runs at module load time and calls
+// this immediately — it must already be initialized, not just hoisted.
+let serverReady = false;
+let webhookSyncTimer = null;
+function scheduleWebhookSync(reason) {
+  if (!heliusEnabled() || !serverReady) return;
+  clearTimeout(webhookSyncTimer);
+  webhookSyncTimer = setTimeout(async () => {
+    const r = await syncWebhook([...REGISTERED_WHALES]);
+    if (r.ok && r.action && r.action !== 'unchanged') console.log(`[helius] webhook ${r.action} · ${r.count} addresses (${reason})`);
+    else if (!r.ok) console.warn(`[helius] webhook sync failed (${reason}):`, r.reason);
+  }, 8000);
+}
+
 function loadRoster() {
   REGISTERED_WHALES.clear();
   let curatedCount = 0, bannedSkipped = 0;
@@ -411,21 +428,6 @@ async function handleHeliusPayload(txs) {
       }
     }
   }
-}
-
-// Register / refresh the Helius webhook so its address list == the live roster.
-// Debounced, and gated on the server being reachable (Helius pings the URL on
-// create) — so it only fires after we're listening and past boot.
-let serverReady = false;
-let webhookSyncTimer = null;
-function scheduleWebhookSync(reason) {
-  if (!heliusEnabled() || !serverReady) return;
-  clearTimeout(webhookSyncTimer);
-  webhookSyncTimer = setTimeout(async () => {
-    const r = await syncWebhook([...REGISTERED_WHALES]);
-    if (r.ok && r.action && r.action !== 'unchanged') console.log(`[helius] webhook ${r.action} · ${r.count} addresses (${reason})`);
-    else if (!r.ok) console.warn(`[helius] webhook sync failed (${reason}):`, r.reason);
-  }, 8000);
 }
 
 // ── PRIMARY feed: follow the registered whales' WALLETS across ALL tokens.
