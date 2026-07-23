@@ -499,6 +499,14 @@ function recordWhale(card) {
   return true;
 }
 
+// True only for routes the frontend executor can PROVABLY fill (nad.fun router,
+// or a MON-quoted Pancake/Uniswap v3 pool). Single source of truth so live cards
+// AND cards restored from disk are gated identically — no stale copyable=true
+// row (e.g. an old USDC-quoted trade) can slip a NO_LIQUIDITY card onto the deck.
+function isExecutableRoute(dex, quoteSymbol) {
+  return dex === 'NadFun' || ((dex === 'PancakeV3' || dex === 'UniswapV3') && quoteSymbol === 'MON');
+}
+
 // Reconstruct an in-memory card from a persisted trades row.
 function rowToCard(r) {
   return {
@@ -508,7 +516,9 @@ function rowToCard(r) {
     poolAddress: r.pool, tokenAddress: r.token, tokenSymbol: r.tokenSymbol,
     tokenDecimals: r.tokenDecimals, isStable: !!r.isStable, feeTier: r.feeTier,
     amountMon: r.amountMon, amountUsd: r.amountUsd, tokenAmount: r.tokenAmount,
-    quoteSymbol: r.quoteSymbol, copyable: !!r.copyable, liquidityUsd: r.liquidityUsd,
+    quoteSymbol: r.quoteSymbol,
+    copyable: isExecutableRoute(r.dex, r.quoteSymbol), // re-evaluated, not the stale stored flag
+    liquidityUsd: r.liquidityUsd,
     isRegisteredWhale: REGISTERED_WHALES.has(r.trader),
     blockNumber: r.block, ts: r.ts,
   };
@@ -662,13 +672,16 @@ async function processTx(txHash, logs) {
   const meta = f.pool.meta;
   const tokenAmount = Number(formatUnits(best.absNet, meta.decimals));
   const isNadfun = f.dex === 'NadFun';
-  // Copyable if: nad.fun (own router) · OR the trade itself was a MON-quoted swap
-  // on a v3-fork (that exact route is executable, no DexScreener needed) · OR
-  // DexScreener confirms a v3/Pancake WMON route. A v2-only token has no route the
-  // frontend can execute → NOT copyable (would revert), but its whale is still
-  // discovered.
-  const poolIsCopyableDex = f.dex !== 'UniswapV2';
-  const copyable = isNadfun || (poolIsCopyableDex && f.pool.quote.kind === 'mon') || market.hasCopyableRoute;
+  // Copyable ONLY when the frontend executor can PROVABLY route it, so a shown
+  // card never fails copy with NO_LIQUIDITY:
+  //   • nad.fun → its own router (buildNadfunBuy), OR
+  //   • the whale's OWN MON-quoted Pancake/Uniswap v3 pool — the copy quotes that
+  //     exact router + fee tier, and the whale just traded it, so liquidity is
+  //     guaranteed to exist.
+  // We deliberately do NOT trust DexScreener's "has a WMON pair" here: that pair
+  // can be a v2/other-DEX pool the v3 executor can't reach → NO_LIQUIDITY on copy.
+  // A non-copyable trade still DISCOVERS the whale; it's just hidden from the deck.
+  const copyable = isExecutableRoute(f.dex, f.pool.quote.symbol);
 
   const card = {
     id: txHash + ':' + trader.slice(2, 10), // one card per (tx, trader) — no per-leg dupes
@@ -896,6 +909,45 @@ server.on('request', async (req, res) => {
       ...db.stats(),
     });
   }
+  // ── Universal copy quote via the OpenOcean aggregator (BUY and SELL) ──
+  // Aggregates EVERY Monad DEX (nad.fun graduated DEX, Uniswap, Kuru, LFJ, …), so
+  // any token with real liquidity is both copyable AND sellable — the role Jupiter
+  // plays for Solana. side=buy: MON→token (amount = human MON). side=sell:
+  // token→MON (amount = human token units). Proxied here to dodge CORS and keep an
+  // optional OPENOCEAN_API_KEY server-side. Returns a ready-to-sign tx (+ the
+  // router to approve, for sells).
+  if (path === '/quote') {
+    const token = (url.searchParams.get('token') || '').toLowerCase();
+    const amount = url.searchParams.get('amount'); // human amount of the IN token
+    const taker = url.searchParams.get('taker');
+    const side = url.searchParams.get('side') === 'sell' ? 'sell' : 'buy';
+    const slippageBps = Number(url.searchParams.get('slippageBps') || 1000);
+    if (!/^0x[0-9a-f]{40}$/.test(token) || !amount || Number(amount) <= 0 || !/^0x[0-9a-fA-F]{40}$/.test(taker || '')) {
+      return sendJson(req, res, 400, { error: 'bad params' });
+    }
+    try {
+      const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+      const inTok = side === 'sell' ? token : NATIVE;
+      const outTok = side === 'sell' ? NATIVE : token;
+      const slippage = Math.min(50, Math.max(0.05, slippageBps / 100)); // OpenOcean wants percent
+      const gwei = Number(process.env.MON_GAS_GWEI || 50); // for OpenOcean's estimate only; our tx sets its own gas
+      const qs = `inTokenAddress=${inTok}&outTokenAddress=${outTok}&amount=${encodeURIComponent(amount)}&gasPrice=${gwei}&slippage=${slippage}&account=${taker}`;
+      const oo = await fetch(`https://open-api.openocean.finance/v4/monad/swap?${qs}`, {
+        headers: { Accept: 'application/json', ...(process.env.OPENOCEAN_API_KEY ? { apikey: process.env.OPENOCEAN_API_KEY } : {}) },
+        signal: AbortSignal.timeout(12000),
+      });
+      const j = await oo.json();
+      const d = j?.data;
+      if (j?.code !== 200 || !d || !d.to || !d.data || d.value === undefined || !(BigInt(d.outAmount || '0') > 0n)) {
+        return sendJson(req, res, 200, { ok: false, reason: 'no-route' });
+      }
+      // For a sell, the token must be approved to the OpenOcean spender first.
+      return sendJson(req, res, 200, { ok: true, side, to: d.to, spender: d.to, data: d.data, value: String(d.value), out: String(d.outAmount), minOut: String(d.minOutAmount || '0'), dex: 'OpenOcean' });
+    } catch (e) {
+      return sendJson(req, res, 200, { ok: false, reason: e.message || 'quote failed' });
+    }
+  }
+
   if (path === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
     // Aggregate first (repeat buys → one card), THEN limit, so the cap counts
