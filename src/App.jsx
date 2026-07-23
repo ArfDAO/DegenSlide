@@ -690,6 +690,15 @@ export default function App() {
     setCards((prev) => prev.filter((c) => c.id !== trader.id));
   }, []);
 
+  // Bring a swiped card BACK to the top of the deck — used when a copy fails so
+  // the user never loses a card to a failed buy (they can retry it). Un-dismisses
+  // it (a fresh array entry remounts a centered TinderCard).
+  const restoreCard = useCallback((trader) => {
+    if (trader?.id == null) return;
+    dismissedRef.current.delete(trader.id);
+    setCards((prev) => (prev.find((c) => c.id === trader.id) ? prev : [trader, ...prev].slice(0, 60)));
+  }, []);
+
   // The balance the app runs on is the TURBO wallet's — it's what swipes spend.
   const refreshBalance = useCallback(() => {
     if (!turboAddr) { setMonBalance(null); return; }
@@ -1015,7 +1024,15 @@ export default function App() {
 
   const handleSwipeLeft = useCallback((t) => { haptic(8); removeCard(t); showToast('pass'); }, [removeCard]);
   // No optimistic "sent" toast — sendCopy reports real wallet/chain status only.
-  const handleSwipeRight = useCallback((t) => { haptic([12, 40, 18]); removeCard(t); sendCopy(t, copyAmountFor(t)); }, [removeCard, sendCopy, copyAmountFor]);
+  // Swipe-right = copy. Remove the card only AFTER the buy succeeds; if it fails
+  // (e.g. NO_LIQUIDITY) the card is restored so the user never loses it and can
+  // retry.
+  const handleSwipeRight = useCallback(async (t) => {
+    haptic([12, 40, 18]);
+    removeCard(t); // swipe it out visually while the buy runs
+    const ok = await sendCopy(t, copyAmountFor(t));
+    if (!ok) restoreCard(t); // buy failed → bring the card back to retry
+  }, [removeCard, restoreCard, sendCopy, copyAmountFor]);
   // Swipe up = SAVE the whale to the watchlist (favorite), then advance.
   const handleSwipeUp = useCallback((t) => {
     haptic(12);

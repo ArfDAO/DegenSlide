@@ -21,8 +21,8 @@
  * Lose the device, connect the same wallet elsewhere, re-sign → same wallet.
  */
 import { Keypair, VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
-import { Wallet as EthWallet, JsonRpcProvider, keccak256, sha256, getBytes } from 'ethers';
-import { ACTIVE, MONAD_MAINNET, DEFAULT_SLIPPAGE_BPS } from '../config/chain.js';
+import { Wallet as EthWallet, JsonRpcProvider, keccak256, sha256, getBytes, Contract, formatUnits } from 'ethers';
+import { ACTIVE, MONAD_MAINNET, DEFAULT_SLIPPAGE_BPS, INDEXER_HTTP } from '../config/chain.js';
 import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx, signMessage as evmSignMessage, ensureMonadMainnet } from './wallet.js';
 import { buildNadfunBuy, buildNadfunSell, isNadfunToken } from './nadfunWallet.js';
 import {
@@ -307,16 +307,36 @@ export async function turboCopyBuy(tokenAddress, amountNative, opts = {}) {
   const w = evmWallet();
   const bal = await w.provider.getBalance(w.address);
 
-  // nad.fun memecoins can't route through Uniswap/Pancake — they need nad.fun's
-  // own router. The card's `source` tells us; if unknown, probe the LENS.
-  const wantNadfun = opts.source === 'nadfun' || (opts.source !== 'v3' && await isNadfunToken(tokenAddress));
-  let tx, meta;
-  if (wantNadfun) {
+  // Route resiliently to whichever venue holds this token's liquidity RIGHT NOW.
+  // A nad.fun token that GRADUATED off the bonding curve trades on Pancake/Uniswap
+  // v3 instead (its LENS getAmountOut reverts), and a v3 token can be pre-graduation
+  // nad.fun. So we try the card's own engine first, then fall back to the other —
+  // the copy succeeds if EITHER has a route; only a token tradeable on NEITHER
+  // raises NO_LIQUIDITY. This is what makes every shown card actually copyable.
+  // Universal-first routing: the OpenOcean aggregator (proxied via the indexer
+  // /quote) covers EVERY Monad DEX — including nad.fun's GRADUATED DEX, Uniswap,
+  // Kuru, LFJ, … — so any token with real liquidity is copyable (the role Jupiter
+  // plays for Solana). nad.fun's own router then covers PRE-graduation bonding-
+  // curve tokens no DEX indexes yet; the v3 path is a final fallback. The first
+  // route that returns a quote wins.
+  const buildAgg = async () => {
+    const url = `${INDEXER_HTTP}/quote?token=${tokenAddress}&amount=${amountNative}&taker=${w.address}&slippageBps=${opts.slippageBps || Number(DEFAULT_SLIPPAGE_BPS)}`;
+    const j = await (await fetch(url, { signal: AbortSignal.timeout(13000), headers: { Accept: 'application/json' } })).json();
+    if (!j?.ok || !j.to || !j.data || j.value === undefined) throw new Error('NO_ROUTE');
+    return { tx: { to: j.to, value: BigInt(j.value), data: j.data }, meta: { dex: j.dex || 'OpenOcean', expectedOut: j.out, amountOutMin: j.minOut } };
+  };
+  const buildNadfun = async () => {
     const amountWei = BigInt(Math.round(amountNative * 1e9)) * 10n ** 9n;
-    ({ tx, meta } = await buildNadfunBuy(w.address, tokenAddress, amountWei, opts));
-  } else {
-    ({ tx, meta } = await buildBuyTx(w.address, tokenAddress, amountNative, opts));
+    return buildNadfunBuy(w.address, tokenAddress, amountWei, opts);
+  };
+  const buildV3 = () => buildBuyTx(w.address, tokenAddress, amountNative, opts);
+  const routes = [['aggregator', buildAgg], ['nadfun', buildNadfun], ['v3', buildV3]];
+  let tx, meta, usedRoute = null;
+  for (const [name, build] of routes) {
+    try { ({ tx, meta } = await build()); usedRoute = name; break; }
+    catch { /* route has no quote → try the next one */ }
   }
+  if (!usedRoute) throw new Error('NO_LIQUIDITY'); // genuinely untradeable on every venue
 
   if (bal < tx.value + EVM_GAS_BUFFER_WEI) {
     throw Object.assign(new Error('INSUFFICIENT_FUNDS'), { needMon: Number(tx.value + EVM_GAS_BUFFER_WEI) / 1e18, haveMon: Number(bal) / 1e18, turbo: true });
@@ -331,7 +351,7 @@ export async function turboCopyBuy(tokenAddress, amountNative, opts = {}) {
   const sent = await w.sendTransaction({ ...tx, gasLimit });
   const rec = await sent.wait();
   if (!rec || rec.status === 0) throw Object.assign(new Error('TX_FAILED'), { hash: sent.hash });
-  return { hash: sent.hash, ...meta, decimals: null, turbo: true, turboAddress: w.address.toLowerCase(), source: wantNadfun ? 'nadfun' : 'v3' };
+  return { hash: sent.hash, ...meta, decimals: null, turbo: true, turboAddress: w.address.toLowerCase(), source: usedRoute };
 }
 
 /* ── TURBO SELL: close a Turbo position, signed locally ── */
@@ -359,6 +379,39 @@ export async function turboSellToken(tokenAddress, opts = {}) {
   if (balance <= 0n) throw new Error('NO_BALANCE');
   let amountIn = balance;
   if (opts.amountRaw) { try { const want = BigInt(opts.amountRaw); if (want > 0n && want < balance) amountIn = want; } catch {} }
+
+  // ── Aggregator SELL first (OpenOcean via the indexer /quote) ──
+  // Mirrors the buy: covers EVERY Monad DEX incl. nad.fun's graduated DEX, so any
+  // position is closable. Approve the returned spender, then send the swap. Only a
+  // genuine no-route/quote-miss falls through to the nad.fun/v3 sell paths below.
+  const { decimals: tokDec } = await evmTokenInfo(from, tokenAddress);
+  if (tokDec != null) {
+    try {
+      const human = formatUnits(amountIn, tokDec);
+      const url = `${INDEXER_HTTP}/quote?side=sell&token=${tokenAddress}&amount=${human}&taker=${from}&slippageBps=${opts.slippageBps || Number(DEFAULT_SLIPPAGE_BPS)}`;
+      const q = await (await fetch(url, { signal: AbortSignal.timeout(13000), headers: { Accept: 'application/json' } })).json();
+      if (q?.ok && q.to && q.data && q.spender) {
+        const erc20 = new Contract(tokenAddress, ['function allowance(address,address) view returns (uint256)', 'function approve(address,uint256) returns (bool)'], w);
+        const cur = await erc20.allowance(from, q.spender);
+        if (cur < amountIn) {
+          const at = await erc20.approve(q.spender, (1n << 256n) - 1n);
+          const ar = await at.wait();
+          if (!ar || ar.status === 0) throw new Error('APPROVE_FAILED');
+        }
+        let gl;
+        try { gl = await w.provider.estimateGas({ to: q.to, data: q.data, value: 0n, from }); }
+        catch (e) { const s = String(e?.message || '').toLowerCase(); if (s.includes('reserve balance')) gl = 800000n; else throw Object.assign(new Error('SELL_REVERT'), { cause: e }); }
+        const sent = await w.sendTransaction({ to: q.to, data: q.data, value: 0n, gasLimit: gl });
+        const rec = await sent.wait();
+        if (!rec || rec.status === 0) throw Object.assign(new Error('TX_FAILED'), { hash: sent.hash });
+        return { hash: sent.hash, dex: q.dex || 'OpenOcean', expectedOut: q.out, amountIn: amountIn.toString(), turbo: true };
+      }
+    } catch (e) {
+      // A valid route that then failed to execute is a real error — surface it.
+      // A network/quote miss falls through to the legacy nad.fun/v3 paths.
+      if (['APPROVE_FAILED', 'TX_FAILED', 'SELL_REVERT'].includes(e?.message)) throw e;
+    }
+  }
 
   // nad.fun memecoins sell through nad.fun's own router (approve → sell).
   const wantNadfun = opts.source === 'nadfun' || (opts.source !== 'v3' && await isNadfunToken(tokenAddress));

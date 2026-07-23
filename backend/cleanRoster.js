@@ -49,8 +49,8 @@ process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, chain === 'solana'
 const db = await import('./db.js');
 
 const LIVE_URL = chain === 'solana'
-  ? 'https://deepswap-solana-bot.onrender.com/roster'
-  : 'https://deepswap-monad-bot2.onrender.com/roster';
+  ? 'https://deepswap-solana-bot-h10w.onrender.com/roster'
+  : 'https://deepswap-monad-bot2-u0ob.onrender.com/roster';
 const CURATED = path.join(__d, '..', 'src', 'data', chain === 'solana' ? 'curatedSolWhales.json' : 'curatedWhales.json');
 const norm = (a) => (chain === 'monad' ? a.toLowerCase() : a);
 

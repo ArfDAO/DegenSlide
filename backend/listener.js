@@ -24,6 +24,10 @@ import { spawn } from 'node:child_process';
 import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
 import { WebSocketServer } from 'ws';
 import * as db from './db.js';
+import { qualityScore, daysSince } from './quality.js';
+import { createRateLimiter } from './rateLimit.js';
+
+const rateLimiter = createRateLimiter({ windowMs: Number(process.env.RATE_WINDOW_MS || 10000), max: Number(process.env.RATE_MAX || 120) });
 
 // A single un-awaited RPC failure must not kill the whole indexer.
 process.on('unhandledRejection', (e) => console.warn('[guard] unhandled rejection:', e?.message || e));
@@ -212,7 +216,11 @@ async function promoteWhales() {
 }
 
 // ── Live MON price (USD) — powers the USD-denominated whale threshold ──
-let monPriceUsd = Number(process.env.MON_PRICE_USD || 0.0205); // seed; refreshed live
+// Non-zero seed so sizing never divides by 0; match WMON by ADDRESS (not symbol,
+// which DexScreener can render inconsistently) and take the deepest-liquidity
+// priced pair. monPriceAt tracks freshness for /health.
+let monPriceUsd = Number(process.env.MON_PRICE_USD || 0.0205);
+let monPriceAt = 0;
 async function refreshMonPrice() {
   try {
     const res = await fetch(`https://api.dexscreener.com/token-pairs/v1/monad/${WMON}`, {
@@ -221,11 +229,11 @@ async function refreshMonPrice() {
     const data = await res.json();
     const pairs = Array.isArray(data) ? data : (data.pairs || []);
     const best = pairs
-      .filter((p) => p.priceUsd && (p.baseToken?.symbol === 'MON' || p.baseToken?.symbol === 'WMON'))
+      .filter((p) => p.priceUsd && (p.baseToken?.address || '').toLowerCase() === WMON)
       .sort((a, b) => (Number(b.liquidity?.usd) || 0) - (Number(a.liquidity?.usd) || 0))[0];
     const px = best ? Number(best.priceUsd) : null;
-    if (px && px > 0) monPriceUsd = px;
-  } catch { /* keep last good price */ }
+    if (px && px > 0) { monPriceUsd = px; monPriceAt = Date.now(); }
+  } catch { /* keep last good price / seed */ }
 }
 
 // Swap event topic hashes seen live on Monad mainnet (verified on-chain).
@@ -237,16 +245,33 @@ const PANCAKE_V3_SWAP_TOPIC = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4
 // where all the real memecoin/degen whale activity lives; v3 (Uni/Pancake) only
 // carries blue-chips + stables. Copyable via nad.fun's own router (see frontend).
 const NADFUN_SWAP_TOPIC = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67';
+// Uniswap-V2-style Swap(sender, amount0In, amount1In, amount0Out, amount1Out, to).
+// V2 pairs expose token0()/token1() (no fee()), so the same pool resolver works;
+// only the data layout differs (four uint256, not two signed int256). Adds real
+// copyable coverage for the V2 pools live on Monad.
+const UNIV2_SWAP_TOPIC = '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822';
 const V3_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC];
+// ALL_SWAP_TOPICS (the getLogs filter) is derived from SWAP_DECODERS below, so
+// registering a new venue automatically extends what the indexer scans.
 
-// For both Uniswap v3 and PancakeSwap v3, the Swap event data begins with
-// int256 amount0, int256 amount1 — so we decode those two words generically.
+// For Uniswap/Pancake v3 the Swap data begins with int256 amount0, int256 amount1.
 const coder = AbiCoder.defaultAbiCoder();
 function decodeAmounts(data) {
   const hex = data.replace(/^0x/, '');
   const amount0 = coder.decode(['int256'], '0x' + hex.slice(0, 64))[0];
   const amount1 = coder.decode(['int256'], '0x' + hex.slice(64, 128))[0];
   return { amount0, amount1 };
+}
+// V2 layout: amount0In, amount1In, amount0Out, amount1Out (uint256×4). Convert to
+// the SAME signed "pool perspective" the v3 path uses (+ = into pool): in − out.
+// The downstream net-flow logic is then identical for V2 and V3.
+function decodeV2Amounts(data) {
+  const hex = data.replace(/^0x/, '');
+  const a0In = BigInt('0x' + hex.slice(0, 64));
+  const a1In = BigInt('0x' + hex.slice(64, 128));
+  const a0Out = BigInt('0x' + hex.slice(128, 192));
+  const a1Out = BigInt('0x' + hex.slice(192, 256));
+  return { amount0: a0In - a0Out, amount1: a1In - a1Out };
 }
 
 const POOL_ABI = [
@@ -267,12 +292,21 @@ const tokenMeta = new Map();   // token(lower) -> {symbol,decimals}
 const marketCache = new Map(); // token(lower) -> {liquidity,hasWmonPair,at}
 const MARKET_TTL = 5 * 60 * 1000;
 
-// Token liquidity + whether a WMON route exists (for copyability), via DexScreener.
-async function getTokenMarket(tokenAddr) {
+// The frontend copy engine executes on Pancake/Uniswap **v3** or the nad.fun
+// router. A token whose only WMON pool is V2 has no v3 route, so a "copy" would
+// revert — `hasWmonPair` alone was too loose. `hasCopyableRoute` = a WMON pair
+// on a dex the app can actually route through, which is what `copyable` must use.
+const COPYABLE_DEX = /pancake|uniswap|uni-?v3|nad/i;
+
+const WMON_BAL_ABI = ['function balanceOf(address) view returns (uint256)'];
+// Token liquidity + copyable-route detection, via DexScreener — with an ON-CHAIN
+// fallback so a brand-new token not yet indexed by DexScreener (0 liquidity)
+// doesn't get its whale buys dropped: we read the pool's WMON reserve directly.
+async function getTokenMarket(tokenAddr, opts = {}) {
   const key = tokenAddr.toLowerCase();
   const cached = marketCache.get(key);
   if (cached && Date.now() - cached.at < MARKET_TTL) return cached;
-  let liquidity = 0, hasWmonPair = false;
+  let liquidity = 0, hasWmonPair = false, hasCopyableRoute = false;
   try {
     const res = await fetch(`https://api.dexscreener.com/token-pairs/v1/monad/${tokenAddr}`, {
       headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
@@ -284,10 +318,27 @@ async function getTokenMarket(tokenAddr) {
       if (liq > liquidity) liquidity = liq;
       const b = (p.baseToken?.address || '').toLowerCase();
       const q = (p.quoteToken?.address || '').toLowerCase();
-      if (b === WMON || q === WMON) hasWmonPair = true;
+      const isWmon = b === WMON || q === WMON;
+      if (isWmon) hasWmonPair = true;
+      if (isWmon && COPYABLE_DEX.test(p.dexId || '')) hasCopyableRoute = true;
     }
-  } catch { /* keep zeros → treated as low-liquidity */ }
-  const rec = { liquidity, hasWmonPair, at: Date.now() };
+  } catch { /* fall through to the on-chain fallback */ }
+
+  // Fallback: DexScreener has nothing yet, but the trade came from a real
+  // MON-quoted pool → use its WMON reserve × price × 2 as the liquidity proxy.
+  if (liquidity <= 0 && opts.poolAddr && opts.quoteKind === 'mon') {
+    try {
+      const wmon = new Contract(WMON, WMON_BAL_ABI, provider);
+      const bal = Number(formatUnits(await wmon.balanceOf(opts.poolAddr), 18));
+      if (bal > 0) {
+        liquidity = bal * monPriceUsd * 2;
+        hasWmonPair = true;
+        if (opts.copyableDex) hasCopyableRoute = true; // a v3-fork MON pool is directly copyable
+      }
+    } catch { /* leave zeros → treated as no market */ }
+  }
+
+  const rec = { liquidity, hasWmonPair, hasCopyableRoute, at: Date.now() };
   marketCache.set(key, rec);
   return rec;
 }
@@ -312,12 +363,18 @@ async function getTokenMeta(addr) {
   return meta;
 }
 
-async function getPoolInfo(poolAddr, isV3) {
+async function getPoolInfo(poolAddr, isV3, resolvePool) {
   const key = poolAddr.toLowerCase();
   if (poolCache.has(key)) return poolCache.get(key);
 
   let info = null;
   try {
+    // Non-standard venue (no token0/token1): use its registered custom resolver.
+    if (resolvePool) {
+      info = await resolvePool(poolAddr, { provider, QUOTE_TOKENS, WMON, getTokenMeta });
+      poolCache.set(key, info || null);
+      return info || null;
+    }
     const c = new Contract(poolAddr, POOL_ABI, provider);
     const [token0, token1] = await Promise.all([c.token0(), c.token1()]);
     const t0 = token0.toLowerCase();
@@ -442,6 +499,14 @@ function recordWhale(card) {
   return true;
 }
 
+// True only for routes the frontend executor can PROVABLY fill (nad.fun router,
+// or a MON-quoted Pancake/Uniswap v3 pool). Single source of truth so live cards
+// AND cards restored from disk are gated identically — no stale copyable=true
+// row (e.g. an old USDC-quoted trade) can slip a NO_LIQUIDITY card onto the deck.
+function isExecutableRoute(dex, quoteSymbol) {
+  return dex === 'NadFun' || ((dex === 'PancakeV3' || dex === 'UniswapV3') && quoteSymbol === 'MON');
+}
+
 // Reconstruct an in-memory card from a persisted trades row.
 function rowToCard(r) {
   return {
@@ -451,7 +516,9 @@ function rowToCard(r) {
     poolAddress: r.pool, tokenAddress: r.token, tokenSymbol: r.tokenSymbol,
     tokenDecimals: r.tokenDecimals, isStable: !!r.isStable, feeTier: r.feeTier,
     amountMon: r.amountMon, amountUsd: r.amountUsd, tokenAmount: r.tokenAmount,
-    quoteSymbol: r.quoteSymbol, copyable: !!r.copyable, liquidityUsd: r.liquidityUsd,
+    quoteSymbol: r.quoteSymbol,
+    copyable: isExecutableRoute(r.dex, r.quoteSymbol), // re-evaluated, not the stale stored flag
+    liquidityUsd: r.liquidityUsd,
     isRegisteredWhale: REGISTERED_WHALES.has(r.trader),
     blockNumber: r.block, ts: r.ts,
   };
@@ -495,11 +562,34 @@ function broadcast(card) {
 // ── Indexer poll loop ──
 let lastBlock = null;
 
-const DEX_BY_TOPIC = {
-  [V3_SWAP_TOPIC]: 'UniswapV3',
-  [PANCAKE_V3_SWAP_TOPIC]: 'PancakeV3',
-  [NADFUN_SWAP_TOPIC]: 'NadFun',
-};
+// ── Operational metrics (for /health monitoring + external uptime alerts) ──
+const BOOT_AT = Date.now();
+let lastChainHead = null; // newest block seen from the RPC (for "blocks behind")
+let lastCardAt = 0;       // ms of the last deck card produced — staleness signal
+let pollErrorCount = 0;   // cumulative RPC/poll failures
+
+// ── Pluggable swap-log decoder registry ──────────────────────────────────
+// Each supported DEX = one entry: { dex, isV3, decode, resolvePool? }.
+//   decode(data)        → { amount0, amount1 } in the signed "into-pool +"
+//                         convention (v3 native; v2 = in−out).
+//   resolvePool(addr)?  → OPTIONAL custom pool→tokens resolver for venues that
+//                         DON'T expose token0()/token1() (e.g. the custom Monad
+//                         AMMs). When omitted, the standard token0/token1 path is
+//                         used. This is the single place to add a new venue: give
+//                         its Swap topic + a decode fn (+ a resolver if its pools
+//                         are non-standard) and it flows through the whole pipeline
+//                         (net-flow, whale gating, deck) unchanged.
+const SWAP_DECODERS = new Map([
+  [V3_SWAP_TOPIC, { dex: 'UniswapV3', isV3: true, decode: decodeAmounts }],
+  [PANCAKE_V3_SWAP_TOPIC, { dex: 'PancakeV3', isV3: true, decode: decodeAmounts }],
+  [NADFUN_SWAP_TOPIC, { dex: 'NadFun', isV3: true, decode: decodeAmounts }],
+  [UNIV2_SWAP_TOPIC, { dex: 'UniswapV2', isV3: false, decode: decodeV2Amounts }],
+  // ── Add custom Monad AMM/perp venues here once their ABI is known, e.g.:
+  // ['0x<swapTopic>', { dex: 'FooDex', isV3: false, decode: decodeFoo, resolvePool: resolveFooPool }],
+]);
+const DEX_BY_TOPIC = Object.fromEntries([...SWAP_DECODERS].map(([t, d]) => [t, d.dex]));
+// The getLogs topic filter — every registered venue's swap topic.
+const ALL_SWAP_TOPICS = [...SWAP_DECODERS.keys()];
 
 // ── Net-flow attribution (tx-level) ──────────────────────────────────────
 // A single transaction can emit MANY swap logs: multi-hop routes, aggregator
@@ -522,10 +612,11 @@ async function processTx(txHash, logs) {
   // USD spent/received, and the dominant leg's pool/fee/block for the card.
   const flow = new Map();
   for (const log of logs) {
-    const dex = DEX_BY_TOPIC[log.topics[0]]; if (!dex) continue;
-    const pool = await getPoolInfo(log.address, true); if (!pool) continue; // not a single-quote-anchored pool
+    const spec = SWAP_DECODERS.get(log.topics[0]); if (!spec) continue;
+    const dex = spec.dex;
+    const pool = await getPoolInfo(log.address, spec.isV3, spec.resolvePool); if (!pool) continue; // not a single-quote-anchored pool
     let amount0, amount1;
-    try { ({ amount0, amount1 } = decodeAmounts(log.data)); } catch { continue; }
+    try { ({ amount0, amount1 } = spec.decode(log.data)); } catch { continue; }
     const quoteSigned = pool.quoteIsToken0 ? amount0 : amount1;
     const tokenSigned = pool.quoteIsToken0 ? amount1 : amount0;
     if (quoteSigned === 0n) continue;
@@ -572,16 +663,25 @@ async function processTx(txHash, logs) {
 
   // Liquidity / rug gate: a live market must exist. Zero liquidity = rugged or
   // dead token → never surface it. Non-VIPs also need the high-liquidity floor.
-  const market = await getTokenMarket(best.addr);
+  // Pass the pool so a fresh token missing from DexScreener can still price via
+  // its on-chain WMON reserve (don't drop a real early whale buy).
+  const market = await getTokenMarket(best.addr, { poolAddr: f.poolAddress, quoteKind: f.pool.quote.kind, copyableDex: f.dex !== 'UniswapV2' });
   if (market.liquidity <= 0) return;                        // rugged / no live pair
   if (!isVIP && market.liquidity < MIN_LIQ_USD) return;
 
   const meta = f.pool.meta;
   const tokenAmount = Number(formatUnits(best.absNet, meta.decimals));
   const isNadfun = f.dex === 'NadFun';
-  // nad.fun tokens route through nad.fun's own router (frontend), so they're
-  // always copyable; v3 tokens need a MON route on Uniswap/Pancake.
-  const copyable = isNadfun || f.pool.quote.kind === 'mon' || market.hasWmonPair;
+  // Copyable ONLY when the frontend executor can PROVABLY route it, so a shown
+  // card never fails copy with NO_LIQUIDITY:
+  //   • nad.fun → its own router (buildNadfunBuy), OR
+  //   • the whale's OWN MON-quoted Pancake/Uniswap v3 pool — the copy quotes that
+  //     exact router + fee tier, and the whale just traded it, so liquidity is
+  //     guaranteed to exist.
+  // We deliberately do NOT trust DexScreener's "has a WMON pair" here: that pair
+  // can be a v2/other-DEX pool the v3 executor can't reach → NO_LIQUIDITY on copy.
+  // A non-copyable trade still DISCOVERS the whale; it's just hidden from the deck.
+  const copyable = isExecutableRoute(f.dex, f.pool.quote.symbol);
 
   const card = {
     id: txHash + ':' + trader.slice(2, 10), // one card per (tx, trader) — no per-leg dupes
@@ -612,6 +712,7 @@ async function processTx(txHash, logs) {
 
   const isNew = recordWhale(card);
   if (isNew && isDeckEligible(card)) {
+    lastCardAt = Date.now(); // metrics: deck freshness / "no cards" alert
     broadcast(card);
     const tag = isVIP ? '[VIP]' : '[WHALE]';
     console.log(
@@ -651,7 +752,7 @@ async function backfill() {
       const to = Math.min(current, from + MAX_BLOCK_SPAN - 1);
       let logs = [];
       try {
-        logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [V3_TOPICS] });
+        logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [ALL_SWAP_TOPICS] });
       } catch { continue; }
       await processLogs(logs);
     }
@@ -662,34 +763,44 @@ async function backfill() {
   }
 }
 
+// Catch-up config: NO block is ever skipped inside this window — a backlog from
+// an RPC stall or restart is drained chunk-by-chunk. Only a backlog OLDER than
+// CATCHUP_MAX (e.g. after long downtime) is capped, since blocks that stale are
+// no longer "live deck" material anyway.
+const CATCHUP_MAX = Number(process.env.CATCHUP_MAX || 20000); // ~2.7h at 0.5s blocks
+const CATCHUP_DELAY_MS = Number(process.env.CATCHUP_DELAY_MS || 40); // pace while draining a backlog
 async function poll() {
+  let behind = 0;
   try {
     const current = await provider.getBlockNumber();
+    lastChainHead = current; // metrics: newest head we've observed
     if (lastBlock === null) {
       lastBlock = current - 1;
       console.log(`[Indexer] live from block ${lastBlock} · whale ≥ ${WHALE_MIN_MON} MON`);
     }
-    // Only skip ahead if we fall MASSIVELY behind (RPC stall) — otherwise we
-    // process every block so sparse whale swaps are never missed.
-    if (current - lastBlock > 1000) {
-      lastBlock = current - 300;
+    // Bound worst-case backlog: process everything within CATCHUP_MAX, only
+    // fast-forward past the part too old to matter (logged so it's visible).
+    if (current - lastBlock > CATCHUP_MAX) {
+      console.warn(`[Indexer] ${current - lastBlock} blocks behind — capping catch-up to the last ${CATCHUP_MAX}`);
+      lastBlock = current - CATCHUP_MAX;
     }
 
     if (current > lastBlock) {
       const from = lastBlock + 1;
       const to = Math.min(current, from + MAX_BLOCK_SPAN - 1);
-      const logs = await provider.getLogs({
-        fromBlock: from,
-        toBlock: to,
-        topics: [V3_TOPICS],
-      });
+      const logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [ALL_SWAP_TOPICS] });
       await processLogs(logs);
-      lastBlock = to;
+      lastBlock = to;              // advance ONLY after a chunk is fully processed
+      behind = current - lastBlock; // still behind → keep draining this tick-chain
     }
   } catch (err) {
+    // On failure lastBlock is NOT advanced, so the exact same range is retried
+    // next tick — an RPC hiccup can never silently skip blocks.
+    pollErrorCount += 1;
     console.error('[Indexer] poll error:', err.shortMessage || err.message || err);
   } finally {
-    setTimeout(poll, POLL_MS);
+    // Drain a backlog quickly (CATCHUP_DELAY_MS); otherwise resume normal cadence.
+    setTimeout(poll, behind > 0 ? CATCHUP_DELAY_MS : POLL_MS);
   }
 }
 
@@ -757,15 +868,86 @@ server.on('request', async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname;
 
+  // Per-IP rate limit on the public data endpoints (health/liveness exempt).
+  if (path !== '/health') {
+    const rl = rateLimiter(req);
+    if (!rl.ok) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfterSec), ...corsHeadersFor(req.headers.origin) });
+      return res.end(JSON.stringify({ error: 'rate limited' }));
+    }
+  }
+
   if (path === '/health') {
+    // Operational health so an external uptime monitor can alert when the
+    // indexer silently degrades. `healthy:false` fires only on HARD problems.
+    const now = Date.now();
+    const blocksBehind = (lastChainHead != null && lastBlock != null) ? lastChainHead - lastBlock : null;
+    const priceAgeMin = monPriceAt ? (now - monPriceAt) / 60000 : null;
+    const cardAgeMin = lastCardAt ? (now - lastCardAt) / 60000 : null;
+    const BEHIND_ALERT = Number(process.env.BEHIND_ALERT || 800);
+    const PRICE_STALE_MIN = Number(process.env.PRICE_STALE_MIN || 5);
+    const NO_CARD_ALERT_MIN = Number(process.env.NO_CARD_ALERT_MIN || 45);
+    const alerts = [];
+    if (lastBlock == null) alerts.push('poll-not-started');
+    if (blocksBehind != null && blocksBehind > BEHIND_ALERT) alerts.push(`far-behind:${blocksBehind}`);
+    if (priceAgeMin != null && priceAgeMin > PRICE_STALE_MIN) alerts.push('price-stale');
+    const warnings = [];
+    if (cardAgeMin != null && cardAgeMin > NO_CARD_ALERT_MIN) warnings.push(`no-cards:${Math.round(cardAgeMin)}m`);
     return sendJson(req, res, 200, {
-      ok: true, lastBlock, whales: recentWhales.length,
-      traders: traderAgg.size, whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD, monPriceUsd,
+      ok: true, healthy: alerts.length === 0, alerts, warnings,
+      chain: 'monad', feed: 'rpc-poll+catchup',
+      uptimeSec: Math.round((now - BOOT_AT) / 1000),
+      lastBlock, chainHead: lastChainHead, blocksBehind,
+      monPriceUsd, priceAgeSec: monPriceAt ? Math.round((now - monPriceAt) / 1000) : null,
+      lastCardAgeSec: lastCardAt ? Math.round((now - lastCardAt) / 1000) : null,
+      pollErrors: pollErrorCount,
+      whales: recentWhales.length, traders: traderAgg.size,
+      whaleMinUsd: WHALE_MIN_USD, minLiqUsd: MIN_LIQ_USD,
       registered: REGISTERED_WHALES.size, deckRosterOnly: DECK_ROSTER_ONLY,
+      dexes: Object.values(DEX_BY_TOPIC),
       discovery: { engine: 'deep-scan + live-promote', scanEveryHours: DISCOVERY_HOURS, promoteEveryMinutes: PROMOTE_MINUTES, running: discoveryRunning, lastFinished: lastScanAt },
       ...db.stats(),
     });
   }
+  // ── Universal copy quote via the OpenOcean aggregator (BUY and SELL) ──
+  // Aggregates EVERY Monad DEX (nad.fun graduated DEX, Uniswap, Kuru, LFJ, …), so
+  // any token with real liquidity is both copyable AND sellable — the role Jupiter
+  // plays for Solana. side=buy: MON→token (amount = human MON). side=sell:
+  // token→MON (amount = human token units). Proxied here to dodge CORS and keep an
+  // optional OPENOCEAN_API_KEY server-side. Returns a ready-to-sign tx (+ the
+  // router to approve, for sells).
+  if (path === '/quote') {
+    const token = (url.searchParams.get('token') || '').toLowerCase();
+    const amount = url.searchParams.get('amount'); // human amount of the IN token
+    const taker = url.searchParams.get('taker');
+    const side = url.searchParams.get('side') === 'sell' ? 'sell' : 'buy';
+    const slippageBps = Number(url.searchParams.get('slippageBps') || 1000);
+    if (!/^0x[0-9a-f]{40}$/.test(token) || !amount || Number(amount) <= 0 || !/^0x[0-9a-fA-F]{40}$/.test(taker || '')) {
+      return sendJson(req, res, 400, { error: 'bad params' });
+    }
+    try {
+      const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+      const inTok = side === 'sell' ? token : NATIVE;
+      const outTok = side === 'sell' ? NATIVE : token;
+      const slippage = Math.min(50, Math.max(0.05, slippageBps / 100)); // OpenOcean wants percent
+      const gwei = Number(process.env.MON_GAS_GWEI || 50); // for OpenOcean's estimate only; our tx sets its own gas
+      const qs = `inTokenAddress=${inTok}&outTokenAddress=${outTok}&amount=${encodeURIComponent(amount)}&gasPrice=${gwei}&slippage=${slippage}&account=${taker}`;
+      const oo = await fetch(`https://open-api.openocean.finance/v4/monad/swap?${qs}`, {
+        headers: { Accept: 'application/json', ...(process.env.OPENOCEAN_API_KEY ? { apikey: process.env.OPENOCEAN_API_KEY } : {}) },
+        signal: AbortSignal.timeout(12000),
+      });
+      const j = await oo.json();
+      const d = j?.data;
+      if (j?.code !== 200 || !d || !d.to || !d.data || d.value === undefined || !(BigInt(d.outAmount || '0') > 0n)) {
+        return sendJson(req, res, 200, { ok: false, reason: 'no-route' });
+      }
+      // For a sell, the token must be approved to the OpenOcean spender first.
+      return sendJson(req, res, 200, { ok: true, side, to: d.to, spender: d.to, data: d.data, value: String(d.value), out: String(d.outAmount), minOut: String(d.minOutAmount || '0'), dex: 'OpenOcean' });
+    } catch (e) {
+      return sendJson(req, res, 200, { ok: false, reason: e.message || 'quote failed' });
+    }
+  }
+
   if (path === '/whales') {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
     // Aggregate first (repeat buys → one card), THEN limit, so the cap counts
@@ -777,8 +959,11 @@ server.on('request', async (req, res) => {
   }
   if (path === '/leaderboard') {
     const board = [...traderAgg.values()]
-      .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
-      .sort((a, b) => b.volumeMon - a.volumeMon)
+      .map((a) => ({
+        ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address),
+        quality: qualityScore({ realizedUsd: (a.realizedMon || 0) * monPriceUsd, volumeUsd: (a.volumeMon || 0) * monPriceUsd, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, closedTokens: a.closedTokens, recencyDays: daysSince(a.lastSeen) }),
+      }))
+      .sort((a, b) => b.quality - a.quality) // rank by quality (PnL + win-rate + recency), not raw volume
       .slice(0, 80);
     return sendJson(req, res, 200, { traders: board });
   }
@@ -817,7 +1002,14 @@ server.on('request', async (req, res) => {
         lpAddedUsd: 0, isMarketMaker: false, livePromoted: true,
       });
     }
-    const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
+    // Rank by quality: use the scan's persisted qualityScore when present, else
+    // derive it live (realized PnL + win-rate + last-seen recency).
+    const rosterRank = (w) => (w.qualityScore != null ? w.qualityScore : qualityScore({
+      realizedUsd: w.realizedUsd != null ? w.realizedUsd : (w.realizedMon || 0) * monPriceUsd,
+      volumeUsd: w.volumeUsd || 0, winRate: w.winRate, closedTokens: w.closedTokens || 0,
+      recencyDays: daysSince(traderAgg.get(w.address)?.lastSeen),
+    }));
+    const whales = [...byAddr.values()].sort((x, y) => rosterRank(y) - rosterRank(x));
     return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = path.match(/^\/address\/(0x[0-9a-fA-F]{40})$/);

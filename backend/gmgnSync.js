@@ -41,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 const __d = path.dirname(fileURLToPath(import.meta.url));
 process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
 const db = await import('./db.js');
+const { runExternalSources } = await import('./discoverySources.js');
 
 const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const GMGN_LIMIT = Number(process.env.GMGN_LIMIT || 200);
@@ -183,12 +184,20 @@ function fetchWalletStats(addr) {
   };
 }
 
+// External discovery vectors are curated smart-money lists (already vetted by
+// the provider), so they qualify like GMGN feed wallets when GMGN stats aren't
+// available. The on-chain wallet check + balance floor still gate every one.
+const EXTERNAL_VECTOR = /^(birdeye|solanatracker|cielo)/;
+
 // ── Quality gate for NEW candidates ──
 function statsGate(addr, cand) {
   const stats = fetchWalletStats(addr);
   if (!stats) {
-    // stats unavailable → only GMGN's own feed wallets (already vetted smart_degen/renowned) pass
-    return { pass: cand.fromFeed && [...cand.tags].some((t) => GOOD_TAGS.has(t)), stats: null };
+    // stats unavailable → GMGN feed wallets need a good tag; externally-sourced
+    // (pre-vetted) wallets qualify on their source alone.
+    const gmgnFeedOk = cand.fromFeed && [...cand.tags].some((t) => GOOD_TAGS.has(t));
+    const externalOk = [...cand.vectors].some((v) => EXTERNAL_VECTOR.test(v));
+    return { pass: gmgnFeedOk || externalOk, stats: null };
   }
   const pass = (stats.winRate != null && stats.winRate >= MIN_WINRATE) || stats.realizedUsd7d >= MIN_PROFIT_USD;
   return { pass, stats };
@@ -219,13 +228,27 @@ function refreshRegistryStats() {
 }
 
 async function main() {
-  // configured?
-  try { cli(['config', '--check']); }
-  catch { console.log('[gmgn-sync] gmgn-cli missing/unconfigured — skipping (set GMGN_API_KEY + GMGN_PRIVATE_KEY to enable)'); return; }
+  // GMGN sweeps run only when the CLI is configured; external sources run
+  // regardless, so discovery still works on a Birdeye/Cielo-only setup.
+  let gmgnOk = false;
+  try { cli(['config', '--check']); gmgnOk = true; }
+  catch { console.log('[gmgn-sync] gmgn-cli missing/unconfigured — skipping GMGN sweeps (external sources still run)'); }
 
-  sweepFeeds();
-  sweepTrendingTraders();
-  refreshRegistryStats(); // keep existing whales' winrate/PnL accurate
+  if (gmgnOk) {
+    sweepFeeds();
+    sweepTrendingTraders();
+    refreshRegistryStats(); // keep existing whales' winrate/PnL accurate
+  }
+
+  // External smart-money sources (Birdeye / Solana Tracker / Cielo) — each gated
+  // on its own key; every candidate still passes the quality gate + on-chain
+  // wallet verification below.
+  try {
+    const ext = await runExternalSources();
+    for (const c of ext) addCandidate(c.address, { volUsd: c.volUsd, tags: c.tags, vector: c.vector });
+    if (ext.length) console.log(`[gmgn-sync] external sources contributed ${ext.length} candidates`);
+  } catch (e) { console.warn('[gmgn-sync] external sources error:', e.message); }
+
   if (!candidates.size) { console.log('[gmgn-sync] no candidates returned — nothing to do'); return; }
 
   // register only NEW wallets (already-registered ones stay untouched — the
