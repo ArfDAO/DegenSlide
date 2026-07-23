@@ -25,6 +25,9 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { heliusEnabled, syncWebhook, webhookPath, validateAuth, heliusStatus } from './heliusWebhook.js';
 import { qualityScore, daysSince } from './quality.js';
+import { createRateLimiter } from './rateLimit.js';
+
+const rateLimiter = createRateLimiter({ windowMs: Number(process.env.RATE_WINDOW_MS || 10000), max: Number(process.env.RATE_MAX || 120) });
 
 const __d = path.dirname(fileURLToPath(import.meta.url));
 process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
@@ -76,17 +79,30 @@ async function rpc(method, params) {
   }
 }
 
-// ── live SOL price (DexScreener, refreshed) ──
-let solPriceUsd = 0;
+// ── live SOL price — MULTI-SOURCE with a sane non-zero seed ──
+// A 0 seed was a latent bug: if the first refresh failed, every USD size (and
+// the whale threshold) computed against solPriceUsd would be 0/NaN. We seed to a
+// realistic value and fall back to Jupiter if DexScreener is down, so the price
+// is NEVER 0 and a single provider outage can't blind the indexer.
+let solPriceUsd = Number(process.env.SOL_PRICE_USD || 150);
+let solPriceAt = 0; // when we last got a FRESH quote (for /health staleness)
 async function refreshSolPrice() {
+  // primary: DexScreener WSOL pairs
   try {
     const res = await fetch(`https://api.dexscreener.com/token-pairs/v1/solana/${WSOL}`, UA);
     const pairs = (await res.json()) || [];
     const best = (Array.isArray(pairs) ? pairs : []).filter((p) => p.priceUsd && p.baseToken?.address === WSOL)
       .sort((a, b) => (Number(b.liquidity?.usd) || 0) - (Number(a.liquidity?.usd) || 0))[0];
     const px = best ? Number(best.priceUsd) : null;
-    if (px > 0) solPriceUsd = px;
-  } catch { /* keep last */ }
+    if (px > 0) { solPriceUsd = px; solPriceAt = Date.now(); return; }
+  } catch { /* fall through to secondary */ }
+  // fallback: CoinGecko simple price (independent provider)
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', UA);
+    const j = await res.json();
+    const px = Number(j?.solana?.usd);
+    if (px > 0) { solPriceUsd = px; solPriceAt = Date.now(); }
+  } catch { /* keep last good / seed */ }
 }
 
 // ── state (same shapes as Monad listener) ──
@@ -332,7 +348,11 @@ const wss = new WebSocketServer({ server });
 const clients = new Set();
 wss.on('connection', (ws) => { clients.add(ws); ws.on('close', () => clients.delete(ws)); });
 console.log(`[WS]   Attached to HTTP server`);
+// ── Operational metrics (for /health monitoring + external uptime alerts) ──
+const BOOT_AT = Date.now();
+let lastCardAt = 0; // ms of the last signal emitted — deck-staleness alert
 function broadcast(card) {
+  lastCardAt = Date.now();
   const msg = JSON.stringify({ type: 'NEW_TRADE', data: card });
   for (const c of clients) if (c.readyState === 1) c.send(msg);
 }
@@ -529,13 +549,39 @@ server.on('request', async (req, res) => {
     return;
   }
 
+  // Per-IP rate limit on public data endpoints (webhook already returned above;
+  // health/liveness exempt).
+  if (p !== '/health') {
+    const rl = rateLimiter(req);
+    if (!rl.ok) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfterSec), ...corsHeadersFor(req.headers.origin) });
+      return res.end(JSON.stringify({ error: 'rate limited' }));
+    }
+  }
+
   if (p === '/health') {
+    const now = Date.now();
+    const hs = heliusStatus();
+    const priceAgeMin = solPriceAt ? (now - solPriceAt) / 60000 : null;
+    const cardAgeMin = lastCardAt ? (now - lastCardAt) / 60000 : null;
+    const PRICE_STALE_MIN = Number(process.env.PRICE_STALE_MIN || 5);
+    const NO_CARD_ALERT_MIN = Number(process.env.NO_CARD_ALERT_MIN || 45);
+    const alerts = [];
+    if (priceAgeMin != null && priceAgeMin > PRICE_STALE_MIN) alerts.push('price-stale');
+    // Helius configured but its last webhook sync failed → real-time is down.
+    if (hs.enabled && hs.lastSync && hs.lastSync.ok === false) alerts.push('webhook-sync-failed');
+    const warnings = [];
+    if (cardAgeMin != null && cardAgeMin > NO_CARD_ALERT_MIN) warnings.push(`no-cards:${Math.round(cardAgeMin)}m`);
     return sendJson(req, res, 200, {
-      ok: true, chain: 'solana', lastBlock: lastSlot, whales: recentWhales.length,
-      traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
-      monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size,
+      ok: true, healthy: alerts.length === 0, alerts, warnings,
+      chain: 'solana', lastBlock: lastSlot,
+      uptimeSec: Math.round((now - BOOT_AT) / 1000),
       feed: heliusEnabled() ? 'helius-webhook (realtime)' : 'rpc-poll',
-      helius: { ...heliusStatus(), hits: webhookHits },
+      solPriceUsd, monPriceUsd: solPriceUsd, priceAgeSec: solPriceAt ? Math.round((now - solPriceAt) / 1000) : null,
+      lastCardAgeSec: lastCardAt ? Math.round((now - lastCardAt) / 1000) : null,
+      whales: recentWhales.length, traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
+      registered: REGISTERED_WHALES.size,
+      helius: { ...hs, hits: webhookHits },
       discovery: { engine: 'gmgn', everyMinutes: GMGN_SYNC_MINUTES, running: gmgnRunning, lastFinished: lastGmgnSyncAt },
       ...db.stats(),
     });
