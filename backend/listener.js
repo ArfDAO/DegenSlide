@@ -24,6 +24,7 @@ import { spawn } from 'node:child_process';
 import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
 import { WebSocketServer } from 'ws';
 import * as db from './db.js';
+import { qualityScore, daysSince } from './quality.js';
 
 // A single un-awaited RPC failure must not kill the whole indexer.
 process.on('unhandledRejection', (e) => console.warn('[guard] unhandled rejection:', e?.message || e));
@@ -237,16 +238,33 @@ const PANCAKE_V3_SWAP_TOPIC = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4
 // where all the real memecoin/degen whale activity lives; v3 (Uni/Pancake) only
 // carries blue-chips + stables. Copyable via nad.fun's own router (see frontend).
 const NADFUN_SWAP_TOPIC = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67';
+// Uniswap-V2-style Swap(sender, amount0In, amount1In, amount0Out, amount1Out, to).
+// V2 pairs expose token0()/token1() (no fee()), so the same pool resolver works;
+// only the data layout differs (four uint256, not two signed int256). Adds real
+// copyable coverage for the V2 pools live on Monad.
+const UNIV2_SWAP_TOPIC = '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822';
 const V3_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC];
+// Every swap topic we scan (V2 + all V3 forks). getLogs filters on this set.
+const ALL_SWAP_TOPICS = [...V3_TOPICS, UNIV2_SWAP_TOPIC];
 
-// For both Uniswap v3 and PancakeSwap v3, the Swap event data begins with
-// int256 amount0, int256 amount1 — so we decode those two words generically.
+// For Uniswap/Pancake v3 the Swap data begins with int256 amount0, int256 amount1.
 const coder = AbiCoder.defaultAbiCoder();
 function decodeAmounts(data) {
   const hex = data.replace(/^0x/, '');
   const amount0 = coder.decode(['int256'], '0x' + hex.slice(0, 64))[0];
   const amount1 = coder.decode(['int256'], '0x' + hex.slice(64, 128))[0];
   return { amount0, amount1 };
+}
+// V2 layout: amount0In, amount1In, amount0Out, amount1Out (uint256×4). Convert to
+// the SAME signed "pool perspective" the v3 path uses (+ = into pool): in − out.
+// The downstream net-flow logic is then identical for V2 and V3.
+function decodeV2Amounts(data) {
+  const hex = data.replace(/^0x/, '');
+  const a0In = BigInt('0x' + hex.slice(0, 64));
+  const a1In = BigInt('0x' + hex.slice(64, 128));
+  const a0Out = BigInt('0x' + hex.slice(128, 192));
+  const a1Out = BigInt('0x' + hex.slice(192, 256));
+  return { amount0: a0In - a0Out, amount1: a1In - a1Out };
 }
 
 const POOL_ABI = [
@@ -267,12 +285,18 @@ const tokenMeta = new Map();   // token(lower) -> {symbol,decimals}
 const marketCache = new Map(); // token(lower) -> {liquidity,hasWmonPair,at}
 const MARKET_TTL = 5 * 60 * 1000;
 
-// Token liquidity + whether a WMON route exists (for copyability), via DexScreener.
+// The frontend copy engine executes on Pancake/Uniswap **v3** or the nad.fun
+// router. A token whose only WMON pool is V2 has no v3 route, so a "copy" would
+// revert — `hasWmonPair` alone was too loose. `hasCopyableRoute` = a WMON pair
+// on a dex the app can actually route through, which is what `copyable` must use.
+const COPYABLE_DEX = /pancake|uniswap|uni-?v3|nad/i;
+
+// Token liquidity + copyable-route detection, via DexScreener.
 async function getTokenMarket(tokenAddr) {
   const key = tokenAddr.toLowerCase();
   const cached = marketCache.get(key);
   if (cached && Date.now() - cached.at < MARKET_TTL) return cached;
-  let liquidity = 0, hasWmonPair = false;
+  let liquidity = 0, hasWmonPair = false, hasCopyableRoute = false;
   try {
     const res = await fetch(`https://api.dexscreener.com/token-pairs/v1/monad/${tokenAddr}`, {
       headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
@@ -284,10 +308,12 @@ async function getTokenMarket(tokenAddr) {
       if (liq > liquidity) liquidity = liq;
       const b = (p.baseToken?.address || '').toLowerCase();
       const q = (p.quoteToken?.address || '').toLowerCase();
-      if (b === WMON || q === WMON) hasWmonPair = true;
+      const isWmon = b === WMON || q === WMON;
+      if (isWmon) hasWmonPair = true;
+      if (isWmon && COPYABLE_DEX.test(p.dexId || '')) hasCopyableRoute = true;
     }
   } catch { /* keep zeros → treated as low-liquidity */ }
-  const rec = { liquidity, hasWmonPair, at: Date.now() };
+  const rec = { liquidity, hasWmonPair, hasCopyableRoute, at: Date.now() };
   marketCache.set(key, rec);
   return rec;
 }
@@ -499,6 +525,7 @@ const DEX_BY_TOPIC = {
   [V3_SWAP_TOPIC]: 'UniswapV3',
   [PANCAKE_V3_SWAP_TOPIC]: 'PancakeV3',
   [NADFUN_SWAP_TOPIC]: 'NadFun',
+  [UNIV2_SWAP_TOPIC]: 'UniswapV2',
 };
 
 // ── Net-flow attribution (tx-level) ──────────────────────────────────────
@@ -522,10 +549,12 @@ async function processTx(txHash, logs) {
   // USD spent/received, and the dominant leg's pool/fee/block for the card.
   const flow = new Map();
   for (const log of logs) {
-    const dex = DEX_BY_TOPIC[log.topics[0]]; if (!dex) continue;
-    const pool = await getPoolInfo(log.address, true); if (!pool) continue; // not a single-quote-anchored pool
+    const topic0 = log.topics[0];
+    const dex = DEX_BY_TOPIC[topic0]; if (!dex) continue;
+    const isV2 = topic0 === UNIV2_SWAP_TOPIC;
+    const pool = await getPoolInfo(log.address, !isV2); if (!pool) continue; // not a single-quote-anchored pool
     let amount0, amount1;
-    try { ({ amount0, amount1 } = decodeAmounts(log.data)); } catch { continue; }
+    try { ({ amount0, amount1 } = isV2 ? decodeV2Amounts(log.data) : decodeAmounts(log.data)); } catch { continue; }
     const quoteSigned = pool.quoteIsToken0 ? amount0 : amount1;
     const tokenSigned = pool.quoteIsToken0 ? amount1 : amount0;
     if (quoteSigned === 0n) continue;
@@ -579,9 +608,11 @@ async function processTx(txHash, logs) {
   const meta = f.pool.meta;
   const tokenAmount = Number(formatUnits(best.absNet, meta.decimals));
   const isNadfun = f.dex === 'NadFun';
-  // nad.fun tokens route through nad.fun's own router (frontend), so they're
-  // always copyable; v3 tokens need a MON route on Uniswap/Pancake.
-  const copyable = isNadfun || f.pool.quote.kind === 'mon' || market.hasWmonPair;
+  // nad.fun tokens route through nad.fun's own router (always copyable). Everything
+  // else (v3 AND the new v2 flow) is copyable only if a real v3/Pancake WMON route
+  // exists — a v2-only token has no route the frontend can execute, so it must NOT
+  // be flagged copyable (it would revert on copy). Discovery still gets the wallet.
+  const copyable = isNadfun || market.hasCopyableRoute;
 
   const card = {
     id: txHash + ':' + trader.slice(2, 10), // one card per (tx, trader) — no per-leg dupes
@@ -651,7 +682,7 @@ async function backfill() {
       const to = Math.min(current, from + MAX_BLOCK_SPAN - 1);
       let logs = [];
       try {
-        logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [V3_TOPICS] });
+        logs = await provider.getLogs({ fromBlock: from, toBlock: to, topics: [ALL_SWAP_TOPICS] });
       } catch { continue; }
       await processLogs(logs);
     }
@@ -681,7 +712,7 @@ async function poll() {
       const logs = await provider.getLogs({
         fromBlock: from,
         toBlock: to,
-        topics: [V3_TOPICS],
+        topics: [ALL_SWAP_TOPICS],
       });
       await processLogs(logs);
       lastBlock = to;
@@ -777,8 +808,11 @@ server.on('request', async (req, res) => {
   }
   if (path === '/leaderboard') {
     const board = [...traderAgg.values()]
-      .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
-      .sort((a, b) => b.volumeMon - a.volumeMon)
+      .map((a) => ({
+        ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address),
+        quality: qualityScore({ realizedUsd: (a.realizedMon || 0) * monPriceUsd, volumeUsd: (a.volumeMon || 0) * monPriceUsd, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, closedTokens: a.closedTokens, recencyDays: daysSince(a.lastSeen) }),
+      }))
+      .sort((a, b) => b.quality - a.quality) // rank by quality (PnL + win-rate + recency), not raw volume
       .slice(0, 80);
     return sendJson(req, res, 200, { traders: board });
   }
@@ -817,7 +851,14 @@ server.on('request', async (req, res) => {
         lpAddedUsd: 0, isMarketMaker: false, livePromoted: true,
       });
     }
-    const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
+    // Rank by quality: use the scan's persisted qualityScore when present, else
+    // derive it live (realized PnL + win-rate + last-seen recency).
+    const rosterRank = (w) => (w.qualityScore != null ? w.qualityScore : qualityScore({
+      realizedUsd: w.realizedUsd != null ? w.realizedUsd : (w.realizedMon || 0) * monPriceUsd,
+      volumeUsd: w.volumeUsd || 0, winRate: w.winRate, closedTokens: w.closedTokens || 0,
+      recencyDays: daysSince(traderAgg.get(w.address)?.lastSeen),
+    }));
+    const whales = [...byAddr.values()].sort((x, y) => rosterRank(y) - rosterRank(x));
     return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = path.match(/^\/address\/(0x[0-9a-fA-F]{40})$/);

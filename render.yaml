@@ -26,3 +26,10 @@ services:
         value: https://api.mainnet-beta.solana.com
       - key: WHALE_MIN_USD
         value: 500
+      # ── Real-time whale tracking via Helius webhook (see backend/heliusWebhook.js) ──
+      # Set these in the Render dashboard (sync:false = not stored in the repo).
+      # PUBLIC_URL is auto-derived from RENDER_EXTERNAL_URL, which Render injects.
+      - key: HELIUS_API_KEY        # free-tier key from dashboard.helius.dev
+        sync: false
+      - key: HELIUS_WEBHOOK_SECRET # any random string — rejects forged webhook POSTs
+        sync: false

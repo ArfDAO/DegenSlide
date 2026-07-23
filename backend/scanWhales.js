@@ -23,6 +23,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider, Contract, AbiCoder, formatUnits } from 'ethers';
 import * as db from './db.js';
+import { qualityScore } from './quality.js';
+
+// Monad targets sub-second blocks (~0.5s) — good enough to bucket a wallet's
+// last-seen block into a recency-in-days for the quality decay.
+const MON_BLOCK_SEC = Number(process.env.MON_BLOCK_SEC || 0.5);
 
 const MONAD_RPC = process.env.MONAD_RPC || 'https://rpc.monad.xyz';
 const SCAN_MIN_USD = Number(process.env.SCAN_MIN_USD || 5);      // per-swap floor (discovery gathers cumulative behaviour)
@@ -44,11 +49,12 @@ const QUOTE_TOKENS = new Map([
 const V3_SWAP_TOPIC = '0xc42079f94a6350f1a2cf73efd65a4d103d6d4a46513037101b0f199f1746e32d';
 const PANCAKE_V3_SWAP_TOPIC = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83';
 const NADFUN_SWAP_TOPIC = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67'; // nad.fun v3-fork DEX (memecoins)
-const SWAP_TOPICS = new Set([V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC]);
+const UNIV2_SWAP_TOPIC = '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822'; // Uniswap-V2-style pairs
+const SWAP_TOPICS = new Set([V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC, UNIV2_SWAP_TOPIC]);
 // Uniswap/PancakeSwap v3 Mint(address,address,int24,int24,uint128,uint256,uint256) —
 // fired when someone ADDS liquidity. Big LP providers = market-maker whales.
 const MINT_TOPIC = '0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde';
-const ALL_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC, MINT_TOPIC];
+const ALL_TOPICS = [V3_SWAP_TOPIC, PANCAKE_V3_SWAP_TOPIC, NADFUN_SWAP_TOPIC, UNIV2_SWAP_TOPIC, MINT_TOPIC];
 
 const coder = AbiCoder.defaultAbiCoder();
 const POOL_ABI = ['function token0() view returns (address)', 'function token1() view returns (address)', 'function fee() view returns (uint24)'];
@@ -129,6 +135,14 @@ function decodeAmounts(data) {
   const hex = data.replace(/^0x/, '');
   return { amount0: coder.decode(['int256'], '0x' + hex.slice(0, 64))[0], amount1: coder.decode(['int256'], '0x' + hex.slice(64, 128))[0] };
 }
+// Uniswap-V2 Swap data = amount0In, amount1In, amount0Out, amount1Out (uint256×4).
+// Convert to the same signed "into pool +" convention the v3 net-flow expects.
+function decodeV2Amounts(data) {
+  const hex = data.replace(/^0x/, '');
+  const a0In = BigInt('0x' + hex.slice(0, 64)), a1In = BigInt('0x' + hex.slice(64, 128));
+  const a0Out = BigInt('0x' + hex.slice(128, 192)), a1Out = BigInt('0x' + hex.slice(192, 256));
+  return { amount0: a0In - a0Out, amount1: a1In - a1Out };
+}
 // Mint data = sender(32), amount(32), amount0(32), amount1(32) → the deposited amounts.
 function decodeMint(data) {
   const hex = data.replace(/^0x/, '');
@@ -188,7 +202,7 @@ async function processSwapTx(txHash, logs) {
     const pool = await getPoolInfo(log.address);
     if (!pool) continue;
     let a0, a1;
-    try { ({ amount0: a0, amount1: a1 } = decodeAmounts(log.data)); } catch { continue; }
+    try { ({ amount0: a0, amount1: a1 } = log.topics[0] === UNIV2_SWAP_TOPIC ? decodeV2Amounts(log.data) : decodeAmounts(log.data)); } catch { continue; }
     const quoteSigned = pool.quoteIsToken0 ? a0 : a1;
     const tokenSigned = pool.quoteIsToken0 ? a1 : a0;
     if (quoteSigned === 0n) continue;
@@ -250,6 +264,25 @@ async function processSwapTx(txHash, logs) {
   whales.set(from, w);
 }
 
+// Realized PnL (avg-cost, USD) rolled up from a whale's per-token positions.
+function realizedOf(w) {
+  let realizedUsd = 0, closedTokens = 0, winTokens = 0;
+  for (const p of w.pos.values()) if (p.soldTok > 0 && p.boughtTok > 0) {
+    closedTokens += 1; realizedUsd += p.realizedUsd; if (p.realizedUsd > 0) winTokens += 1;
+  }
+  return { realizedUsd, closedTokens, winTokens, winRate: closedTokens > 0 ? winTokens / closedTokens : null };
+}
+
+// Quality-based ranking score (profit + win-rate + recency), replacing raw
+// volume. `tipBlock` anchors the last-seen → recency-in-days conversion.
+function whaleQuality(w, tipBlock) {
+  const { realizedUsd, closedTokens, winRate } = realizedOf(w);
+  const recencyDays = (tipBlock && w.lastSeen) ? Math.max(0, (tipBlock - w.lastSeen)) * MON_BLOCK_SEC / 86400 : null;
+  // LP providers with no trade volume still count via their provided liquidity.
+  const volumeUsd = Math.max(w.volumeUsd || 0, w.lpAddedUsd || 0);
+  return qualityScore({ realizedUsd, volumeUsd, winRate, closedTokens, recencyDays });
+}
+
 // Step 5: is this address a bot? EXTCODESIZE + behavioural checks.
 async function classify(w) {
   let code = '0x';
@@ -258,7 +291,12 @@ async function classify(w) {
   const directionality = w.trades ? Math.abs(w.buys - w.sells) / w.trades : 0;
   const arbBot = w.arbHits > 0;                              // atomic same-block round-trips
   const churnBot = w.trades >= 40 && directionality < 0.2;   // high-freq balanced churn = MM/arb
-  return { isContract, arbBot, churnBot, directionality, isBot: isContract || arbBot || churnBot };
+  // Wash/MM tightening: a wallet that churns a lot of volume in near-perfect
+  // buy/sell balance while realizing almost no PnL is washing, not accumulating.
+  const { realizedUsd } = realizedOf(w);
+  const washBot = w.trades >= 20 && directionality < 0.15
+    && w.volumeUsd > 0 && Math.abs(realizedUsd) < w.volumeUsd * 0.004;
+  return { isContract, arbBot, churnBot, washBot, directionality, isBot: isContract || arbBot || churnBot || washBot };
 }
 
 // Scan one contiguous block window [fromBlock, toBlock], newest→oldest.
@@ -321,8 +359,9 @@ async function main() {
   const historyFloor = Math.max(FRESH_BLOCKS, current - HISTORY_DEPTH);
   if (nextCursor <= historyFloor) nextCursor = current;
 
-  // rank candidates by trade volume OR liquidity provided (market makers count too)
-  const score = (w) => Math.max(w.volumeUsd, w.lpAddedUsd);
+  // Rank candidates by QUALITY (realized PnL + win-rate + recency), not raw
+  // volume — so the roster surfaces proven, currently-active smart money.
+  const score = (w) => whaleQuality(w, current);
   const domToken = (w) => [...w.tokens.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '?';
 
   // Bucket candidates by their DOMINANT token first, then round-robin across
@@ -340,19 +379,19 @@ async function main() {
     for (const list of order) if (i < list.length && candidates.length < candidateBudget) { candidates.push(list[i]); done = false; }
   }
   console.log(`[scan] classifying ${candidates.length} candidates across ${byToken.size} tokens (EXTCODESIZE + behaviour)…`);
-  let dropContract = 0, dropArb = 0, dropChurn = 0;
+  let dropContract = 0, dropArb = 0, dropChurn = 0, dropWash = 0;
   const clean = [];
   for (const w of candidates) {
     const c = await classify(w);
     if (c.isBot) {
-      if (c.isContract) dropContract += 1; else if (c.arbBot) dropArb += 1; else dropChurn += 1;
+      if (c.isContract) dropContract += 1; else if (c.arbBot) dropArb += 1; else if (c.washBot) dropWash += 1; else dropChurn += 1;
       continue;
     }
     w._directionality = c.directionality;
     w._domToken = domToken(w);
     clean.push(w);
   }
-  console.log(`[scan] removed bots → ${dropContract} contracts · ${dropArb} same-block-arb · ${dropChurn} churn-MM`);
+  console.log(`[scan] removed bots → ${dropContract} contracts · ${dropArb} same-block-arb · ${dropChurn} churn-MM · ${dropWash} wash`);
 
   // Final selection: round-robin across tokens, capped per token, so 1-2
   // hyper-liquid tokens (e.g. AUSD/cbBTC) can't monopolise the roster. Any
@@ -407,6 +446,8 @@ async function main() {
       realizedMon: round2(monPriceUsd > 0 ? realizedUsd / monPriceUsd : 0),
       closedTokens, winTokens,
       winRate: closedTokens > 0 ? Math.round((winTokens / closedTokens) * 100) / 100 : null,
+      // persisted so the live /roster can order by quality without recomputing
+      qualityScore: round2(whaleQuality(w, current)),
     };
   });
 
@@ -426,13 +467,16 @@ async function main() {
   let bannedDropped = 0;
   for (const addr of [...mergedByAddr.keys()]) if (db.isBlacklisted(addr)) { mergedByAddr.delete(addr); bannedDropped += 1; }
   if (bannedDropped) console.log(`[scan] dropped ${bannedDropped} blacklisted (contract/rug) wallets from the roster file`);
-  const mergedWhales = [...mergedByAddr.values()].sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
+  // Order by quality (fresh scans carry qualityScore; older carried-over entries
+  // fall back to volume so they still sort sensibly until their next rescan).
+  const rankOf = (w) => (w.qualityScore != null ? w.qualityScore : (w.volumeUsd || 0) * 0.05);
+  const mergedWhales = [...mergedByAddr.values()].sort((a, b) => rankOf(b) - rankOf(a));
   fs.writeFileSync(outFile, JSON.stringify({
     source: 'Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)',
     scannedAt: new Date().toISOString(),
     scannedBlocks: scanned, minUsdPerSwap: SCAN_MIN_USD, minLiquidityUsd: MIN_LIQ_USD,
     scanCursorBlock: nextCursor, // rotating explore cursor — next run continues the history walk here
-    botsRemoved: { contracts: dropContract, sameBlockArb: dropArb, churnMM: dropChurn },
+    botsRemoved: { contracts: dropContract, sameBlockArb: dropArb, churnMM: dropChurn, wash: dropWash },
     count: mergedWhales.length, whales: mergedWhales,
   }, null, 2));
   console.log(`[scan] DONE · ${ranked.length} fresh + ${mergedWhales.length - ranked.length} carried = ${mergedWhales.length} whales → ${outFile}`);

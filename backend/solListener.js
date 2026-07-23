@@ -23,6 +23,8 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
+import { heliusEnabled, syncWebhook, webhookPath, validateAuth, heliusStatus } from './heliusWebhook.js';
+import { qualityScore, daysSince } from './quality.js';
 
 const __d = path.dirname(fileURLToPath(import.meta.url));
 process.env.WHALE_DB = process.env.WHALE_DB || path.join(__d, 'solWhales.db');
@@ -118,6 +120,7 @@ function loadRoster() {
     REGISTERED_WHALES.add(r.address); registryCount += 1;
   }
   console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · curated file ${curatedCount} · banned skipped ${bannedSkipped})`);
+  scheduleWebhookSync('roster-reload'); // keep the Helius address list in sync as the roster grows (no-op pre-boot)
 }
 loadRoster();
 
@@ -254,7 +257,11 @@ function computeSwap(tx, owner, minUsd = TRACK_MIN_USD) {
   const delta = new Map();
   for (const b of tx.meta.postTokenBalances || []) if (b.owner === owner) delta.set(b.mint, (delta.get(b.mint) || 0) + (Number(b.uiTokenAmount?.uiAmount) || 0));
   for (const b of tx.meta.preTokenBalances || []) if (b.owner === owner) delta.set(b.mint, (delta.get(b.mint) || 0) - (Number(b.uiTokenAmount?.uiAmount) || 0));
-  const si = keys.findIndex((k) => k.pubkey === owner);
+  // accountKeys are objects ({pubkey}) under jsonParsed, or plain strings under
+  // the raw-webhook/base64 encoding — support both so the same parser serves the
+  // RPC poller AND the Helius webhook payloads.
+  const keyStr = (k) => (typeof k === 'string' ? k : k?.pubkey);
+  const si = keys.findIndex((k) => keyStr(k) === owner);
   if (si >= 0 && tx.meta.postBalances && tx.meta.preBalances) {
     const lam = (tx.meta.postBalances[si] - tx.meta.preBalances[si]) / 1e9;
     delta.set(WSOL, (delta.get(WSOL) || 0) + lam); // native SOL folded into the wSOL bucket
@@ -348,11 +355,68 @@ async function processSig(sig, owner, minUsd = TRACK_MIN_USD) {
   }
 }
 
+// ── REAL-TIME feed: Helius raw-transaction webhook ───────────────────────
+// Helius POSTs every confirmed transaction touching a tracked whale straight to
+// us (no polling latency). Each pushed tx is the standard getTransaction shape,
+// so it flows through the SAME computeSwap → buildCard → recordWhale path as the
+// poller. persistTrade() dedupes by signature, so a tx the poller ALSO catches
+// is never double-counted. This is the primary feed when configured; the poller
+// downgrades to a slow reconciliation safety-net.
+function ownersInTx(tx) {
+  const set = new Set();
+  for (const b of tx?.meta?.postTokenBalances || []) if (b.owner) set.add(b.owner);
+  for (const b of tx?.meta?.preTokenBalances || []) if (b.owner) set.add(b.owner);
+  const keys = tx?.transaction?.message?.accountKeys || [];
+  const k0 = keys[0]; // fee payer / primary signer = the trading wallet
+  if (k0) set.add(typeof k0 === 'string' ? k0 : k0?.pubkey);
+  return [...set];
+}
+let webhookHits = 0;
+async function handleHeliusPayload(txs) {
+  if (!Array.isArray(txs)) return;
+  for (const tx of txs) {
+    if (tx?.meta?.err) continue;
+    const sig = tx?.transaction?.signatures?.[0] || tx?.signature;
+    if (!sig) continue;
+    for (const owner of ownersInTx(tx)) {
+      if (!REGISTERED_WHALES.has(owner)) continue; // only tracked whales become cards
+      const s = computeSwap(tx, owner, TRACK_MIN_USD);
+      if (!s) continue;
+      const card = await buildCard(sig, s);
+      const isNew = recordWhale(card);
+      if (isNew && isDeckEligible(card)) {
+        webhookHits += 1;
+        broadcast(card);
+        console.log(`[HELIUS] ${card.side} $${Math.round(card.amountUsd).toString().padStart(6)}  ${(card.tokenSymbol || '?').padEnd(10)}/${(card.quoteSymbol || '').padEnd(4)} ${owner.slice(0, 8)}…  (${card.dex})`);
+      }
+    }
+  }
+}
+
+// Register / refresh the Helius webhook so its address list == the live roster.
+// Debounced, and gated on the server being reachable (Helius pings the URL on
+// create) — so it only fires after we're listening and past boot.
+let serverReady = false;
+let webhookSyncTimer = null;
+function scheduleWebhookSync(reason) {
+  if (!heliusEnabled() || !serverReady) return;
+  clearTimeout(webhookSyncTimer);
+  webhookSyncTimer = setTimeout(async () => {
+    const r = await syncWebhook([...REGISTERED_WHALES]);
+    if (r.ok && r.action && r.action !== 'unchanged') console.log(`[helius] webhook ${r.action} · ${r.count} addresses (${reason})`);
+    else if (!r.ok) console.warn(`[helius] webhook sync failed (${reason}):`, r.reason);
+  }, 8000);
+}
+
 // ── PRIMARY feed: follow the registered whales' WALLETS across ALL tokens.
 // Rotate through the roster in budgeted batches (public RPC honesty). Whatever
 // token a whale buys or sells surfaces — no fixed pool list. ──
 const WHALE_POLL_MS = Number(process.env.WHALE_POLL_MS || 7000);
+const WHALE_RECON_MS = Number(process.env.WHALE_RECON_MS || 120000); // slow safety-net cadence once Helius push is live
 const WHALE_BATCH = Number(process.env.WHALE_BATCH || 10); // whales checked per cycle (all RPC budget is ours now)
+// When Helius push is active the poller is just a reconciliation net (catches
+// anything missed during a webhook hiccup / cold start), so it runs slowly.
+const pollDelay = () => (heliusEnabled() ? WHALE_RECON_MS : WHALE_POLL_MS);
 const walletCursor = new Map(); // whaleAddr -> newest signature already seen
 let whaleRing = 0;
 async function whalePoll() {
@@ -376,7 +440,7 @@ async function whalePoll() {
   } catch (e) {
     console.error('[whalePoll] error:', e.message || e);
   } finally {
-    setTimeout(whalePoll, WHALE_POLL_MS);
+    setTimeout(whalePoll, pollDelay());
   }
 }
 
@@ -445,11 +509,33 @@ const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 server.on('request', async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
+
+  // ── Helius webhook receiver — real-time whale transactions pushed here ──
+  if (req.method === 'POST' && p === webhookPath()) {
+    let raw = '';
+    let tooBig = false;
+    req.on('data', (c) => { raw += c; if (raw.length > 16 * 1024 * 1024) { tooBig = true; req.destroy(); } });
+    req.on('end', () => {
+      // Ack immediately so Helius marks delivery successful and never retries.
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('ok');
+      if (tooBig) return;
+      if (!validateAuth(req.headers['authorization'] || '')) { console.warn('[helius] rejected webhook POST — bad/missing auth header'); return; }
+      let payload;
+      try { payload = JSON.parse(raw); } catch { return; }
+      handleHeliusPayload(payload).catch((e) => console.warn('[helius] payload handler error:', e.message || e));
+    });
+    req.on('error', () => { try { res.writeHead(400); res.end(); } catch {} });
+    return;
+  }
+
   if (p === '/health') {
     return sendJson(req, res, 200, {
       ok: true, chain: 'solana', lastBlock: lastSlot, whales: recentWhales.length,
       traders: traderAgg.size, trackMinUsd: TRACK_MIN_USD,
       monPriceUsd: solPriceUsd, registered: REGISTERED_WHALES.size,
+      feed: heliusEnabled() ? 'helius-webhook (realtime)' : 'rpc-poll',
+      helius: { ...heliusStatus(), hits: webhookHits },
       discovery: { engine: 'gmgn', everyMinutes: GMGN_SYNC_MINUTES, running: gmgnRunning, lastFinished: lastGmgnSyncAt },
       ...db.stats(),
     });
@@ -461,8 +547,11 @@ server.on('request', async (req, res) => {
   }
   if (p === '/leaderboard') {
     const board = [...traderAgg.values()]
-      .map((a) => ({ ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address) }))
-      .sort((a, b) => b.volumeMon - a.volumeMon).slice(0, 80);
+      .map((a) => ({
+        ...a, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, verified: REGISTERED_WHALES.has(a.address),
+        quality: qualityScore({ realizedUsd: (a.realizedMon || 0) * solPriceUsd, volumeUsd: a.volumeUsd || (a.volumeMon || 0) * solPriceUsd, winRate: a.closedTokens > 0 ? a.winTokens / a.closedTokens : null, closedTokens: a.closedTokens, recencyDays: daysSince(a.lastSeen) }),
+      }))
+      .sort((a, b) => b.quality - a.quality).slice(0, 80); // rank by quality, not raw volume
     return sendJson(req, res, 200, { traders: board });
   }
   if (p === '/roster') {
@@ -493,7 +582,14 @@ server.on('request', async (req, res) => {
         lpAddedUsd: 0, isMarketMaker: false, livePromoted: true,
       });
     }
-    const whales = [...byAddr.values()].sort((x, y) => (y.volumeUsd || 0) - (x.volumeUsd || 0));
+    // Rank by quality (realized PnL + win-rate + recency). GMGN stats carry 7d
+    // realized PnL / win-rate; last-seen recency comes from observed trades.
+    const rosterRank = (w) => qualityScore({
+      realizedUsd: w.realizedUsd7d != null ? w.realizedUsd7d : (w.realizedMon || 0) * solPriceUsd,
+      volumeUsd: w.volumeUsd || 0, winRate: w.winRate, closedTokens: w.closedTokens || w.trades7d || 0,
+      recencyDays: daysSince(traderAgg.get(w.address)?.lastSeen),
+    });
+    const whales = [...byAddr.values()].sort((x, y) => rosterRank(y) - rosterRank(x));
     return sendJson(req, res, 200, { count: whales.length, whales });
   }
   const m = p.match(/^\/address\/(.+)$/);
@@ -509,7 +605,7 @@ server.on('request', async (req, res) => {
   }
   sendJson(req, res, 404, { error: 'not found' });
 });
-server.listen(PORT, () => console.log(`[HTTP/WS] listening on port ${PORT}`));
+server.listen(PORT, () => { serverReady = true; console.log(`[HTTP/WS] listening on port ${PORT}`); });
 
 // ── boot ──
 await refreshSolPrice();
@@ -517,8 +613,22 @@ console.log(`[price] SOL = $${solPriceUsd} · tracking floor $${TRACK_MIN_USD}/s
 setInterval(refreshSolPrice, 60000);
 initFromDb();
 await backfill();
-whalePoll();  // THE feed: follow registered whale wallets across ALL tokens
+whalePoll();  // safety-net poller (slow when Helius push is live; primary otherwise)
 slotPoll();
+
+// ── Real-time: register the Helius webhook with the current roster ──
+// Runs after we're listening + backfilled (Helius pings the URL on create).
+// When unconfigured this is a clean no-op and the poller stays primary.
+if (heliusEnabled()) {
+  // Fail-loud if the endpoint is unauthenticated: without a shared secret anyone
+  // could POST forged transactions to /helius-webhook and inject fake deck cards.
+  if (!heliusStatus().authProtected) console.warn('[helius] ⚠ HELIUS_WEBHOOK_SECRET is NOT set — the /helius-webhook endpoint is unauthenticated. Set it (and it is sent as the webhook authHeader) to reject forged pushes.');
+  const r = await syncWebhook([...REGISTERED_WHALES]);
+  if (r.ok) console.log(`[helius] real-time feed ON · webhook ${r.action} · ${r.count} whales → ${webhookPath()} (poller now ${WHALE_RECON_MS / 1000}s reconciliation)`);
+  else console.warn(`[helius] webhook setup failed — staying on RPC poll:`, r.reason);
+} else {
+  console.log('[helius] not configured (set HELIUS_API_KEY + PUBLIC_URL for real-time) — using RPC poll');
+}
 
 // Roster hygiene: ban programs / PDAs / vaults that slipped into the roster.
 const VALIDATE_MINUTES = Number(process.env.VALIDATE_MINUTES || 8);
