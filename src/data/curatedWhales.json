@@ -1,14 +1,14 @@
 {
   "source": "Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)",
-  "scannedAt": "2026-07-23T05:13:52.559Z",
-  "scannedBlocks": 622672,
+  "scannedAt": "2026-07-23T14:44:38.263Z",
+  "scannedBlocks": 810,
   "minUsdPerSwap": 5,
   "minLiquidityUsd": 150000,
-  "scanCursorBlock": 83604493,
+  "scanCursorBlock": 83004492,
   "botsRemoved": {
-    "contracts": 49,
-    "sameBlockArb": 45,
-    "churnMM": 60
+    "contracts": 0,
+    "sameBlockArb": 1,
+    "churnMM": 0
   },
   "count": 597,
   "whales": [
@@ -33,6 +33,28 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
+    },
+    {
+      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
+      "volumeUsd": 15375.58,
+      "volumeMon": 660746.88,
+      "trades": 2,
+      "buys": 1,
+      "sells": 1,
+      "directionality": 0,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 1178410,
+      "tokens": [
+        "EURW"
+      ],
+      "lastToken": "EURW",
+      "realizedUsd": -1.01,
+      "realizedMon": -43.32,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
     },
     {
       "address": "0xc9d6e1e1e10be6d5651c2988652a73391480c8d8",
@@ -7563,28 +7585,6 @@
       "winRate": null
     },
     {
-      "address": "0x8538c1385208e5ce20a8329a0fcdad3f7a62614e",
-      "volumeUsd": 91.66,
-      "volumeMon": 4016.68,
-      "trades": 18,
-      "buys": 14,
-      "sells": 4,
-      "directionality": 0.56,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 6837523,
-      "tokens": [
-        "AUSD"
-      ],
-      "lastToken": "AUSD",
-      "realizedUsd": -0.01,
-      "realizedMon": -0.34,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0
-    },
-    {
       "address": "0x266fc440961fe4035dc1c62f03a23e9a61bd96af",
       "volumeUsd": 91.51,
       "volumeMon": 4326.74,
@@ -8102,6 +8102,28 @@
       "closedTokens": 0,
       "winTokens": 0,
       "winRate": null
+    },
+    {
+      "address": "0x8538c1385208e5ce20a8329a0fcdad3f7a62614e",
+      "volumeUsd": 61.68,
+      "volumeMon": 2650.51,
+      "trades": 11,
+      "buys": 9,
+      "sells": 2,
+      "directionality": 0.64,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 4824067,
+      "tokens": [
+        "AUSD"
+      ],
+      "lastToken": "AUSD",
+      "realizedUsd": -0.02,
+      "realizedMon": -0.7,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0
     },
     {
       "address": "0xde222220de3e80973d16c9ec90edb0910f3ce9e9",
@@ -12638,28 +12660,6 @@
         "AUSD"
       ],
       "lastToken": "AUSD",
-      "realizedUsd": 0,
-      "realizedMon": 0,
-      "closedTokens": 0,
-      "winTokens": 0,
-      "winRate": null
-    },
-    {
-      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
-      "volumeUsd": 0,
-      "volumeMon": 0,
-      "trades": 0,
-      "buys": 0,
-      "sells": 0,
-      "directionality": 0,
-      "lpAddedUsd": 12164078.29,
-      "lpEvents": 7,
-      "isMarketMaker": true,
-      "maxLiquidityUsd": 1178251,
-      "tokens": [
-        "EURW"
-      ],
-      "lastToken": "EURW",
       "realizedUsd": 0,
       "realizedMon": 0,
       "closedTokens": 0,
