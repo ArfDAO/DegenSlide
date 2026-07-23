@@ -15,8 +15,8 @@ export const CHAINS = {
     nativeSymbol: 'MON',
     dexSlug: 'monad',                                  // DexScreener chain slug
     explorer: 'https://monadscan.com', txPath: 'tx', addrPath: 'address',
-    indexerHttp: env2.VITE_INDEXER_HTTP || 'https://deepswap-monad-bot2.onrender.com',
-    indexerWs: env2.VITE_INDEXER_WS || 'wss://deepswap-monad-bot2.onrender.com',
+    indexerHttp: env2.VITE_INDEXER_HTTP || 'https://deepswap-monad-bot2-u0ob.onrender.com',
+    indexerWs: env2.VITE_INDEXER_WS || 'wss://deepswap-monad-bot2-u0ob.onrender.com',
     // Deck size tiers (USD) — EXCLUSIVE ranges (big < shark < whale); 'all' is
     // the hard floor: nothing under $100 ever reaches the deck (whale app).
     tiers: { all: 100, big: 100, shark: 250, whale: 500 },
@@ -31,8 +31,8 @@ export const CHAINS = {
     nativeToken: 'So11111111111111111111111111111111111111112',
     dexSlug: 'solana',
     explorer: 'https://solscan.io', txPath: 'tx', addrPath: 'account',
-    indexerHttp: env2.VITE_SOL_INDEXER_HTTP || 'https://deepswap-solana-bot.onrender.com',
-    indexerWs: env2.VITE_SOL_INDEXER_WS || 'wss://deepswap-solana-bot.onrender.com',
+    indexerHttp: env2.VITE_SOL_INDEXER_HTTP || 'https://deepswap-solana-bot-h10w.onrender.com',
+    indexerWs: env2.VITE_SOL_INDEXER_WS || 'wss://deepswap-solana-bot-h10w.onrender.com',
     // Browser-facing RPC: the official api.mainnet-beta.solana.com returns 403
     // "Access forbidden" to browser origins for every method, which silently
     // breaks Turbo balance checks, sends and confirmations. PublicNode is
