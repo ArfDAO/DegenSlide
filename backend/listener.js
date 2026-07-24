@@ -70,12 +70,14 @@ import { VIP_WHALES } from './vipWhales.js';
 // The live tracked roster = VIP + the verified/bot-filtered discovery roster.
 // Rebuilt (hot-reloaded) whenever the discovery scan rewrites curatedWhales.json.
 const REGISTERED_WHALES = new Set();
+const MM_WALLETS = new Set();    // scan-flagged market makers — tracked but hidden from the alpha deck (filled by loadRoster())
 const LIVE_PROMOTED = new Set(); // whales caught by the fast live pass (kept across reloads)
 const __d = path.dirname(fileURLToPath(import.meta.url));
 const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedWhales.json');
 
 function loadRoster() {
   REGISTERED_WHALES.clear();
+  MM_WALLETS.clear();
   for (const v of VIP_WHALES) REGISTERED_WHALES.add(v);
   for (const p of LIVE_PROMOTED) REGISTERED_WHALES.add(p);
   let curatedCount = 0, bannedSkipped = 0;
@@ -86,6 +88,7 @@ function loadRoster() {
       // A wallet a previous validation pass proved to be a contract/rug is vetoed —
       // never re-import it from the (append-only, possibly stale) curated file.
       if (db.isBlacklisted(addr)) { bannedSkipped += 1; continue; }
+      if (w.isMarketMaker) MM_WALLETS.add(addr); // scan-flagged MM → tracked but hidden from the alpha deck
       // durable registry: a future rescan that misses this wallet can't erase it
       db.registerWhale(addr, 'scan', { volumeUsd: w.volumeUsd ?? null, stats: w });
       curatedCount += 1;
@@ -344,8 +347,8 @@ async function getTokenMarket(tokenAddr, opts = {}) {
 }
 
 // ── live state for HTTP API ──
-const recentWhales = [];                 // newest-first, capped
-const RECENT_CAP = 80;
+const recentWhales = [];                 // newest-first, capped (deeper history → more distinct alpha cards per tier)
+const RECENT_CAP = Number(process.env.RECENT_CAP || 200);
 const traderAgg = new Map();             // address -> aggregate (incl. realized-PnL score)
 const addressTrades = new Map();         // address -> recent trades (capped)
 const traderPos = new Map();             // address -> Map(token -> avg-cost position) for realized PnL
@@ -417,11 +420,51 @@ function tokenLegWei(amount0, amount1, wmonIsToken0) {
   return amt < 0n ? -amt : amt;
 }
 
+// ── Alpha filter: hard-drop market-maker / arb-bot / stablecoin flow so the
+// deck surfaces REAL alpha whale entries ONLY (see solListener.js for the full
+// rationale). All four patterns are near-zero false-positive for a genuine
+// alpha whale. Same env knobs as the Solana indexer. ──
+const ARB_HITS_MAX = Number(process.env.ARB_HITS_MAX || 3);
+const CHURN_BUYS_MAX = Number(process.env.CHURN_BUYS_MAX || 12);
+const CHURN_MIN_TRADES = Number(process.env.CHURN_MIN_TRADES || 6);
+const CHURN_NET_RATIO = Number(process.env.CHURN_NET_RATIO || 0.15);
+// Balanced two-way churn with net ≈ 0 = market-maker / arb bot (catches the
+// cross-token basket bots the same-block arbHits detector misses). A real alpha
+// whale is directional (net buy or net sell). See solListener.js for rationale.
+function isChurnBot(agg) {
+  if (!agg) return false;
+  const buys = agg.buys || 0, sells = agg.sells || 0, trades = agg.trades || 0;
+  if (trades < CHURN_MIN_TRADES) return false;
+  const balanced = buys >= 2 && sells >= 2 && Math.min(buys, sells) / Math.max(buys, sells) >= 0.5;
+  const vol = agg.volumeMon || 0;
+  const netTiny = vol > 0 && Math.abs(agg.netMon || 0) / vol < CHURN_NET_RATIO;
+  return balanced && netTiny;
+}
+function isBotTrader(addr) {
+  const a = (addr || '').toLowerCase();
+  if (MM_WALLETS.has(a)) return true;
+  const agg = traderAgg.get(a);
+  if (!agg) return false;
+  if ((agg.arbHits || 0) >= ARB_HITS_MAX) return true;
+  return isChurnBot(agg);
+}
+function isAlphaCard(card) {            // single raw card (buyCount unknown / 1)
+  if (card.isStable) return false;
+  if (isBotTrader(card.trader)) return false;
+  return true;
+}
+function isAlphaAgg(card) {             // aggregated deck card (buyCount known)
+  if (!isAlphaCard(card)) return false;
+  if ((card.buyCount || 1) >= CHURN_BUYS_MAX) return false;
+  return true;
+}
+
 // Deck eligibility: copyable BUYs only, and — when roster-only is on — only from
 // verified/tracked whales (a normal person's big trade is not what we copy).
 function isDeckEligible(card) {
   if (card.side !== 'BUY' && !INCLUDE_SELLS) return false;
   if (DECK_ROSTER_ONLY && !card.isRegisteredWhale) return false;
+  if (!isAlphaCard(card)) return false; // hide MM/arb/stablecoin flow — alpha only
   return true;
 }
 
@@ -952,7 +995,7 @@ server.on('request', async (req, res) => {
     const limit = Math.min(Number(url.searchParams.get('limit') || 40), RECENT_CAP);
     // Aggregate first (repeat buys → one card), THEN limit, so the cap counts
     // distinct whale·token signals rather than raw legs.
-    const whales = aggregateDeck(recentWhales).slice(0, limit).map((c) => ({
+    const whales = aggregateDeck(recentWhales).filter(isAlphaAgg).slice(0, limit).map((c) => ({
       ...c, traderScore: scoreFromAgg(traderAgg.get(c.trader.toLowerCase())),
     }));
     return sendJson(req, res, 200, { whales });

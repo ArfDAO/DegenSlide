@@ -19,7 +19,10 @@ export const CHAINS = {
     indexerWs: env2.VITE_INDEXER_WS || 'wss://deepswap-monad-bot2-u0ob.onrender.com',
     // Deck size tiers (USD) — EXCLUSIVE ranges (big < shark < whale); 'all' is
     // the hard floor: nothing under $100 ever reaches the deck (whale app).
-    tiers: { all: 100, big: 100, shark: 250, whale: 500 },
+    // Calibrated to the REAL size distribution of tracked-whale swaps on Monad
+    // (most fall $100–500; >$1500 is rare). Big was == all (100), making the Big
+    // and All tabs identical — now a real range. 'all' stays the hard floor.
+    tiers: { all: 100, big: 200, shark: 400, whale: 700 },
     copySupported: true,                               // MetaMask + PancakeSwap/Uniswap v3
     // Quick-pick copy amounts (native units) + gas headroom kept out of Max
     copyTiers: [{ label: '0.1', value: 0.1 }, { label: '1', value: 1 }, { label: '5', value: 5 }],
@@ -43,7 +46,10 @@ export const CHAINS = {
     // Solana tiers — exclusive ranges calibrated to the REAL size distribution
     // of tracked-whale swaps (most fall $150–1000); 'all' floor mirrors the
     // indexer's TRACK_MIN_USD.
-    tiers: { all: 150, big: 300, shark: 1000, whale: 5000 },
+    // Calibrated to the REAL alpha-whale size distribution (bot/MM/stablecoin
+    // flow is now hard-filtered upstream): real entries cluster $150–3500, so
+    // the old $5000 whale floor left the Whale tab near-empty. 'all' = floor.
+    tiers: { all: 150, big: 400, shark: 1200, whale: 3500 },
     copySupported: true,                               // Phantom + Jupiter aggregator
     // SOL trades ~100x MON's unit value — quick picks scaled accordingly
     copyTiers: [{ label: '0.05', value: 0.05 }, { label: '0.25', value: 0.25 }, { label: '1', value: 1 }],
