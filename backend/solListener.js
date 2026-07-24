@@ -26,6 +26,7 @@ import { WebSocketServer } from 'ws';
 import { heliusEnabled, syncWebhook, webhookPath, validateAuth, heliusStatus } from './heliusWebhook.js';
 import { qualityScore, daysSince } from './quality.js';
 import { createRateLimiter } from './rateLimit.js';
+import { startNetworkScan } from './solNetworkScan.js';
 
 const rateLimiter = createRateLimiter({ windowMs: Number(process.env.RATE_WINDOW_MS || 10000), max: Number(process.env.RATE_MAX || 120) });
 
@@ -52,6 +53,17 @@ let lastGmgnSyncAt = null;
 // SELLs are real signal (whale exits), so they're shown by default.
 // Set INCLUDE_SELLS=0 to hide.
 const INCLUDE_SELLS = process.env.INCLUDE_SELLS !== '0';
+
+// ── Phase-2B: FREE network-wide whale detection config (see solNetworkScan.js) ──
+// Promotes NON-roster wallets caught doing whale-size pump.fun trades, breaking
+// the registry-only ceiling. Default WS is a public node → zero Helius credits.
+const NETWORK_SCAN_ON = process.env.SOL_NETWORK_SCAN !== '0';
+const NETWORK_WS = process.env.SOL_WS || 'wss://solana-rpc.publicnode.com';
+const NETWORK_MIN_USD = Number(process.env.NETWORK_MIN_USD || 1000); // pump.fun trade size to be a promotion candidate
+const NETWORK_MIN_HITS = Number(process.env.NETWORK_MIN_HITS || 2);  // whale-size trades before promoting (filters one-off flukes — 2C)
+const NETWORK_CAND_TTL = Number(process.env.NETWORK_CAND_TTL_MIN || 60) * 60 * 1000;
+const netCandidates = new Map(); // addr -> { hits, firstAt, lastAt, lastSig, lastMint }
+let netPromoted = 0, netScanner = null;
 
 const WSOL = 'So11111111111111111111111111111111111111112';
 const QUOTE_TOKENS = new Map([
@@ -486,6 +498,35 @@ async function processSig(sig, owner, minUsd = TRACK_MIN_USD) {
   }
 }
 
+// ── Phase-2B handler: a decoded pump.fun trade from the network-wide log feed.
+// Only NON-roster, whale-size, REPEAT (2C) actors get promoted; a program/PDA is
+// banned; the triggering trade is decked immediately so the new whale shows now.
+async function onNetworkSwap(ev) {
+  const usd = ev.solAmount * solPriceUsd;
+  if (usd < NETWORK_MIN_USD) return;                                       // whale-size only
+  const w = ev.user;
+  if (!w || REGISTERED_WHALES.has(w) || PRUNED_DORMANT.has(w) || db.isBlacklisted(w)) return; // already tracked / vetoed
+  const now = Date.now();
+  const c = netCandidates.get(w) || { hits: 0, firstAt: now, lastAt: now, lastSig: null, lastMint: null };
+  c.hits += 1; c.lastAt = now; c.lastSig = ev.signature; c.lastMint = ev.mint;
+  netCandidates.set(w, c);
+  if (c.hits < NETWORK_MIN_HITS) return;                                   // need REPEAT whale-size activity (filters flukes)
+  netCandidates.delete(w);
+  // 2C: prove it's a real System-owned wallet, not a program / PDA / vault.
+  let info;
+  try { info = (await rpc('getAccountInfo', [w, { encoding: 'base64' }]))?.value; } catch { return; }
+  if (info && (info.executable || (info.owner && info.owner !== SYSTEM_PROGRAM))) { db.blacklistWhale(w, info.executable ? 'program' : 'pda'); return; }
+  // Promote — durable registry row; Helius now tracks ALL its future trades too.
+  if (!db.registerWhale(w, 'netscan', { volumeUsd: Math.round(usd), stats: { address: w, source: 'netscan', discoveredVia: 'pump.fun', lastToken: ev.mint } })) return;
+  REGISTERED_WHALES.add(w);
+  netPromoted += 1;
+  scheduleWebhookSync('netscan-promote');
+  console.log(`[netscan] +whale ${w.slice(0, 10)}… · $${Math.round(usd)} pump.fun ${ev.side} · ${c.hits} hits → promoted (roster ${REGISTERED_WHALES.size})`);
+  processSig(ev.signature, w, TRACK_MIN_USD).catch(() => {});             // deck the discovery trade now, not only on their next move
+}
+// Keep the candidate map bounded — drop actors that never reached the hit gate.
+setInterval(() => { const cut = Date.now() - NETWORK_CAND_TTL; for (const [a, c] of netCandidates) if (c.lastAt < cut) netCandidates.delete(a); }, NETWORK_CAND_TTL).unref?.();
+
 // ── REAL-TIME feed: Helius raw-transaction webhook ───────────────────────
 // Helius POSTs every confirmed transaction touching a tracked whale straight to
 // us (no polling latency). Each pushed tx is the standard getTransaction shape,
@@ -680,6 +721,7 @@ server.on('request', async (req, res) => {
       helius: { ...hs, hits: webhookHits },
       discovery: { engine: 'gmgn', everyMinutes: GMGN_SYNC_MINUTES, running: gmgnRunning, lastFinished: lastGmgnSyncAt },
       pruning: { everyMinutes: PRUNE_MINUTES, inactiveDays: PRUNE_DAYS, prunedThisSession: prunedTotal, dormantHeld: PRUNED_DORMANT.size },
+      netscan: netScanner ? { on: true, ...netScanner.stats(), candidates: netCandidates.size, promotedThisSession: netPromoted, minUsd: NETWORK_MIN_USD, minHits: NETWORK_MIN_HITS } : { on: false },
       ...db.stats(),
     });
   }
@@ -754,6 +796,20 @@ server.listen(PORT, () => { serverReady = true; console.log(`[HTTP/WS] listening
 await refreshSolPrice();
 console.log(`[price] SOL = $${solPriceUsd} · tracking floor $${TRACK_MIN_USD}/swap · roster-only feed`);
 setInterval(refreshSolPrice, 60000);
+
+// ── Phase-2B: start the FREE network-wide pump.fun whale detector EARLY —
+// it's independent of the roster backfill, so it must not wait behind it. ──
+if (NETWORK_SCAN_ON) {
+  netScanner = startNetworkScan({
+    wsUrl: NETWORK_WS,
+    onSwap: onNetworkSwap,
+    onStatus: (s) => { if (!String(s).startsWith('connected')) console.warn('[netscan]', s); },
+  });
+  console.log(`[netscan] FREE network-wide pump.fun discovery ON · ${NETWORK_WS} · promote ≥ $${NETWORK_MIN_USD} × ${NETWORK_MIN_HITS} hits`);
+} else {
+  console.log('[netscan] disabled (SOL_NETWORK_SCAN=0)');
+}
+
 initFromDb();
 await backfill();
 whalePoll();  // safety-net poller (slow when Helius push is live; primary otherwise)

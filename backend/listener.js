@@ -191,8 +191,14 @@ function rosterAgeHours() {
 // The 6h deep scan re-ranks the whole chain; this fast pass watches the live
 // aggregates and promotes any fresh, directional, non-bot EOA to the roster so
 // its trades reach the deck almost immediately.
-const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 3);
-const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 400); // cumulative USD to qualify as a whale — real size only, this is a whale app
+// Phase-2B/2C: this is the FREE network-wide whale detector. The Monad listener
+// already scans EVERY swap (getLogs, all DEX topics) and aggregates ALL traders
+// — not just the roster — so this fast pass promotes any fresh, directional,
+// non-bot EOA the moment it moves real size. Cadence + floor tuned to widen the
+// net; the quality gate (2C) mirrors the deck's alpha filter so a wallet we'd
+// HIDE as a bot never gets promoted either.
+const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 2);
+const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 300); // cumulative USD to qualify as a whale — real size only, this is a whale app
 const codeCache = new Map();
 async function isEOA(addr) {
   if (codeCache.has(addr)) return codeCache.get(addr);
@@ -201,6 +207,9 @@ async function isEOA(addr) {
   codeCache.set(addr, eoa);
   return eoa;
 }
+// (isChurnBot — balanced two-way churn with net ≈ 0 = MM/arb bot — is defined
+// with the deck's alpha filter below and reused here so promotion and deck
+// display share ONE bot definition.)
 async function promoteWhales() {
   const cands = [...traderAgg.values()].filter((a) => !REGISTERED_WHALES.has(a.address));
   for (const a of cands) {
@@ -208,6 +217,7 @@ async function promoteWhales() {
     if (usd < PROMOTE_MIN_USD) continue;                        // not enough real activity yet
     const dir = a.trades ? Math.abs(a.buys - a.sells) / a.trades : 1;
     if (a.trades >= 10 && dir < 0.25) continue;                // balanced churn = MM bot
+    if (isChurnBot(a)) continue;                               // net-flow churn = MM/arb basket bot (2C, matches deck filter)
     if ((a.arbHits || 0) > 0) continue;                        // atomic arb bot
     if (!(await isEOA(a.address))) continue;                   // contract / AA bot
     REGISTERED_WHALES.add(a.address);
