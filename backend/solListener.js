@@ -45,7 +45,7 @@ const server = await import('node:http').then(m => m.createServer());
 const TRACK_MIN_USD = Number(process.env.TRACK_MIN_USD || 150);    // TRACKING floor: registered whales' trades shown down to this size (any token)
 const RPC_DELAY_MS = Number(process.env.RPC_DELAY_MS || 80);
 // GMGN discovery scheduling state (declared early — /health reads it)
-const GMGN_SYNC_MINUTES = Number(process.env.GMGN_SYNC_MINUTES || 30);
+const GMGN_SYNC_MINUTES = Number(process.env.GMGN_SYNC_MINUTES || 20); // discovery cadence — sweep for new whales more often (Phase-2A keşif)
 const GMGN_KILL_MIN = Number(process.env.GMGN_KILL_MIN || 20); // watchdog: a hung sync must never block future syncs
 let gmgnRunning = false;
 let lastGmgnSyncAt = null;
@@ -113,6 +113,7 @@ const addressTrades = new Map();
 const traderPos = new Map();
 const REGISTERED_WHALES = new Set(); // the verified roster — grows via GMGN discovery only
 const MM_WALLETS = new Set();         // scan-flagged market makers — tracked but hidden from the alpha deck (declared before loadRoster(), which fills it)
+const PRUNED_DORMANT = new Set();     // wallets pruned this session (no on-chain activity in PRUNE_DAYS) — loadRoster skips re-seeding them so a mid-session discovery reload can't resurrect a dead wallet; the set is empty on restart so every wallet is re-evaluated fresh (declared before loadRoster(), which reads it)
 const CURATED_PATH = path.join(__d, '..', 'src', 'data', 'curatedSolWhales.json');
 
 // The curated file ships with the repo (exported from a grown registry via
@@ -146,6 +147,7 @@ function loadRoster() {
     for (const w of curated.whales || []) if (w.address) {
       if (db.isBlacklisted(w.address)) { bannedSkipped += 1; continue; } // proven program/PDA — never re-import
       if (w.isMarketMaker) MM_WALLETS.add(w.address); // scan-flagged MM → tracked but hidden from the alpha deck
+      if (PRUNED_DORMANT.has(w.address)) continue; // pruned dormant this session — don't resurrect until a restart re-evaluates it
       db.registerWhale(w.address, w.source || 'curated', { volumeUsd: w.volumeUsd ?? null, solBalance: w.solBalance ?? null, stats: w });
       curatedCount += 1;
     }
@@ -153,6 +155,7 @@ function loadRoster() {
   let registryCount = 0;
   for (const r of db.loadWhaleRegistry()) {
     if (db.isBlacklisted(r.address)) continue;
+    if (PRUNED_DORMANT.has(r.address)) continue; // stay pruned within the session
     REGISTERED_WHALES.add(r.address); registryCount += 1;
   }
   console.log(`[whales] roster = ${REGISTERED_WHALES.size} wallets (registry ${registryCount} · curated file ${curatedCount} · banned skipped ${bannedSkipped})`);
@@ -192,6 +195,46 @@ async function validateRosterBatch() {
 }
 let rosterReloadTimer = null;
 try { fs.watch(CURATED_PATH, () => { clearTimeout(rosterReloadTimer); rosterReloadTimer = setTimeout(loadRoster, 1500); }); } catch { /* file may not exist yet */ }
+
+// ── Roster densification (Phase-2A "budama"): prune DORMANT wallets so the
+// tracking budget — the Helius webhook address list AND the reconciliation
+// poller — focuses on whales that ACTUALLY trade. A wallet with NO on-chain
+// activity in PRUNE_DAYS is soft-removed (db.removeWhale — re-discoverable if it
+// revives; NOT blacklisted, since a quiet real whale can return). Definitive
+// recency comes from the chain (getSignaturesForAddress limit 1 → blockTime); a
+// recently-OBSERVED trade skips the RPC entirely (fast path). Curated wallets are
+// re-seeded at boot, so this is per-session hygiene — commit an exported+pruned
+// roster (exportSolRegistry.js) to persist it across the free-tier reseed.
+const PRUNE_DAYS = Number(process.env.PRUNE_DAYS || 30);
+const PRUNE_BATCH = Number(process.env.PRUNE_BATCH || 15);
+const PRUNE_MINUTES = Number(process.env.PRUNE_MINUTES || 12);
+let pruneCursor = 0, prunedTotal = 0;
+async function pruneDormantBatch() {
+  const roster = [...REGISTERED_WHALES];
+  if (!roster.length) return;
+  const cutoff = Date.now() - PRUNE_DAYS * 86400 * 1000;
+  let pruned = 0, checked = 0;
+  for (let i = 0; i < PRUNE_BATCH; i++) {
+    const addr = roster[pruneCursor % roster.length];
+    pruneCursor += 1;
+    if (!REGISTERED_WHALES.has(addr)) continue; // pruned earlier in this batch
+    checked += 1;
+    if ((traderAgg.get(addr)?.lastSeen || 0) > cutoff) continue; // observed trading recently → alive, no RPC needed
+    let sigs;
+    try { sigs = await rpc('getSignaturesForAddress', [addr, { limit: 1 }]); }
+    catch { continue; } // RPC hiccup → re-check next round, NEVER prune on uncertainty
+    await sleep(RPC_DELAY_MS);
+    const lastMs = sigs?.[0]?.blockTime ? sigs[0].blockTime * 1000 : null;
+    if (lastMs === null || lastMs >= cutoff) continue; // unknown recency, or active within window → keep
+    db.removeWhale(addr);
+    REGISTERED_WHALES.delete(addr);
+    PRUNED_DORMANT.add(addr); // don't let a discovery reload resurrect it this session
+    pruned += 1; prunedTotal += 1;
+    console.log(`[prune] ${addr.slice(0, 10)}… — last activity ${Math.round((Date.now() - lastMs) / 86400000)}d ago → removed (roster ${REGISTERED_WHALES.size})`);
+  }
+  if (pruned) scheduleWebhookSync('prune'); // shrink the Helius address list to the live whales
+  if (checked) console.log(`[prune] checked ${checked} · pruned ${pruned} · roster now ${REGISTERED_WHALES.size} · pruned total ${prunedTotal}`);
+}
 
 function scoreFromAgg(agg) {
   if (!agg) return null;
@@ -636,6 +679,7 @@ server.on('request', async (req, res) => {
       registered: REGISTERED_WHALES.size,
       helius: { ...hs, hits: webhookHits },
       discovery: { engine: 'gmgn', everyMinutes: GMGN_SYNC_MINUTES, running: gmgnRunning, lastFinished: lastGmgnSyncAt },
+      pruning: { everyMinutes: PRUNE_MINUTES, inactiveDays: PRUNE_DAYS, prunedThisSession: prunedTotal, dormantHeld: PRUNED_DORMANT.size },
       ...db.stats(),
     });
   }
@@ -734,6 +778,12 @@ const VALIDATE_MINUTES = Number(process.env.VALIDATE_MINUTES || 8);
 setTimeout(validateRosterBatch, 90 * 1000);
 setInterval(validateRosterBatch, VALIDATE_MINUTES * 60 * 1000);
 console.log(`[validate] roster hygiene every ${VALIDATE_MINUTES}m (${VALIDATE_BATCH}/batch · bans programs/PDAs)`);
+
+// Roster densification: prune dormant (no-activity ≥ PRUNE_DAYS) wallets so the
+// tracking budget follows the LIVE whales. Starts after boot/backfill settles.
+setTimeout(pruneDormantBatch, 150 * 1000);
+setInterval(pruneDormantBatch, PRUNE_MINUTES * 60 * 1000);
+console.log(`[prune] dormant-wallet pruning every ${PRUNE_MINUTES}m (${PRUNE_BATCH}/batch · >${PRUNE_DAYS}d inactive → removed)`);
 
 // GMGN whale discovery: periodically sweep GMGN (smart-money feed + KOL feed +
 // trending tokens' top traders) into the PERMANENT registry (source 'gmgn'),
