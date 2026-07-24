@@ -119,7 +119,7 @@ async function refreshSolPrice() {
 
 // ── state (same shapes as Monad listener) ──
 const recentWhales = [];
-const RECENT_CAP = Number(process.env.RECENT_CAP || 200); // deeper deck history → more distinct alpha cards per tier
+const RECENT_CAP = Number(process.env.RECENT_CAP || 300); // deeper deck history → cards persist longer, don't churn off under higher throughput
 const traderAgg = new Map();
 const addressTrades = new Map();
 const traderPos = new Map();
@@ -217,7 +217,7 @@ try { fs.watch(CURATED_PATH, () => { clearTimeout(rosterReloadTimer); rosterRelo
 // recently-OBSERVED trade skips the RPC entirely (fast path). Curated wallets are
 // re-seeded at boot, so this is per-session hygiene — commit an exported+pruned
 // roster (exportSolRegistry.js) to persist it across the free-tier reseed.
-const PRUNE_DAYS = Number(process.env.PRUNE_DAYS || 30);
+const PRUNE_DAYS = Number(process.env.PRUNE_DAYS || 60); // conservative — only LONG-dormant wallets, so real whales aren't churned out
 const PRUNE_BATCH = Number(process.env.PRUNE_BATCH || 15);
 const PRUNE_MINUTES = Number(process.env.PRUNE_MINUTES || 12);
 let pruneCursor = 0, prunedTotal = 0;
@@ -231,7 +231,11 @@ async function pruneDormantBatch() {
     pruneCursor += 1;
     if (!REGISTERED_WHALES.has(addr)) continue; // pruned earlier in this batch
     checked += 1;
-    if ((traderAgg.get(addr)?.lastSeen || 0) > cutoff) continue; // observed trading recently → alive, no RPC needed
+    // PROVEN whales — any wallet we've EVER observed actually trade — stay
+    // registered forever ("kayıtlı kalması gerekenler kayıtlı kalmalı"). Only
+    // never-productive seeds that are ALSO long-dormant on-chain are pruned.
+    if ((traderAgg.get(addr)?.trades || 0) > 0) continue;
+    if ((traderAgg.get(addr)?.lastSeen || 0) > cutoff) continue; // observed recently → alive, no RPC needed
     let sigs;
     try { sigs = await rpc('getSignaturesForAddress', [addr, { limit: 1 }]); }
     catch { continue; } // RPC hiccup → re-check next round, NEVER prune on uncertainty

@@ -358,7 +358,7 @@ async function getTokenMarket(tokenAddr, opts = {}) {
 
 // ── live state for HTTP API ──
 const recentWhales = [];                 // newest-first, capped (deeper history → more distinct alpha cards per tier)
-const RECENT_CAP = Number(process.env.RECENT_CAP || 200);
+const RECENT_CAP = Number(process.env.RECENT_CAP || 300); // deeper deck history → cards persist longer, don't churn off under higher throughput
 const traderAgg = new Map();             // address -> aggregate (incl. realized-PnL score)
 const addressTrades = new Map();         // address -> recent trades (capped)
 const traderPos = new Map();             // address -> Map(token -> avg-cost position) for realized PnL
