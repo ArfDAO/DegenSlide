@@ -28,18 +28,33 @@ const TRADE_EVENT_DISC = crypto.createHash('sha256').update('event:TradeEvent').
 
 // ── base58 encode (Bitcoin alphabet) — the backend ships no bs58/web3 dep, and
 // pump.fun events carry pubkeys as 32 raw bytes; addresses everywhere else are
-// base58 strings, so we must encode. ──
+// base58 strings, so we must encode. Standard leading-zero-aware algorithm (same
+// approach as the reference `bs58`/base-x implementations): each leading 0x00
+// byte maps to exactly one '1', and the remaining bytes are converted as one
+// big-endian big integer — NOT double-counted the way a naive "seed digits=[0]"
+// version would (that undercounts real addresses starting with 0x00 and, in the
+// degenerate all-zero case, over-counts by one spurious digit). ──
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 export function base58(buf) {
-  const digits = [0];
-  for (let i = 0; i < buf.length; i++) {
-    let carry = buf[i];
-    for (let j = 0; j < digits.length; j++) { carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; }
-    while (carry > 0) { digits.push(carry % 58); carry = (carry / 58) | 0; }
+  if (buf.length === 0) return '';
+  let zeros = 0;
+  while (zeros < buf.length && buf[zeros] === 0) zeros++;
+  const size = Math.ceil((buf.length - zeros) * 138 / 100) + 1; // log(256)/log(58) ≈ 1.365, safe upper bound
+  const b58 = new Uint8Array(size);
+  let length = 0;
+  for (let i = zeros; i < buf.length; i++) {
+    let carry = buf[i], j = 0;
+    for (let k = size - 1; (carry !== 0 || j < length) && k >= 0; k--, j++) {
+      carry += 256 * b58[k];
+      b58[k] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    length = j;
   }
-  let str = '';
-  for (let i = 0; i < buf.length && buf[i] === 0; i++) str += '1';
-  for (let i = digits.length - 1; i >= 0; i--) str += B58[digits[i]];
+  let it = size - length;
+  while (it < size && b58[it] === 0) it++; // skip any leftover zero digits from the conversion itself
+  let str = '1'.repeat(zeros);
+  for (; it < size; it++) str += B58[b58[it]];
   return str;
 }
 

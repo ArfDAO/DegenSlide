@@ -27,6 +27,8 @@ import { heliusEnabled, syncWebhook, webhookPath, validateAuth, heliusStatus } f
 import { qualityScore, daysSince } from './quality.js';
 import { createRateLimiter } from './rateLimit.js';
 import { startNetworkScan } from './solNetworkScan.js';
+import { aggregateDeck } from './deckAggregate.js';
+import { isBotAgg, isAlphaCard as _isAlphaCard, isAlphaAgg as _isAlphaAgg } from './alphaFilter.js';
 
 const rateLimiter = createRateLimiter({ windowMs: Number(process.env.RATE_WINDOW_MS || 10000), max: Number(process.env.RATE_MAX || 120) });
 
@@ -262,27 +264,9 @@ function scoreFromAgg(agg) {
   };
 }
 
-// Collapse a whale's repeat buys of the same token into one deck card: amounts
-// summed, each buy kept as a `leg` for the detail view. See listener.js for the
-// full rationale. `cards` is newest-first; the first per group carries freshest
-// metadata (symbol/liquidity/price).
-function aggregateDeck(cards) {
-  const groups = new Map();
-  for (const c of cards) {
-    const gid = c.groupId || (c.trader + ':' + c.tokenAddress + ':' + c.side);
-    let g = groups.get(gid);
-    if (!g) {
-      g = { ...c, id: gid, groupId: gid, buyCount: 0, amountUsd: 0, amountMon: 0, tokenAmount: 0, legs: [] };
-      groups.set(gid, g);
-    }
-    g.buyCount += 1;
-    g.amountUsd += c.amountUsd || 0;
-    g.amountMon += c.amountMon || 0;
-    g.tokenAmount += c.tokenAmount || 0;
-    g.legs.push({ txHash: c.txHash, amountUsd: c.amountUsd, amountMon: c.amountMon, tokenAmount: c.tokenAmount, ts: c.ts, blockNumber: c.blockNumber });
-  }
-  return [...groups.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
-}
+// aggregateDeck: collapse a whale's repeat buys of the same token into one
+// deck card (amounts summed, each buy kept as a `leg`). Shared, pure — see
+// deckAggregate.js.
 
 // ── Alpha filter: the deck must surface REAL alpha whale entries ONLY. ──
 // Market-maker / arb-bot / stablecoin-parking flow is NOT signal — a user who
@@ -295,41 +279,18 @@ function aggregateDeck(cards) {
 //   • arb wallets — same-slot buy+sell round-trips (arbHits ≥ ARB_HITS_MAX)
 //   • extreme churn — same token bought ≥ CHURN_BUYS_MAX× in the window (MM/DCA)
 // (MM_WALLETS is declared up in the state block — loadRoster() fills it at boot.)
+// Decision math (isChurnBot/isAlphaCard/isAlphaAgg) is shared — see alphaFilter.js;
+// these thin wrappers just supply this listener's own module state + env knobs.
 const ARB_HITS_MAX = Number(process.env.ARB_HITS_MAX || 3);
 const CHURN_BUYS_MAX = Number(process.env.CHURN_BUYS_MAX || 12);
 const CHURN_MIN_TRADES = Number(process.env.CHURN_MIN_TRADES || 6);
 const CHURN_NET_RATIO = Number(process.env.CHURN_NET_RATIO || 0.15);
-// A market-maker / arb bot churns BOTH ways — balanced buys≈sells and a net
-// position ≈ 0 relative to its volume (it round-trips baskets of tokens at
-// near-identical sizes; the same-slot `arbHits` detector misses cross-token
-// baskets, this catches them). A real alpha whale is DIRECTIONAL: it either
-// accumulates (net buy) or exits (net sell), so |net|/volume stays high.
-function isChurnBot(agg) {
-  if (!agg) return false;
-  const buys = agg.buys || 0, sells = agg.sells || 0, trades = agg.trades || 0;
-  if (trades < CHURN_MIN_TRADES) return false;
-  const balanced = buys >= 2 && sells >= 2 && Math.min(buys, sells) / Math.max(buys, sells) >= 0.5;
-  const vol = agg.volumeMon || agg.volumeUsd || 0;
-  const netTiny = vol > 0 && Math.abs(agg.netMon || 0) / vol < CHURN_NET_RATIO;
-  return balanced && netTiny;
-}
 function isBotTrader(addr) {
   if (MM_WALLETS.has(addr)) return true;
-  const a = traderAgg.get(addr);
-  if (!a) return false;
-  if ((a.arbHits || 0) >= ARB_HITS_MAX) return true;
-  return isChurnBot(a);
+  return isBotAgg(traderAgg.get(addr), { arbHitsMax: ARB_HITS_MAX, minTrades: CHURN_MIN_TRADES, netRatio: CHURN_NET_RATIO });
 }
-function isAlphaCard(card) {            // single raw card (buyCount unknown / 1)
-  if (card.isStable) return false;
-  if (isBotTrader(card.trader)) return false;
-  return true;
-}
-function isAlphaAgg(card) {             // aggregated deck card (buyCount known)
-  if (!isAlphaCard(card)) return false;
-  if ((card.buyCount || 1) >= CHURN_BUYS_MAX) return false;
-  return true;
-}
+function isAlphaCard(card) { return _isAlphaCard(card, { isBot: isBotTrader(card.trader) }); }
+function isAlphaAgg(card) { return _isAlphaAgg(card, { isBot: isBotTrader(card.trader), churnBuysMax: CHURN_BUYS_MAX }); }
 
 // Deck = registered whales only (real Smart Money), across ANY token.
 // Set DECK_ROSTER_ONLY=0 to show every persisted trade (debug only).
