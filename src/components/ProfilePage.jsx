@@ -583,7 +583,7 @@ export default function ProfilePage({
                   <Toggle on={!!settings.hideStables} onChange={(v) => updateSetting('hideStables', v)} />
                 </SettingRow>
                 <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />
-                <SettingRow title="Auto-sell on SL / TP" desc={`When a position hits its stop-loss or take-profit, sell it back to ${ACTIVE.nativeSymbol} automatically (${WALLET_NAME} confirms each).`}>
+                <SettingRow title="Auto-sell on SL / TP" desc={`When a position hits its stop-loss or take-profit, sell it back to ${ACTIVE.nativeSymbol} automatically (${WALLET_NAME} confirms each). Runs while DegenSlide is open — closing the app pauses it.`}>
                   <Toggle on={!!settings.autoSell} onChange={(v) => updateSetting('autoSell', v)} />
                 </SettingRow>
                 <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />

@@ -23,7 +23,7 @@ const TOURS = {
   ],
   portfolio: [
     { icon: '📊', title: 'Your copies live here', target: '[data-tour="portfolio-head"]', text: 'Every copied trade becomes a position with live PnL. Buy more, close any % of it, or share a PnL card with one tap.' },
-    { icon: '🛡️', title: 'Exits run themselves', target: '[data-tour="portfolio-head"]', text: 'Open a position to set stop-loss / take-profit, or arm “sell when the whale sells” — your exits execute automatically, even while you sleep.' },
+    { icon: '🛡️', title: 'Exits run themselves', target: '[data-tour="portfolio-head"]', text: 'Open a position to set stop-loss / take-profit, or arm “sell when the whale sells” — your exits then execute automatically while DegenSlide is open in your browser.' },
   ],
   leaderboard: [
     { icon: '🏆', title: 'Who’s actually good', target: '[data-tour="lb-tabs"]', text: 'Whales ranks tracked wallets by real performance. 🔥 Hot shows tokens that MULTIPLE whales are buying right now — the strongest signal in the app.' },
@@ -929,6 +929,7 @@ export default function App() {
         else reducePosition(p.id, fraction);
         refreshBalance();
       } catch (err) {
+        console.error('[Turbo] sell failed:', err.message, err); // observability parity with copy — diagnose "sell didn't work" reports
         const m = err.message;
         if (m === 'NO_BALANCE') showToast('sell_nobal');
         else if (m === 'NO_LIQUIDITY') showToast('no_liq');
@@ -957,7 +958,8 @@ export default function App() {
       else reducePosition(p.id, fraction);
       refreshBalance(from);
     } catch (err) {
-      if (err.code === 4001) { showToast('sell_cancel'); throw err; }
+      if (err.code === 4001) { showToast('sell_cancel'); throw err; } // user rejected in wallet — not a failure, don't log as one
+      console.error('[Sell] failed:', err.message, err);
       const m = err.message;
       if (m === 'NO_BALANCE') showToast('sell_nobal');
       else if (m === 'NO_LIQUIDITY') showToast('no_liq');
