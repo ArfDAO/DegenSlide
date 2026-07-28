@@ -419,8 +419,8 @@ function WalletTab({ monBalance, balanceUsd, balanceHistory, externalWallet, onC
       {autoCopy && (
         <div data-tour="autocopy-card" style={{ ...CARD, padding: 12, marginTop: 12, borderColor: autoCopy.enabled ? 'var(--color-bone-dim)' : 'var(--color-charcoal-vein)' }}>
           <SectionTitle icon={<Radio size={12} color={autoCopy.enabled ? 'var(--color-bone-glow)' : 'var(--color-bone-dim)'} />} accent={autoCopy.enabled ? 'var(--color-bone-glow)' : undefined}>Auto-Copy</SectionTitle>
-          <SettingRow title="Follow whales hands-free" desc="Instantly copy every BUY from whales marked AUTO in your watchlist. Spends from the Turbo wallet — bounded by the budget below.">
-            <Toggle on={!!autoCopy.enabled} onChange={(v) => updateAutoCopy({ enabled: v })} />
+          <SettingRow title="Follow whales hands-free (Coming Soon)" desc="Instantly copy every BUY from whales marked AUTO in your watchlist. Spends from the Turbo wallet — bounded by the budget below.">
+            <Toggle on={false} onChange={() => {}} />
           </SettingRow>
           {autoCopy.enabled && (
             <div style={{ marginTop: 6 }}>
@@ -571,39 +571,14 @@ export default function ProfilePage({
             <div style={{ ...CARD, padding: 12 }}>
               <SectionTitle icon={<SlidersHorizontal size={12} color="var(--color-bone-dim)" />}>Settings</SectionTitle>
               <div style={{ marginTop: 4 }}>
-                <SettingRow title="Live whale feed" desc="Stream new whale trades into the deck in real time.">
-                  <Toggle on={!!settings.liveFeed} onChange={(v) => updateSetting('liveFeed', v)} />
-                </SettingRow>
-                <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />
                 <SettingRow title="Whale alerts" desc="Get a browser notification when a whale-sized buy lands while the app is in the background.">
                   <Toggle on={!!settings.whaleAlerts} onChange={(v) => (onToggleWhaleAlerts ? onToggleWhaleAlerts(v) : updateSetting('whaleAlerts', v))} />
                 </SettingRow>
                 <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />
-                <SettingRow title="Hide stablecoin trades" desc="Skip USDC/USDT swaps — focus on real token bets.">
-                  <Toggle on={!!settings.hideStables} onChange={(v) => updateSetting('hideStables', v)} />
+                <SettingRow title="Auto-sell on SL / TP / Whale-Exit (Coming Soon)" desc={`When a position hits its stop-loss, take-profit, or the whale exits, sell it back to ${ACTIVE.nativeSymbol} automatically (${WALLET_NAME} confirms each). Runs while DegenSlide is open — closing the app pauses it.`}>
+                  <Toggle on={false} onChange={() => {}} />
                 </SettingRow>
-                <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />
-                <SettingRow title="Auto-sell on SL / TP" desc={`When a position hits its stop-loss or take-profit, sell it back to ${ACTIVE.nativeSymbol} automatically (${WALLET_NAME} confirms each).`}>
-                  <Toggle on={!!settings.autoSell} onChange={(v) => updateSetting('autoSell', v)} />
-                </SettingRow>
-                <div style={{ borderTop: '1px solid var(--color-charcoal-vein)' }} />
-                <div style={{ padding: '12px 0 4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <Filter size={13} color="var(--color-bone-dim)" />
-                    <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>Minimum whale size</span>
-                  </div>
-                  <div style={{ fontSize: 10.5, color: 'var(--color-bone-dim)', fontWeight: 400, margin: '2px 0 10px', lineHeight: 1.25 }}>Only show trades of at least this many {ACTIVE.nativeSymbol} in the deck.</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {MIN_WHALE_TIERS.map((v) => {
-                      const active = (settings.minWhaleMon || 0) === v;
-                      return (
-                        <button key={v} onClick={() => updateSetting('minWhaleMon', v)} style={{ ...(active ? PILL_ON : PILL), flex: 1, padding: '9px 0' }}>
-                          {v === 0 ? 'All' : `${v}+`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+
               </div>
               <div style={{ fontSize: 10, color: 'var(--color-bone-dim)', marginTop: 8, fontWeight: 400, lineHeight: 1.25 }}>
                 Copy amount &amp; slippage live in the deck&rsquo;s settings button (bottom-left on the swipe screen).

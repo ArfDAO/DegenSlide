@@ -23,7 +23,7 @@ const TOURS = {
   ],
   portfolio: [
     { icon: '📊', title: 'Your copies live here', target: '[data-tour="portfolio-head"]', text: 'Every copied trade becomes a position with live PnL. Buy more, close any % of it, or share a PnL card with one tap.' },
-    { icon: '🛡️', title: 'Exits run themselves', target: '[data-tour="portfolio-head"]', text: 'Open a position to set stop-loss / take-profit, or arm “sell when the whale sells” — your exits execute automatically, even while you sleep.' },
+    { icon: '🛡️', title: 'Exits run themselves', target: '[data-tour="portfolio-head"]', text: 'Open a position to set stop-loss / take-profit, or arm “sell when the whale sells” — your exits then execute automatically while DegenSlide is open in your browser.' },
   ],
   leaderboard: [
     { icon: '🏆', title: 'Who’s actually good', target: '[data-tour="lb-tabs"]', text: 'Whales ranks tracked wallets by real performance. 🔥 Hot shows tokens that MULTIPLE whales are buying right now — the strongest signal in the app.' },
@@ -275,6 +275,11 @@ const STATIC_CURATED = ACTIVE.id === 'monad' ? (curatedWhalesData.whales || []) 
 // Whale = [whale, ∞). 'All' shows everything above the hard floor (tiers.all)
 // — nothing below that floor ever reaches the deck.
 const TIERS_USD = ACTIVE.tiers;
+// Max cards held in the swipe deck. Kept generous so a card that dropped in
+// isn't shoved off the stack by fresh arrivals before the user reaches it —
+// cards persist until swiped or aged well past this depth (raised from 60 as
+// the higher-throughput network-wide discovery lands more trades).
+const DECK_MAX = 150;
 const DECK_TIERS = [
   { id: 'all', label: 'All', color: 'var(--text-3)' },
   { id: 'big', label: 'Big', color: 'var(--text-2)' },
@@ -597,7 +602,7 @@ export default function App() {
       for (let i = 0; i < delays.length; i++) {
         if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
         if (!state.alive) return;
-        const deck = await fetchWhaleDeck(40);
+        const deck = await fetchWhaleDeck(80);
         if (!state.alive) return;
         if (deck.length > 0) {
           setCards(deck);
@@ -630,7 +635,7 @@ export default function App() {
       // (fresh activity) — instead of spawning a near-duplicate card.
       setCards((prev) => {
         const idx = prev.findIndex((c) => c.id === card.id);
-        if (idx === -1) return [card, ...prev].slice(0, 60);
+        if (idx === -1) return [card, ...prev].slice(0, DECK_MAX);
         const ex = prev[idx];
         if (ex.legs?.some((l) => l.txHash === card.txHash)) return prev; // already folded (WS+poll overlap)
         const merged = {
@@ -642,7 +647,7 @@ export default function App() {
           legs: [card.legs[0], ...(ex.legs || [])],
           ts: card.ts,
         };
-        return [merged, ...prev.filter((_, i) => i !== idx)].slice(0, 60);
+        return [merged, ...prev.filter((_, i) => i !== idx)].slice(0, DECK_MAX);
       });
       maybeNotifyWhale(card); // opt-in browser alert for the biggest whale buys
     });
@@ -654,7 +659,7 @@ export default function App() {
     // the deck on its own, no reload needed. Dismissed/known ids are skipped.
     const pollTimer = setInterval(async () => {
       if (!state.alive || !settingsRef.current.liveFeed) return;
-      const deck = await fetchWhaleDeck(40);
+      const deck = await fetchWhaleDeck(80);
       if (!state.alive || !deck.length) return;
       setIndexerUp(true);
       setCards((prev) => {
@@ -672,7 +677,7 @@ export default function App() {
         // trades the socket missed still auto-copy — the executor's own 90s
         // freshness guard rejects anything that's actually old
         for (const c of fresh) autoCopyRef.current?.(c);
-        return fresh.length ? [...fresh, ...updated].slice(0, 60) : updated;
+        return fresh.length ? [...fresh, ...updated].slice(0, DECK_MAX) : updated;
       });
     }, 15000);
 
@@ -696,7 +701,7 @@ export default function App() {
   const restoreCard = useCallback((trader) => {
     if (trader?.id == null) return;
     dismissedRef.current.delete(trader.id);
-    setCards((prev) => (prev.find((c) => c.id === trader.id) ? prev : [trader, ...prev].slice(0, 60)));
+    setCards((prev) => (prev.find((c) => c.id === trader.id) ? prev : [trader, ...prev].slice(0, DECK_MAX)));
   }, []);
 
   // The balance the app runs on is the TURBO wallet's — it's what swipes spend.
@@ -924,6 +929,7 @@ export default function App() {
         else reducePosition(p.id, fraction);
         refreshBalance();
       } catch (err) {
+        console.error('[Turbo] sell failed:', err.message, err); // observability parity with copy — diagnose "sell didn't work" reports
         const m = err.message;
         if (m === 'NO_BALANCE') showToast('sell_nobal');
         else if (m === 'NO_LIQUIDITY') showToast('no_liq');
@@ -952,7 +958,8 @@ export default function App() {
       else reducePosition(p.id, fraction);
       refreshBalance(from);
     } catch (err) {
-      if (err.code === 4001) { showToast('sell_cancel'); throw err; }
+      if (err.code === 4001) { showToast('sell_cancel'); throw err; } // user rejected in wallet — not a failure, don't log as one
+      console.error('[Sell] failed:', err.message, err);
       const m = err.message;
       if (m === 'NO_BALANCE') showToast('sell_nobal');
       else if (m === 'NO_LIQUIDITY') showToast('no_liq');
@@ -1056,7 +1063,7 @@ export default function App() {
   }, [isLoading, cards]);
 
   const swipe = (dir) => topCardRef.current?.swipe(dir);
-  const reloadDeck = useCallback(() => { setIsLoading(true); fetchWhaleDeck(40).then((d) => setCards(d)).finally(() => setIsLoading(false)); }, []);
+  const reloadDeck = useCallback(() => { setIsLoading(true); fetchWhaleDeck(80).then((d) => setCards(d)).finally(() => setIsLoading(false)); }, []);
 
   // ── Connection resilience: tell the user when the device is offline, and
   // snap everything back to live the moment the connection returns. ──

@@ -1,6 +1,9 @@
 services:
+  # Live services (deployed manually on Render — names here match the live URLs):
+  #   Monad  → https://deepswap-monad-bot2-u0ob.onrender.com
+  #   Solana → https://deepswap-solana-bot-h10w.onrender.com
   - type: web
-    name: deepswap-monad-bot
+    name: deepswap-monad-bot2-u0ob
     env: node
     buildCommand: npm install
     startCommand: npm start
@@ -14,9 +17,14 @@ services:
         value: https://rpc.monad.xyz
       - key: WHALE_MIN_USD
         value: 25
+      # ── Optional tunables (code defaults in listener.js; set only to override) ──
+      # PROMOTE_MIN_USD (300)   cumulative USD to promote a NON-roster wallet (network-wide 2B)
+      # PROMOTE_MINUTES (2)     how often the promote pass runs
+      # RECENT_CAP      (300)   deck history depth (cards persist longer)
+      # CHURN_MIN_TRADES(6) / CHURN_NET_RATIO (0.15)  bot (balanced-churn) gate
 
   - type: web
-    name: deepswap-solana-bot
+    name: deepswap-solana-bot-h10w
     env: node
     buildCommand: npm install
     startCommand: npm run start:sol
@@ -41,3 +49,13 @@ services:
         sync: false
       - key: CIELO_API_KEY
         sync: false
+      # ── Optional tunables (code defaults in solListener.js; set only to override) ──
+      # Phase-2B FREE network-wide detection (pump.fun log subscription):
+      #   SOL_NETWORK_SCAN (1)     set 0 to disable if a constrained box struggles
+      #   SOL_WS (public node)     logsSubscribe WS endpoint; default burns NO Helius credits
+      #   NETWORK_MIN_USD (1000)   pump.fun trade size to become a promotion candidate
+      #   NETWORK_MIN_HITS (2)     repeat whale-size trades before promoting (fluke filter)
+      # Phase-2A discovery + pruning:
+      #   GMGN_SYNC_MINUTES (20)   discovery sweep cadence
+      #   PRUNE_DAYS (60)          on-chain-dormant days before a NON-proven wallet is pruned
+      # Deck: RECENT_CAP (300)     history depth so cards persist longer

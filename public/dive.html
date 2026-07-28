@@ -81,10 +81,8 @@ a{color:inherit}
 .beat-hero h1 .ch{display:inline-block;will-change:transform}
 .beat-hero .sub{font-family:var(--mono);font-size:clamp(11px,1.3vw,14px);letter-spacing:.18em;
   text-transform:uppercase;color:var(--bone-dim);margin-top:22px}
-.beat-hero .hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--bone-faint);display:flex;flex-direction:column;align-items:center;gap:10px}
-.beat-hero .hint::after{content:"";width:1px;height:34px;
+.beat-hero .hint{position:absolute;bottom:8vh;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:clamp(14px, 1.5vw, 18px);letter-spacing:.3em;text-transform:uppercase;color:var(--bone);display:flex;flex-direction:column;align-items:center;gap:12px;font-weight:700}
+.beat-hero .hint::after{content:"";width:1.5px;height:50px;
   background:linear-gradient(var(--bone-faint),transparent);animation:drip 1.8s ease-in-out infinite}
 @keyframes drip{0%{transform:scaleY(.2);transform-origin:top}55%{transform:scaleY(1)}100%{transform:scaleY(.2);transform-origin:top;opacity:0}}
 .beat-l{left:7vw;top:50%;transform:translateY(-50%)}
@@ -226,27 +224,145 @@ a{color:inherit}
 
     <!-- beats -->
     <div class="beat beat-hero" data-in="-0.1" data-peak="0" data-out="0.13">
-      <h1 id="hero-word">DEGENSLIDE</h1>
+      <div id="hero-deck-wrap" style="position:relative; max-width:390px; margin: 0 auto 40px; width:100%; will-change:transform">
+        
+        <div class="deck-card" id="hero-deck-card" style="margin:0; box-shadow:0 24px 60px rgba(0,0,0,0.8); background:#11120f; border-color:#2a2b28; border-radius:12px; overflow:hidden;">
+          <!-- Top bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid #1f201d; background:rgba(109, 180, 138, 0.05);">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="background:#6db48a; color:#0e0f0c; padding:4px 12px; border-radius:999px; font-family:var(--mono); font-size:10.5px; font-weight:800; letter-spacing:0.04em;">↗ BUY</span>
+              <span style="font-family:var(--mono); font-size:10px; color:#888985; letter-spacing:0.06em; text-transform:uppercase;">RAYDIUM</span>
+            </div>
+            <span style="font-family:var(--mono); font-size:10px; color:#666763;">Just now</span>
+          </div>
+          
+          <!-- Identity -->
+          <div style="padding:16px 18px 12px; display:flex; align-items:flex-start; gap:14px;">
+            <div style="width:44px; height:44px; border:1px solid #2a2b28; background:#181916; display:flex; align-items:center; justify-content:center; position:relative;">
+              <span style="font-family:var(--disp); font-size:16px; color:#e4dfda;">ZF</span>
+              <div style="position:absolute; bottom:-3px; right:-3px; width:10px; height:10px; background:#d6633a; border-radius:50%; border:2px solid #11120f;"></div>
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:var(--body); font-size:17px; font-weight:700; color:#e4dfda; letter-spacing:-0.02em;">Zen Falcon</span>
+                <span style="font-family:var(--mono); font-size:9px; font-weight:700; color:#d6633a; letter-spacing:0.08em;">WHALE</span>
+                <span style="border:1px solid #2a2b28; padding:3px 8px; border-radius:99px; font-family:var(--mono); font-size:9px; color:#a0a09c; letter-spacing:0.04em;">TRACKED</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                <span style="background:#181916; border:1px solid #2a2b28; padding:4px 8px; border-radius:6px; font-family:var(--mono); font-size:10px; color:#a0a09c;">8xY7…3qP1 ↗</span>
+                <span style="border:1px solid #2a2b28; padding:4px 8px; border-radius:99px; font-family:var(--body); font-size:10px; font-weight:500; color:#a0a09c;">New wallet • 4 open</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Hero Size -->
+          <div style="margin:0 14px 14px; border:1px solid #1f201d; background:#141512; padding:24px 16px; text-align:center; position:relative; border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+              <div style="width:28px; height:28px; border-radius:50%; background:#d6633a; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; font-family:var(--disp);">D</div>
+              <span style="font-family:var(--body); font-weight:800; font-size:28px; color:#e4dfda; letter-spacing:-0.03em;">$DEGEN</span>
+              <span style="border:1px solid #2a2b28; padding:3px 8px; border-radius:99px; font-family:var(--mono); font-size:10px; color:#a0a09c;">7d</span>
+            </div>
+            <div style="font-family:var(--mono); font-weight:700; font-size:48px; color:#e4dfda; letter-spacing:-0.04em; margin-top:4px; line-height:1.1;">$124.5K</div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px;">
+              <span style="font-family:var(--mono); font-size:10px; font-weight:700; color:#e4dfda; letter-spacing:0.06em;">WHALE BOUGHT TOTAL • 840.50 SOL</span>
+              <span style="border:1px solid #6db48a; background:rgba(109,180,138,0.1); padding:2px 8px; border-radius:99px; font-family:var(--mono); font-size:9.5px; font-weight:700; color:#6db48a;">x3 BUYS</span>
+            </div>
+            <div style="font-family:var(--mono); font-size:10.5px; font-weight:700; color:#6db48a; letter-spacing:0.06em; margin-top:8px;">SINCE ENTRY +14.2%</div>
+          </div>
+          
+          <!-- Chart & Stats -->
+          <div style="margin:0 14px 14px; border:1px solid #1f201d; background:#141512; padding:16px; border-radius:8px; position:relative; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-family:var(--mono); font-weight:700; font-size:18px; color:#e4dfda;">$0.024</div>
+                <div style="font-family:var(--mono); font-size:9px; font-weight:700; color:#888985; letter-spacing:0.06em; margin-top:2px;">DEGEN/SOL • 24H CHART</div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <span style="border:1px solid #1f201d; background:rgba(109,180,138,0.1); padding:4px 10px; border-radius:99px; font-family:var(--mono); font-size:10px; font-weight:700; color:#6db48a;">▲ +24.5%</span>
+                <span style="border:1px solid #1f201d; background:rgba(141,107,255,0.1); padding:4px 10px; border-radius:99px; font-family:var(--mono); font-size:10px; font-weight:700; color:#8d6bff;">99 • DEGEN</span>
+              </div>
+            </div>
+            
+            <!-- Mock Chart -->
+            <div style="height:120px; margin-top:20px; position:relative; border-bottom:1px solid #1f201d;">
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" style="width:100%; height:100%; display:block;">
+                <defs>
+                  <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6db48a" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#6db48a" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M0,35 Q10,15 25,12 T50,15 T75,8 T100,5 L100,40 L0,40 Z" fill="url(#chartGrad)" />
+                <path d="M0,35 Q10,15 25,12 T50,15 T75,8 T100,5" fill="none" stroke="#6db48a" stroke-width="1.5" />
+                <circle cx="100" cy="5" r="1.5" fill="#6db48a" />
+              </svg>
+              <div style="position:absolute; bottom:-18px; left:0; width:100%; display:flex; justify-content:space-between; font-family:var(--mono); font-size:8px; color:#666763;">
+                <span>24H</span><span>6H</span><span>1H</span><span>5M</span><span>NOW</span>
+              </div>
+            </div>
+            
+            <!-- Stats Footer -->
+            <div style="display:flex; justify-content:space-between; margin-top:28px; text-align:center;">
+              <div>
+                <div style="font-family:var(--mono); font-size:8px; color:#888985; letter-spacing:0.04em;">LIQ</div>
+                <div style="font-family:var(--mono); font-size:11px; font-weight:700; color:#e4dfda; margin-top:4px;">$4.2M</div>
+              </div>
+              <div>
+                <div style="font-family:var(--mono); font-size:8px; color:#888985; letter-spacing:0.04em;">FDV</div>
+                <div style="font-family:var(--mono); font-size:11px; font-weight:700; color:#e4dfda; margin-top:4px;">$240M</div>
+              </div>
+              <div>
+                <div style="font-family:var(--mono); font-size:8px; color:#888985; letter-spacing:0.04em;">VOL 24H</div>
+                <div style="font-family:var(--mono); font-size:11px; font-weight:700; color:#e4dfda; margin-top:4px;">$12M</div>
+              </div>
+              <div>
+                <div style="font-family:var(--mono); font-size:8px; color:#888985; letter-spacing:0.04em;">B/S</div>
+                <div style="font-family:var(--mono); font-size:11px; font-weight:700; color:#e4dfda; margin-top:4px;">3.4K/2.1K</div>
+              </div>
+            </div>
+            <div style="text-align:center; margin-top:16px; padding-top:12px; border-top:1px solid #1f201d; font-family:var(--mono); font-size:9px; font-weight:700; color:#666763; letter-spacing:0.12em;">^ TAP FOR DETAILS</div>
+          </div>
+          
+          <!-- Actions -->
+          <div style="padding:16px 24px; display:flex; justify-content:center; align-items:center; gap:16px; border-top:1px solid #1f201d; background:#11120f;">
+            <div style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #2a2b28; display:flex; align-items:center; justify-content:center; color:#a0a09c;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <div style="position:absolute; top:-6px; right:-6px; background:#d6633a; color:#fff; font-family:var(--mono); font-size:9px; font-weight:800; padding:2px 6px; border-radius:99px; border:2px solid #11120f;">0.25</div>
+            </div>
+            
+            <div style="width:52px; height:52px; border-radius:50%; border:1px solid #2a2b28; display:flex; align-items:center; justify-content:center; color:#d6633a;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            
+            <div style="width:68px; height:68px; border-radius:50%; background:#d6633a; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 8px 24px rgba(214,99,58,0.4);">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            
+            <div style="width:52px; height:52px; border-radius:50%; border:1px solid #2a2b28; display:flex; align-items:center; justify-content:center; color:#e4dfda;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+          </div>
+        </div>
+
+        <div id="hero-copy-stamp" style="position:absolute; top:20%; left:10%; border:3px solid var(--sage); padding:6px 16px; font-family:var(--mono); font-size:26px; font-weight:900; letter-spacing:0.12em; color:var(--sage); transform:rotate(-15deg); opacity:0; pointer-events:none; z-index:10; background:rgba(20,21,15,0.85); backdrop-filter:blur(4px);">COPY</div>
+      </div>
+      
       <div class="sub">Swipe to copy-trade whales</div>
       <div class="hint">Dive</div>
     </div>
     <div class="beat beat-l" data-in="0.20" data-peak="0.27" data-out="0.36">
-      <span class="k">01 · Descent</span>
       <h2>The market<br>is an ocean.</h2>
       <p>Under the surface, size moves first. Price follows the big bodies — you just can't see them from the shore.</p>
     </div>
     <div class="beat beat-r" data-in="0.42" data-peak="0.50" data-out="0.60">
-      <span class="k">02 · The whale</span>
       <h2>Follow<br>the whales</h2>
       <p>Every card in the deck is a real on-chain buy from a tracked wallet, streaming in live on Monad and Solana.</p>
     </div>
     <div class="beat beat-l" data-in="0.64" data-peak="0.72" data-out="0.80">
-      <span class="k">03 · The eye</span>
       <h2>See what<br>they see</h2>
       <p>Entry price, Degen Score, momentum and risk flags — on the back of every card. Flip it before you copy it.</p>
     </div>
     <div class="beat beat-c" data-in="0.84" data-peak="0.93" data-out="2">
-      <span class="k">04 · Signal floor</span>
       <h2>The signal floor</h2>
       <p>Live feed. One-swipe Turbo copies. Auto-copy budgets. Exits that run themselves while you sleep.</p>
     </div>
@@ -341,9 +457,7 @@ a{color:inherit}
   <footer class="footer">
     <span class="f-brand">DegenSlide</span>
     <div class="f-social">
-      <a href="#" aria-label="X / Twitter"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.6l5.24 6.93 6.06-6.93Zm-1.3 19.5h2.04L6.49 3.24H4.3l13.3 17.4Z"/></svg></a>
-      <a href="#" aria-label="Telegram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.94 0A12 12 0 1 0 24 12 12 12 0 0 0 11.94 0Zm5.9 8.17-1.97 9.3c-.15.66-.54.82-1.1.51l-3-2.21-1.45 1.4a.76.76 0 0 1-.6.29l.21-3.05 5.56-5.02c.24-.21-.05-.33-.37-.12l-6.87 4.33-2.96-.93c-.64-.2-.66-.64.14-.95l11.57-4.46c.53-.2 1 .13.84.91Z"/></svg></a>
-      <a href="#" aria-label="GitHub"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57v-2.23c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.57A12 12 0 0 0 12 .3Z"/></svg></a>
+      <a href="https://x.com/DegenSlide" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.6l5.24 6.93 6.06-6.93Zm-1.3 19.5h2.04L6.49 3.24H4.3l13.3 17.4Z"/></svg></a>
     </div>
     <p class="f-legal">DegenSlide is experimental software. Nothing here is financial advice; every
     trade is your own decision and responsibility. © 2026 DegenSlide.</p>
@@ -476,7 +590,7 @@ function drawSurface(t, time){
   const a = env(p, -0.01, 0, 0.16, 0.30);
   if (a <= 0) return;
   const zoom = 1 + ease(t) * 2.1;                    // descent = zoom into the water
-  const horizon = H * (0.34 - ease(t) * 0.62);       // horizon exits the top of frame
+  const horizon = H * (-0.2 - ease(t) * 0.62);       // horizon exits the top of frame
   // moon path — a brighter vertical band
   const mp = cx.createLinearGradient(W*0.32, 0, W*0.68, 0);
   mp.addColorStop(0, 'rgba(228,223,218,0)');
@@ -764,12 +878,29 @@ gsap.ticker.add(t => {
 gsap.ticker.lagSmoothing(0);
 
 /* hero char-split reveal (plays once on load) */
-const heroWord = document.getElementById('hero-word');
-heroWord.innerHTML = heroWord.textContent.split('').map(c => `<span class="ch">${c}</span>`).join('');
-if (!REDUCED && JUMP === null){
-  gsap.from('#hero-word .ch', { yPercent: 120, opacity: 0, stagger: 0.055, duration: 1.1,
-    ease: 'power4.out', delay: 0.25 });
-}
+/* hero word removed */
+    gsap.to('#hero-deck-wrap', {
+      x: innerWidth * 1.5,
+      rotation: 30,
+      opacity: 0,
+      ease: 'power2.in',
+      scrollTrigger: {
+        trigger: '#film',
+        start: 'top top',
+        end: 'top -100%',
+        scrub: true
+      }
+    });
+    gsap.to('#hero-copy-stamp', {
+      opacity: 1,
+      ease: 'power1.in',
+      scrollTrigger: {
+        trigger: '#film',
+        start: 'top top',
+        end: 'top -50%',
+        scrub: true
+      }
+    });
 
 /* ── content reveals (created AFTER the film — ordering law) ── */
 document.fonts.ready.then(() => {

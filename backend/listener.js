@@ -26,6 +26,8 @@ import { WebSocketServer } from 'ws';
 import * as db from './db.js';
 import { qualityScore, daysSince } from './quality.js';
 import { createRateLimiter } from './rateLimit.js';
+import { aggregateDeck } from './deckAggregate.js';
+import { isBotAgg, isAlphaCard as _isAlphaCard, isAlphaAgg as _isAlphaAgg } from './alphaFilter.js';
 
 const rateLimiter = createRateLimiter({ windowMs: Number(process.env.RATE_WINDOW_MS || 10000), max: Number(process.env.RATE_MAX || 120) });
 
@@ -191,8 +193,14 @@ function rosterAgeHours() {
 // The 6h deep scan re-ranks the whole chain; this fast pass watches the live
 // aggregates and promotes any fresh, directional, non-bot EOA to the roster so
 // its trades reach the deck almost immediately.
-const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 3);
-const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 400); // cumulative USD to qualify as a whale — real size only, this is a whale app
+// Phase-2B/2C: this is the FREE network-wide whale detector. The Monad listener
+// already scans EVERY swap (getLogs, all DEX topics) and aggregates ALL traders
+// — not just the roster — so this fast pass promotes any fresh, directional,
+// non-bot EOA the moment it moves real size. Cadence + floor tuned to widen the
+// net; the quality gate (2C) mirrors the deck's alpha filter so a wallet we'd
+// HIDE as a bot never gets promoted either.
+const PROMOTE_MINUTES = Number(process.env.PROMOTE_MINUTES || 2);
+const PROMOTE_MIN_USD = Number(process.env.PROMOTE_MIN_USD || 300); // cumulative USD to qualify as a whale — real size only, this is a whale app
 const codeCache = new Map();
 async function isEOA(addr) {
   if (codeCache.has(addr)) return codeCache.get(addr);
@@ -201,6 +209,9 @@ async function isEOA(addr) {
   codeCache.set(addr, eoa);
   return eoa;
 }
+// (isChurnBot — balanced two-way churn with net ≈ 0 = MM/arb bot — is defined
+// with the deck's alpha filter below and reused here so promotion and deck
+// display share ONE bot definition.)
 async function promoteWhales() {
   const cands = [...traderAgg.values()].filter((a) => !REGISTERED_WHALES.has(a.address));
   for (const a of cands) {
@@ -208,6 +219,7 @@ async function promoteWhales() {
     if (usd < PROMOTE_MIN_USD) continue;                        // not enough real activity yet
     const dir = a.trades ? Math.abs(a.buys - a.sells) / a.trades : 1;
     if (a.trades >= 10 && dir < 0.25) continue;                // balanced churn = MM bot
+    if (isChurnBot(a)) continue;                               // net-flow churn = MM/arb basket bot (2C, matches deck filter)
     if ((a.arbHits || 0) > 0) continue;                        // atomic arb bot
     if (!(await isEOA(a.address))) continue;                   // contract / AA bot
     REGISTERED_WHALES.add(a.address);
@@ -348,7 +360,7 @@ async function getTokenMarket(tokenAddr, opts = {}) {
 
 // ── live state for HTTP API ──
 const recentWhales = [];                 // newest-first, capped (deeper history → more distinct alpha cards per tier)
-const RECENT_CAP = Number(process.env.RECENT_CAP || 200);
+const RECENT_CAP = Number(process.env.RECENT_CAP || 300); // deeper deck history → cards persist longer, don't churn off under higher throughput
 const traderAgg = new Map();             // address -> aggregate (incl. realized-PnL score)
 const addressTrades = new Map();         // address -> recent trades (capped)
 const traderPos = new Map();             // address -> Map(token -> avg-cost position) for realized PnL
@@ -423,41 +435,20 @@ function tokenLegWei(amount0, amount1, wmonIsToken0) {
 // ── Alpha filter: hard-drop market-maker / arb-bot / stablecoin flow so the
 // deck surfaces REAL alpha whale entries ONLY (see solListener.js for the full
 // rationale). All four patterns are near-zero false-positive for a genuine
-// alpha whale. Same env knobs as the Solana indexer. ──
+// alpha whale. Same env knobs as the Solana indexer. Decision math is shared —
+// see alphaFilter.js; these thin wrappers supply this listener's own module
+// state (lowercased addresses on EVM) + env knobs. ──
 const ARB_HITS_MAX = Number(process.env.ARB_HITS_MAX || 3);
 const CHURN_BUYS_MAX = Number(process.env.CHURN_BUYS_MAX || 12);
 const CHURN_MIN_TRADES = Number(process.env.CHURN_MIN_TRADES || 6);
 const CHURN_NET_RATIO = Number(process.env.CHURN_NET_RATIO || 0.15);
-// Balanced two-way churn with net ≈ 0 = market-maker / arb bot (catches the
-// cross-token basket bots the same-block arbHits detector misses). A real alpha
-// whale is directional (net buy or net sell). See solListener.js for rationale.
-function isChurnBot(agg) {
-  if (!agg) return false;
-  const buys = agg.buys || 0, sells = agg.sells || 0, trades = agg.trades || 0;
-  if (trades < CHURN_MIN_TRADES) return false;
-  const balanced = buys >= 2 && sells >= 2 && Math.min(buys, sells) / Math.max(buys, sells) >= 0.5;
-  const vol = agg.volumeMon || 0;
-  const netTiny = vol > 0 && Math.abs(agg.netMon || 0) / vol < CHURN_NET_RATIO;
-  return balanced && netTiny;
-}
 function isBotTrader(addr) {
   const a = (addr || '').toLowerCase();
   if (MM_WALLETS.has(a)) return true;
-  const agg = traderAgg.get(a);
-  if (!agg) return false;
-  if ((agg.arbHits || 0) >= ARB_HITS_MAX) return true;
-  return isChurnBot(agg);
+  return isBotAgg(traderAgg.get(a), { arbHitsMax: ARB_HITS_MAX, minTrades: CHURN_MIN_TRADES, netRatio: CHURN_NET_RATIO });
 }
-function isAlphaCard(card) {            // single raw card (buyCount unknown / 1)
-  if (card.isStable) return false;
-  if (isBotTrader(card.trader)) return false;
-  return true;
-}
-function isAlphaAgg(card) {             // aggregated deck card (buyCount known)
-  if (!isAlphaCard(card)) return false;
-  if ((card.buyCount || 1) >= CHURN_BUYS_MAX) return false;
-  return true;
-}
+function isAlphaCard(card) { return _isAlphaCard(card, { isBot: isBotTrader(card.trader) }); }
+function isAlphaAgg(card) { return _isAlphaAgg(card, { isBot: isBotTrader(card.trader), churnBuysMax: CHURN_BUYS_MAX }); }
 
 // Deck eligibility: copyable BUYs only, and — when roster-only is on — only from
 // verified/tracked whales (a normal person's big trade is not what we copy).
@@ -847,31 +838,9 @@ async function poll() {
   }
 }
 
-// ── Deck aggregation: collapse repeat buys into one card ──────────────────
-// A whale that buys the same token 5 times used to produce 5 near-identical
-// deck cards. Instead we fold every buy by the same whale of the same token
-// (same groupId) into ONE card: amounts are SUMMED (real total position added),
-// entry price becomes the size-weighted average, and each individual buy is
-// preserved as a `leg` for the card's detail view. `cards` is newest-first, so
-// the first card seen per group carries the freshest metadata/price.
-function aggregateDeck(cards) {
-  const groups = new Map();
-  for (const c of cards) {
-    const gid = c.groupId || (c.trader + ':' + c.tokenAddress + ':' + c.side);
-    let g = groups.get(gid);
-    if (!g) {
-      g = { ...c, id: gid, groupId: gid, buyCount: 0, amountUsd: 0, amountMon: 0, tokenAmount: 0, legs: [] };
-      groups.set(gid, g);
-    }
-    g.buyCount += 1;
-    g.amountUsd += c.amountUsd || 0;
-    g.amountMon += c.amountMon || 0;
-    g.tokenAmount += c.tokenAmount || 0;
-    g.legs.push({ txHash: c.txHash, amountUsd: c.amountUsd, amountMon: c.amountMon, tokenAmount: c.tokenAmount, ts: c.ts, blockNumber: c.blockNumber });
-  }
-  // Preserve the deck's newest-first ordering by the most recent leg.
-  return [...groups.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
-}
+// aggregateDeck: collapse a whale's repeat buys of the same token into one
+// deck card (amounts summed, each buy kept as a `leg`). Shared, pure — see
+// deckAggregate.js.
 
 // Compact profitability score derived from a trader's aggregate (realized only).
 function scoreFromAgg(agg) {
