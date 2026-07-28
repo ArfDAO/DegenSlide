@@ -209,14 +209,15 @@ function PositionCard({ p, pair, monPrice, tradeAmount, autoSell, onRemove, onBu
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--color-silver-lining)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: p.sellOnWhaleExit ? 'var(--accent-2)' : 'var(--color-midnight-ink)' }}>
-            🐋 Sell when the whale sells
+            🐋 Sell when the whale sells (Coming Soon)
           </div>
           <div style={{ fontSize: 9.5, color: 'var(--color-pebble)', fontWeight: 600, marginTop: 1, lineHeight: 1.4 }}>
             {p.sellOnWhaleExit ? 'ON — this whale\'s next SELL of this token auto-closes your copy.' : 'Mirror the whale\'s exit automatically.'}
           </div>
         </div>
         <button
-          onClick={() => onSetTargets(p.id, { sellOnWhaleExit: !p.sellOnWhaleExit })}
+          disabled
+          onClick={() => {}}
           style={{
             flexShrink: 0, padding: '7px 14px', borderRadius: 100, cursor: 'pointer', fontSize: 11, fontWeight: 800,
             border: p.sellOnWhaleExit ? '1px solid rgba(160, 107, 255,0.5)' : '1px solid var(--color-silver-lining)',
