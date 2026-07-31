@@ -1,15 +1,15 @@
 {
   "source": "Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)",
-  "scannedAt": "2026-07-30T19:28:32.647Z",
-  "scannedBlocks": 680002,
+  "scannedAt": "2026-07-31T04:10:16.943Z",
+  "scannedBlocks": 142261,
   "minUsdPerSwap": 5,
   "minLiquidityUsd": 150000,
-  "scanCursorBlock": 89287753,
+  "scanCursorBlock": 88687752,
   "botsRemoved": {
-    "contracts": 47,
-    "sameBlockArb": 345,
+    "contracts": 0,
+    "sameBlockArb": 2,
     "churnMM": 0,
-    "wash": 1
+    "wash": 0
   },
   "count": 853,
   "whales": [
@@ -35,6 +35,29 @@
       "winTokens": 0,
       "winRate": 0,
       "qualityScore": 168849.36
+    },
+    {
+      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
+      "volumeUsd": 178202.11,
+      "volumeMon": 8311665.35,
+      "trades": 32,
+      "buys": 13,
+      "sells": 19,
+      "directionality": 0.19,
+      "lpAddedUsd": 3477081.64,
+      "lpEvents": 2,
+      "isMarketMaker": true,
+      "maxLiquidityUsd": 1151943,
+      "tokens": [
+        "EURW"
+      ],
+      "lastToken": "EURW",
+      "realizedUsd": -295.95,
+      "realizedMon": -13803.64,
+      "closedTokens": 1,
+      "winTokens": 0,
+      "winRate": 0,
+      "qualityScore": 121490.69
     },
     {
       "address": "0x5019651b7f680d5a8b03a4f0b7e7c35b07959966",
@@ -242,29 +265,6 @@
       "winTokens": 0,
       "winRate": null,
       "qualityScore": 1641.44
-    },
-    {
-      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
-      "volumeUsd": 26336.7,
-      "volumeMon": 1251744.11,
-      "trades": 3,
-      "buys": 1,
-      "sells": 2,
-      "directionality": 0.33,
-      "lpAddedUsd": 0,
-      "lpEvents": 0,
-      "isMarketMaker": false,
-      "maxLiquidityUsd": 1181753,
-      "tokens": [
-        "EURW"
-      ],
-      "lastToken": "EURW",
-      "realizedUsd": -1.76,
-      "realizedMon": -83.59,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0,
-      "qualityScore": 1315.08
     },
     {
       "address": "0xd363ca972b2ec34269b2ea81f7a32ccb35099d7a",
