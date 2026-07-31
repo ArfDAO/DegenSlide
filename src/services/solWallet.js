@@ -65,23 +65,33 @@ export async function connectWallet() {
  * 64-byte Ed25519 signature (Uint8Array).
  */
 export async function signMessage(address, message) {
-  const p = provider();
-  if (!p) throw new Error('NO_METAMASK');
   const encoded = new TextEncoder().encode(message);
+
+  // Privy's Solana wallets implement the Standard Wallet interface — they expose
+  // signMessage({message}) directly and have NO getSolanaProvider(), so calling
+  // for a provider here always threw and silently fell through to Phantom (which
+  // is exactly the extension prompt a social-login user should never see).
+  const pw = window.activePrivyWallet;
+  if (pw && typeof pw.signMessage === 'function' && (!address || pw.address === address)) {
+    const res = await pw.signMessage({ message: encoded });
+    const sig = res?.signature ?? res;
+    return sig instanceof Uint8Array ? sig : Uint8Array.from(sig);
+  }
+
+  const p = provider();
+  if (!p) throw new Error('NO_PHANTOM');
   const res = await p.signMessage(encoded, 'utf8');
   const sig = res?.signature ?? res;
   return sig instanceof Uint8Array ? sig : Uint8Array.from(sig);
 }
 
 export async function getConnectedAccount() {
+  // The EXTERNAL (linked) wallet only — the embedded wallet is the account, not
+  // a connected wallet (see wallet.js getConnectedAccount for the full note).
+  if (window.activeExternalWallet) return window.activeExternalWallet.address;
   const p = provider();
-  if (!p) return null;
-  try {
-    const resp = await p.connect({ onlyIfTrusted: true });
-    return (resp?.publicKey ?? p.publicKey)?.toString() || null;
-  } catch {
-    return null; // not previously approved — user must click Connect
-  }
+  if (!p || !p.publicKey) return null;
+  return p.publicKey.toString();
 }
 
 export async function disconnectWallet() {

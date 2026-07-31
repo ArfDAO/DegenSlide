@@ -23,7 +23,10 @@
 import { Keypair, VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
 import { Wallet as EthWallet, JsonRpcProvider, keccak256, sha256, getBytes, Contract, formatUnits } from 'ethers';
 import { ACTIVE, MONAD_MAINNET, DEFAULT_SLIPPAGE_BPS, INDEXER_HTTP } from '../config/chain.js';
-import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx, signMessage as evmSignMessage, ensureMonadMainnet } from './wallet.js';
+// ensureMonadMainnet is intentionally not imported: it drives the raw
+// window.ethereum extension, and deposits now go strictly through the Privy
+// wallet that owns the funding address (Privy handles its own chain switching).
+import { buildBuyTx, buildSellPlan, getTokenInfo as evmTokenInfo, sellAllowance, buildApproveTx, signMessage as evmSignMessage } from './wallet.js';
 import { buildNadfunBuy, buildNadfunSell, isNadfunToken } from './nadfunWallet.js';
 import {
   rpc as solRpc, jupQuote, jupSwapTx, confirmOnChain, actualTokenDelta,
@@ -97,8 +100,8 @@ export function isTurboLinked() { return !!getLinkedAddress() && turboWalletExis
  * re-signing, so nothing is lost. Refuses on an unlinked legacy key (that key
  * exists nowhere else — clearing it would strand its funds; export it first).
  */
-export function unlinkTurbo() {
-  if (turboWalletExists() && !isTurboLinked()) throw new Error('UNLINKED_KEY_EXPORT_FIRST');
+export function unlinkTurbo(force = false) {
+  if (!force && turboWalletExists() && !isTurboLinked()) throw new Error('UNLINKED_KEY_EXPORT_FIRST');
   try {
     localStorage.removeItem(KEY_LS);
     localStorage.removeItem(LINKED_LS);
@@ -169,13 +172,30 @@ export async function getTurboBalance() {
   } catch { return null; }
 }
 
-/* ── deposit: ONE wallet-approved transfer from the user's main wallet ── */
+/* ── deposit: ONE wallet-approved transfer from the user's main wallet ──
+ * The signer is resolved STRICTLY from the Privy wallet that owns `fromMain`
+ * (a linked external wallet, or the account's embedded wallet). There is
+ * deliberately no `window.ethereum` / `window.phantom` fallback: reaching for
+ * the raw extension made a social-login user's deposit open MetaMask and try to
+ * spend from an address they never linked. No owner → NO_WALLET, and the UI
+ * asks them to link one.
+ */
+function ownerWalletFor(address) {
+  const want = IS_SVM ? address : String(address || '').toLowerCase();
+  return [window.activeExternalWallet, window.activePrivyWallet].find((w) => {
+    if (!w?.address) return false;
+    return (IS_SVM ? w.address : String(w.address).toLowerCase()) === want;
+  }) || null;
+}
+
 export async function depositToTurbo(fromMain, amountNative) {
   const to = ensureTurboWallet();
   if (!(amountNative > 0)) throw new Error('BAD_AMOUNT');
   if (IS_SVM) {
-    const p = window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-    if (!p) throw new Error('NO_METAMASK');
+    const owner = ownerWalletFor(fromMain);
+    if (!owner) throw new Error('NO_WALLET');
+    const p = await owner.getSolanaProvider?.() ?? owner;
+    if (!p?.signAndSendTransaction) throw new Error('NO_WALLET');
     const { value } = await solRpc('getLatestBlockhash', [{ commitment: 'confirmed' }]);
     const tx = new Transaction({
       recentBlockhash: value.blockhash,
@@ -189,9 +209,26 @@ export async function depositToTurbo(fromMain, amountNative) {
     await confirmOnChain(signature);
     return { hash: signature };
   }
-  await ensureMonadMainnet(); // NEVER deposit on testnet — force Monad mainnet (143) first
   const wei = BigInt(Math.round(amountNative * 1e9)) * 10n ** 9n;
-  const hash = await window.ethereum.request({
+  // Strictly the wallet that OWNS `fromMain` (see the note on depositToTurbo).
+  const owner = ownerWalletFor(fromMain);
+  if (!owner) throw new Error('NO_WALLET');
+  // A reconnected external wallet is usually still on whatever network it was
+  // last on (Ethereum, etc.), so the send has to be preceded by a chain switch —
+  // through Privy, not the raw extension. Privy's contract: switchChain does NOT
+  // update already-created providers, so the provider is requested AFTER it.
+  const onMonad = String(owner.chainId || '').endsWith(`:${MONAD_MAINNET.chainIdNum}`)
+    || String(owner.chainId) === String(MONAD_MAINNET.chainIdNum);
+  if (!onMonad && typeof owner.switchChain === 'function') {
+    try { await owner.switchChain(MONAD_MAINNET.chainIdNum); }
+    catch (e) {
+      if (e?.code === 4001) throw e;                 // user declined the switch
+      throw new Error('WRONG_NETWORK');
+    }
+  }
+  const provider = await owner.getEthereumProvider();
+  if (!provider) throw new Error('NO_WALLET');
+  const hash = await provider.request({
     method: 'eth_sendTransaction',
     params: [{ from: fromMain, to, value: '0x' + wei.toString(16) }],
   });

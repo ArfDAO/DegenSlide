@@ -165,8 +165,18 @@ export async function connectWallet() {
  * wallet from it (see turboWallet.linkTurboWallet). Returns the 0x-hex signature.
  */
 export async function signMessage(address, message) {
-  if (!isMetaMaskAvailable()) throw new Error('NO_METAMASK');
   const hex = '0x' + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, '0')).join('');
+  // Sign with whichever Privy wallet actually owns `address` — the embedded
+  // (account) wallet for the Turbo derivation, or a linked external wallet.
+  // Matching on the address stops one from being asked to sign for the other.
+  const pw = [window.activePrivyWallet, window.activeExternalWallet].find(
+    (w) => w?.address && w.address.toLowerCase() === address.toLowerCase(),
+  );
+  if (pw) {
+    const p = await pw.getEthereumProvider();
+    return await p.request({ method: 'personal_sign', params: [hex, address.toLowerCase()] });
+  }
+  if (!isMetaMaskAvailable()) throw new Error('NO_METAMASK');
   return await mmCall('personal_sign', [hex, address.toLowerCase()]);
 }
 
@@ -183,16 +193,16 @@ export async function ensureMonadMainnet() {
 }
 
 export async function getConnectedAccount() {
+  // "Connected account" = the EXTERNAL wallet the user linked (a funding
+  // source). The embedded wallet is the account itself, not a connected wallet,
+  // so returning it here would make the app think a wallet is connected when
+  // the user only ever signed in with a social account.
+  if (window.activeExternalWallet) return window.activeExternalWallet.address.toLowerCase();
   if (!isMetaMaskAvailable()) return null;
   try {
-    const accounts = await mmCall('eth_accounts');
-    if (!accounts?.length) return null;
-    const chainId = await mmCall('eth_chainId');
-    if (chainId.toLowerCase() !== MONAD_MAINNET.chainId) return null;
-    return accounts[0].toLowerCase();
-  } catch {
-    return null;
-  }
+    const accts = await mmCall('eth_accounts');
+    return accts && accts[0] ? accts[0].toLowerCase() : null;
+  } catch { return null; }
 }
 
 export async function getMonBalance(address) {

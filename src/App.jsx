@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SwipeCard from './components/SwipeCard';
 import Leaderboard from './components/Leaderboard';
 import Portfolio from './components/Portfolio';
@@ -36,7 +36,7 @@ const TOURS = {
   ],
 };
 const TOUR_KEY = (tab) => `tour_${tab}_v1`;
-import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance, isTurboLinked, unlinkTurbo } from './services/turboWallet';
+import { hasTurboAgreement, turboWalletExists, turboCopyBuy, turboSellToken, turboTokenInfo, getTurboAddress, getTurboBalance, isTurboLinked, unlinkTurbo, acceptTurboAgreement, linkTurboWallet, getLinkedAddress } from './services/turboWallet';
 import curatedWhalesData from './data/curatedWhales.json';
 import { X, Settings, Check, AlertTriangle, Info, Layers, WifiOff, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchMONPrice, fetchTokensByAddresses } from './services/dexscreenerApi';
@@ -46,14 +46,20 @@ import {
   openWhaleFeed,
   indexerHealth,
 } from './services/indexerApi';
+import { ShieldAlert, LogOut, CheckCircle2 } from 'lucide-react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+// Privy splits its wallet hooks per chain: the root useWallets() is EVM-only,
+// so the Solana build has to read the Solana one or it never sees the account's
+// embedded Solana wallet.
+import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
 import { EXPLORER_URL, EXPLORER_ADDR_URL, DEFAULT_SLIPPAGE_BPS, ACTIVE, CHAINS, setActiveChainId, INDEXER_HTTP, DEXSCREENER_CHAIN } from './config/chain.js';
+// connectWallet / isWalletAvailable / onAccountsChanged are deliberately NOT
+// imported: browser-extension connection is no longer an entry path (Privy owns
+// auth, and wallets are linked through it), so nothing may auto-connect one.
 import {
-  connectWallet,
   getConnectedAccount,
   sellToken,
   getTokenInfo,
-  isWalletAvailable,
-  onAccountsChanged,
   disconnectWallet,
   WALLET_NAME,
   WALLET_INSTALL_URL,
@@ -504,18 +510,17 @@ export default function App() {
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  // Auto-reconnect the ACTIVE chain's wallet (MetaMask on Monad, Phantom on Solana)
-  useEffect(() => {
-    getConnectedAccount().then((addr) => {
-      if (addr) { setWalletAddress(addr); setIsConnected(true); saveLS(WALLET_LS, addr); }
-    });
-    return onAccountsChanged((accounts) => {
-      if (!accounts.length) { setIsConnected(false); setWalletAddress(null); saveLS(WALLET_LS, null); }
-      else { setWalletAddress(accounts[0]); saveLS(WALLET_LS, accounts[0]); }
-    });
-  }, []);
+  // NOTE: there is deliberately no browser-extension auto-reconnect here.
+  // Privy is the only way into the app, so an injected MetaMask/Phantom that
+  // merely *exists* must never silently become "your connected wallet" — an
+  // external wallet is connected only when the user links one through Privy
+  // (see the Privy effect below, which is the single source of wallet truth).
 
-  useEffect(() => { if (walletAddress) { saveLS(WALLET_LS, walletAddress); setIsConnected(true); } }, [walletAddress]);
+  // Persist the linked address only. It must NOT also set isConnected: since
+  // walletAddress is now the LINKED wallet (present even when the extension is
+  // not connected this session), forcing isConnected=true here would contradict
+  // the Privy effect below, which is the single source of connection truth.
+  useEffect(() => { if (walletAddress) saveLS(WALLET_LS, walletAddress); }, [walletAddress]);
   useEffect(() => { saveLS(PORTFOLIO_LS, portfolio); }, [portfolio]);
   useEffect(() => { if (lastTxHash) saveLS(LASTTX_LS, lastTxHash); }, [lastTxHash]);
   useEffect(() => { saveLS('monad_tab', activeTab); }, [activeTab]);
@@ -728,19 +733,152 @@ export default function App() {
     return () => clearInterval(id);
   }, [refreshBalance]);
 
+  const { login, authenticated, ready, logout, user, linkWallet, connectWallet } = usePrivy();
+  const { wallets: evmWallets } = useWallets();
+  const { wallets: solWallets } = useSolanaWallets();
+
+  const autoLinkTriedRef = useRef(false);
+
+  // ── The account's own wallets, split by role ──────────────────────────────
+  // EMBEDDED (walletClientType 'privy'/'privy-v2') — created by Privy on login
+  // and recoverable by logging back in with the same social account. This is
+  // the ACCOUNT, and the Turbo trading key is derived from it, so a social
+  // login on its own is enough to have a working trading wallet.
+  // EXTERNAL — only present when the user deliberately links one. It is a
+  // funding source (deposit/withdraw), never a requirement, and never the
+  // thing the Turbo wallet is derived from.
+  const chainWallets = ACTIVE.kind === 'svm' ? solWallets : evmWallets;
+  const WANT_CHAIN = ACTIVE.kind === 'svm' ? 'solana' : 'ethereum';
+  const isEmbeddedClient = (t) => t === 'privy' || t === 'privy-v2';
+  const norm = (a) => (!a ? null : ACTIVE.kind === 'svm' ? a : String(a).toLowerCase());
+  const sameAddr = (a, b) => !!a && !!b && norm(a) === norm(b); // base58 is case-sensitive; EVM is not
+
+  // `user.linkedAccounts` is the ONLY authority on what belongs to this account.
+  // useWallets() also reports merely *detected* browser wallets — an installed
+  // MetaMask that once approved this origin shows up there without the user ever
+  // linking it, which is how a pure social login ended up showing a MetaMask
+  // address as "connected" and opening its popup on deposit.
+  const embeddedAddr = useMemo(() => {
+    const acct = (user?.linkedAccounts || []).find(
+      (a) => a.type === 'wallet' && a.chainType === WANT_CHAIN && isEmbeddedClient(a.walletClientType),
+    );
+    return acct?.address || null;
+  }, [user]);
+  // LINKED (persists across sessions) vs CONNECTED (live provider this session)
+  // are different things: on re-login Privy restores the linked-wallet RECORD but
+  // does not reconnect the browser extension, so useWallets() is empty until the
+  // user reconnects. Tracking only the live object made a linked wallet look
+  // gone and pushed the user into linkWallet() — which Privy then rejected with
+  // "maximum number of linked wallets" because it was already linked.
+  const linkedExternalAddrs = useMemo(() => {
+    const set = new Set();
+    for (const a of user?.linkedAccounts || []) {
+      if (a.type === 'wallet' && a.chainType === WANT_CHAIN && !isEmbeddedClient(a.walletClientType)) {
+        set.add(norm(a.address));
+      }
+    }
+    return set;
+  }, [user]);
+  const linkedExternalAddr = useMemo(() => {
+    const acct = (user?.linkedAccounts || []).find(
+      (a) => a.type === 'wallet' && a.chainType === WANT_CHAIN && !isEmbeddedClient(a.walletClientType),
+    );
+    return acct?.address || null;
+  }, [user]);
+
+  const embeddedWallet = useMemo(
+    () => chainWallets.find((w) => sameAddr(w.address, embeddedAddr)) || null,
+    [chainWallets, embeddedAddr],
+  );
+  // Deliberately linked external wallets only — never a merely-detected one.
+  const externalWallet = useMemo(
+    () => chainWallets.find((w) => linkedExternalAddrs.has(norm(w.address))) || null,
+    [chainWallets, linkedExternalAddrs],
+  );
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!authenticated) {
+      setWalletAddress(null);
+      setIsConnected(false);
+      saveLS(WALLET_LS, null);
+      window.activePrivyWallet = null;
+      window.activeExternalWallet = null;
+      autoLinkTriedRef.current = false;
+      return;
+    }
+
+    // Signing handle for the Turbo derivation = the embedded (account) wallet.
+    window.activePrivyWallet = embeddedWallet || null;
+    // Funding handle = the linked external wallet, if there is one.
+    window.activeExternalWallet = externalWallet || null;
+
+    // Show the LINKED address (it survives logout, so the wallet never looks
+    // like it disappeared). When one of several linked wallets is actually
+    // connected, show THAT one — otherwise the address on screen could name a
+    // different wallet than the one deposits would really sign from.
+    const ext = externalWallet?.address || linkedExternalAddr || null;
+    setWalletAddress(ext);
+    setIsConnected(!!externalWallet);
+    saveLS(WALLET_LS, ext);
+
+    // Derive the Turbo wallet from the embedded wallet as soon as it exists.
+    // Silent (showWalletUIs:false) — logging in was the approval.
+    //
+    // Re-derive when the stored key belongs to a DIFFERENT account: signing out
+    // and back in as someone else on the same browser would otherwise leave the
+    // previous account's key in localStorage and hand their funds to whoever
+    // logged in next. Overwriting is safe precisely because the key is derived —
+    // the original owner recovers it by signing back in.
+    const hasKey = turboWalletExists();
+    const staleKey = isTurboLinked() && !sameAddr(getLinkedAddress(), embeddedWallet?.address);
+    // A pre-derivation local key exists nowhere else — overwriting it would
+    // strand its funds, so it is never touched automatically. TurboPanel's
+    // export-first flow is the only path that replaces one.
+    const legacyLocalKey = hasKey && !isTurboLinked();
+    const shouldDerive = !!embeddedWallet && !legacyLocalKey && (!hasKey || staleKey);
+    if (shouldDerive && !autoLinkTriedRef.current) {
+      autoLinkTriedRef.current = true;
+      acceptTurboAgreement();
+      linkTurboWallet(embeddedWallet.address)
+        .then((addr) => {
+          setTurboAddr(addr);
+          showToast('connect', '⚡ Trading wallet ready');
+        })
+        .catch((e) => {
+          console.warn('[Turbo] derive from embedded wallet failed:', e?.message, e);
+          autoLinkTriedRef.current = false;
+        });
+    }
+  }, [ready, authenticated, embeddedWallet, externalWallet, linkedExternalAddr]);
+
+  // Get an EXTERNAL wallet to move funds with. It is never needed to trade —
+  // swipes spend the Turbo wallet — so this only runs when the user asks to
+  // deposit/withdraw, and it never creates or force-connects anything on its own.
   const doConnect = useCallback(async () => {
-    if (!isWalletAvailable()) { showToast('no_wallet'); window.open(WALLET_INSTALL_URL, '_blank'); return false; }
+    if (!authenticated) {
+      setIsConnecting(true);
+      try { login(); return null; }            // Privy modal; the effect above picks it up
+      catch { showToast('tx_error'); return false; }
+      finally { setIsConnecting(false); }
+    }
+    if (externalWallet) return externalWallet.address;   // already connected
     setIsConnecting(true);
     try {
-      const addr = await connectWallet();
-      setWalletAddress(addr); setIsConnected(true); saveLS(WALLET_LS, addr);
-      showToast('connect');
-      return addr; // truthy on success (callers only test truthiness); linking needs the address
-    } catch (err) {
-      if (err.message !== 'NO_METAMASK' && err.code !== 4001) showToast('tx_error');
+      // Already LINKED but not connected this session (the usual state right
+      // after a re-login) → RECONNECT it. Calling linkWallet() here is what
+      // produced Privy's "maximum number of linked wallets" error: the wallet
+      // was already on the account, so there was nothing left to link.
+      if (linkedExternalAddr) { await connectWallet(); return null; }
+      // Nothing linked yet → link one to THIS account (the Turbo wallet is
+      // derived from the account, so linking never changes it).
+      await linkWallet();
+      return null;                              // both resolve via the effect
+    } catch (e) {
+      if (e?.code !== 4001) showToast('tx_error', linkedExternalAddr ? 'Could not reconnect your wallet' : 'Could not link a wallet');
       return false;
     } finally { setIsConnecting(false); }
-  }, []);
+  }, [authenticated, externalWallet, linkedExternalAddr, login, linkWallet, connectWallet, showToast]);
 
   // Record a confirmed buy into the portfolio (shared by every execution path).
   // Turbo and wallet positions never merge — their tokens sit in different wallets.
@@ -853,9 +991,6 @@ export default function App() {
   }, [autoCopy, sendCopy]);
 
   const handleDisconnect = useCallback(() => {
-    // Log out: drop the external connection AND forget the linked Turbo wallet
-    // on this device. A linked wallet is deterministically recoverable (reconnect
-    // + re-sign), so this fully resets the account without losing funds.
     disconnectWallet();
     try {
       if (isTurboLinked()) { unlinkTurbo(); setTurboAddr(null); }
@@ -867,15 +1002,26 @@ export default function App() {
     }
     setWalletAddress(null); setIsConnected(false); setMonBalance(null);
     saveLS(WALLET_LS, null);
-  }, []);
+    logout();
+  }, [logout]);
 
   const handleClearData = useCallback(() => {
+    // Forcefully remove the turbo wallet to prevent the export lock from stopping the wipe
+    unlinkTurbo(true);
+    setTurboAddr(null);
+    
     setPortfolio([]); setFavorites([]); setWatchlist([]); setLastTxHash(null); setBalanceHistory([]); setActivity([]);
     saveLS(PORTFOLIO_LS, []); saveLS(FAV_KEY, []);
     saveLS(WATCH_KEY, []); saveLS(LASTTX_LS, null); saveLS(BALHIST_LS, []); saveLS(ACTIVITY_LS, []);
+    
+    setWalletAddress(null); setIsConnected(false); setMonBalance(null);
+    saveLS(WALLET_LS, null);
+    disconnectWallet();
+    logout();
+    
     // auto-copy targets point at the (now empty) watchlist — disarm the bot too
     setAutoCopy((prev) => { const next = { ...prev, enabled: false, whales: [] }; saveLS(AUTOCOPY_LS, next); return next; });
-  }, []);
+  }, [logout]);
 
   const removePosition = useCallback((id) => setPortfolio((prev) => prev.filter((p) => p.id !== id)), []);
   const setPositionTargets = useCallback((id, targets) =>
@@ -940,8 +1086,10 @@ export default function App() {
       return;
     }
 
-    // legacy path: tokens live in the connected external wallet
-    let from = walletAddress;
+    // legacy path: tokens live in the connected external wallet. The wallet must
+    // be CONNECTED, not merely linked — walletAddress alone is the linked
+    // address and can't sign after a re-login until it reconnects.
+    let from = externalWallet?.address || null;
     if (!from) { const ok = await doConnect(); if (!ok) throw new Error('NO_WALLET'); from = await getConnectedAccount(); if (!from) throw new Error('NO_WALLET'); }
     showToast('sell_pending');
     try {
@@ -966,7 +1114,7 @@ export default function App() {
       else showToast('sell_fail');
       throw err;
     }
-  }, [walletAddress, slippageBps, doConnect, refreshBalance, reducePosition, logActivity]);
+  }, [externalWallet, slippageBps, doConnect, refreshBalance, reducePosition, logActivity]);
 
   // ── "Whale exited → close my copy": a live SELL from the whale you copied,
   // in the token you copied, auto-closes the position (per-position opt-in). ──
@@ -1245,14 +1393,25 @@ export default function App() {
             );
           })}
         </nav>
-        <button onClick={() => setActiveTab('profile')} className={`side-turbo ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
-          <span style={{ fontSize: 13 }}>⚡</span>
-          {!navCollapsed && (
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {turboAddr ? (monBalance != null ? `${monBalance.toFixed(3)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`) : 'Turbo'}
-            </span>
-          )}
-        </button>
+        {/* Signed out → the way in, from anywhere in the app. Privy's modal is
+           both sign-in and sign-up. Signed in → the Turbo wallet shortcut. */}
+        {ready && !authenticated ? (
+          <button onClick={login} className="side-turbo" title="Sign in or create an account">
+            <span style={{ fontSize: 13 }}>→</span>
+            {!navCollapsed && (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Sign in</span>
+            )}
+          </button>
+        ) : (
+          <button onClick={() => setActiveTab('profile')} className={`side-turbo ${turboAddr ? 'connected' : ''}`} title={turboAddr ? `Turbo wallet ${turboAddr}` : 'Set up Turbo 1-swipe trading'}>
+            <span style={{ fontSize: 13 }}>⚡</span>
+            {!navCollapsed && (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {turboAddr ? (monBalance != null ? `${monBalance.toFixed(3)} ${ACTIVE.nativeSymbol}` : `${turboAddr.slice(0, 5)}…${turboAddr.slice(-4)}`) : 'Turbo'}
+              </span>
+            )}
+          </button>
+        )}
       </aside>
 
       <div className="app-main-col">
@@ -1438,7 +1597,7 @@ export default function App() {
             settings={settings} updateSetting={updateSetting} onToggleWhaleAlerts={toggleWhaleAlerts}
             lastTxHash={lastTxHash} indexerUp={indexerUp}
             onDisconnect={handleDisconnect} onClearData={handleClearData}
-            externalWallet={walletAddress} onConnect={doConnect} showToast={showToast}
+            externalWallet={walletAddress} externalConnected={!!externalWallet} accountAddress={embeddedAddr} onConnect={doConnect} showToast={showToast}
             onTurboChanged={() => { setTurboAddr(getTurboAddress()); refreshBalance(); }}
             autoCopy={autoCopy} updateAutoCopy={updateAutoCopy} autoCopyDefaults={AUTOCOPY_DEFAULTS}
             autoSpentToday={autoSpentToday()} autoSpendTick={autoSpendTick} onReplayTours={replayTours}

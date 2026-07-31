@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Download, ArrowUpRight, ShieldAlert, Link2, RefreshCw, Fingerprint, Zap, KeyRound, RotateCcw, FileWarning } from 'lucide-react';
+import { Check, Copy, Download, ArrowUpRight, ShieldAlert, Link2, RefreshCw, Fingerprint, Zap, KeyRound, RotateCcw, FileWarning } from 'lucide-react';
 import { ACTIVE } from '../config/chain.js';
 import { WALLET_NAME } from '../services/activeWallet.js';
 import {
@@ -36,12 +36,18 @@ function Checkbox({ checked, onChange }) {
  * Turbo actions — inline section rendered inside the Profile identity card
  * (under the balance chart).
  *
- *   • Not linked yet → agreement + "Connect wallet & save account": connects the
- *     external wallet, signs one gasless message, and DERIVES the trading wallet
- *     from it (recoverable anywhere).
- *   • Linked → deposit / withdraw / export, with the linked wallet shown.
+ *   • Not created yet → agreement + "Create my trading wallet": signs one
+ *     gasless message with the ACCOUNT's Privy embedded wallet and DERIVES the
+ *     trading wallet from it (recoverable by signing back in, on any device).
+ *     This normally happens automatically at login — this is the manual retry.
+ *   • Created → deposit / withdraw / export. Deposits can come from any wallet;
+ *     linking an external wallet is optional and never changes this wallet.
  */
-export default function TurboActions({ externalWallet, onConnect, showToast, onChanged, turboBalance, turboAddress }) {
+// `externalWallet` is the LINKED funding address (it survives logout);
+// `externalConnected` says whether that wallet can actually sign right now.
+// After a re-login it is normal to be linked-but-not-connected — the deposit
+// flow reconnects rather than trying to link a second wallet.
+export default function TurboActions({ externalWallet, externalConnected, accountAddress, onConnect, showToast, onChanged, turboBalance, turboAddress }) {
   const [agreed, setAgreed] = useState(false);
   const [linked, setLinked] = useState(() => isTurboLinked());
   const [linkedAddr, setLinkedAddr] = useState(() => getLinkedAddress());
@@ -69,29 +75,39 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
   // sets the turbo address to null → this panel must flip back to "connect").
   useEffect(() => { refreshLinkState(); }, [turboAddress, refreshLinkState]);
 
-  // Connect the external wallet (if needed), sign once, derive/link the wallet.
+  // Derive the trading wallet from the ACCOUNT (the Privy embedded wallet), not
+  // from an external wallet — that is what makes it recoverable by simply
+  // signing back in with the same social account, and why linking or unlinking
+  // an external wallet can never change which trading wallet you own. This
+  // normally runs automatically at login; the button is the manual retry.
   const doLink = useCallback(async () => {
-    let addr = externalWallet;
-    if (!addr && onConnect) { addr = await onConnect(); if (!addr) return; }
-    if (!addr) { showToast?.('tx_error', `Connect your ${WALLET_NAME} wallet first`); return; }
+    // Not signed in yet → open the Privy sign-in / sign-up modal instead of
+    // dead-ending on a toast. Once they're in, the account wallet appears and
+    // the login effect derives the trading wallet on its own.
+    if (!accountAddress) { await onConnect?.(); return; }
     setBusy(true);
     try {
       acceptTurboAgreement();
-      await linkTurboWallet(addr);
+      await linkTurboWallet(accountAddress);
       refreshLinkState();
-      setDest((d) => d || addr);
       onChanged?.();
-      showToast?.('connect', '⚡ Account saved — trading wallet linked to your wallet');
+      showToast?.('connect', '⚡ Trading wallet ready');
     } catch (e) {
-      if (e?.code !== 4001 && e?.message !== 'SIGN_FAILED') showToast?.('tx_error', 'Could not link wallet');
-      else if (e?.message === 'SIGN_FAILED') showToast?.('tx_error', 'Signature failed — try again');
+      if (e?.message === 'SIGN_FAILED') showToast?.('tx_error', 'Signature failed — try again');
+      else if (e?.code !== 4001) showToast?.('tx_error', 'Could not create your trading wallet');
     } finally { setBusy(false); }
-  }, [externalWallet, onConnect, showToast, onChanged, refreshLinkState]);
+  }, [accountAddress, onConnect, showToast, onChanged, refreshLinkState]);
+
+
+
 
   const doDeposit = async () => {
     const amt = parseFloat(amount);
     if (!(amt > 0)) { showToast?.('tx_error', 'Enter a deposit amount'); return; }
-    let from = externalWallet;
+    // Need a wallet that is linked AND connected. Missing either one routes
+    // through onConnect(), which links or reconnects as appropriate; it returns
+    // null while its modal is open, so we stop and let the user retry after.
+    let from = externalConnected ? externalWallet : null;
     if (!from && onConnect) { from = await onConnect(); if (!from) return; }
     if (!from) return;
     setBusy(true);
@@ -101,7 +117,13 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
       setAmount('');
       onChanged?.();
     } catch (e) {
-      if (e.code !== 4001) showToast?.('tx_error', 'Deposit failed');
+      // A bare "Deposit failed" hid the two real causes (wrong network, or the
+      // linked wallet not actually reconnected this session) — name them.
+      if (e.code === 4001) { /* user rejected in their wallet — not an error */ }
+      else if (e.message === 'WRONG_NETWORK') showToast?.('tx_error', `Switch your wallet to ${ACTIVE.label} and try again`);
+      else if (e.message === 'NO_WALLET') showToast?.('tx_error', 'Reconnect your wallet to deposit');
+      else if (e.message === 'INSUFFICIENT_FUNDS') showToast?.('no_funds', `Not enough ${sym} in that wallet`);
+      else showToast?.('tx_error', 'Deposit failed');
     } finally { setBusy(false); }
   };
 
@@ -149,7 +171,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <ShieldAlert size={15} style={{ color: 'var(--color-bone-glow)', flexShrink: 0 }} />
           <span style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: 'var(--font-arbeit-contrast)' }}>
-            Connect your wallet to save your account. Your trading wallet links to it — reconnect anywhere to recover it and its funds.
+            Your trading wallet is created from your account — sign in with the same social login on any device to recover it and its funds. No external wallet needed.
           </span>
         </div>
 
@@ -201,10 +223,12 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
         </label>
         <button onClick={doLink} disabled={!canActivate || busy}
           style={{ ...btn(canActivate), width: '100%', marginTop: 10, padding: '12px 0', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: canActivate && !busy ? 'pointer' : 'default', opacity: busy ? 0.6 : 1, ...(canActivate ? {} : { color: 'var(--color-bone-dim)' }) }}>
-          <Link2 size={14} /> {busy ? 'Signing…' : externalWallet ? 'Sign to save account' : `Connect ${WALLET_NAME} & save account`}
+          <Link2 size={14} /> {busy ? 'Creating…' : accountAddress ? 'Create my trading wallet' : 'Sign in to create your wallet'}
         </button>
         <p style={{ fontSize: 9.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45, margin: '9px 0 0' }}>
-          Signing is free and gasless — it never sends a transaction or spends funds. It only proves you own the wallet.
+          {accountAddress
+            ? 'Free and gasless — it never sends a transaction or spends funds. It just derives your wallet from the account you signed in with.'
+            : 'Sign in or sign up with Google, X, Discord, GitHub or email — then your trading wallet is created from that account.'}
         </p>
       </div>
     );
@@ -213,17 +237,31 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
   /* ── STATE B: linked — deposit / withdraw / export ── */
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
-      {/* linked-wallet badge */}
+      {/* Account badge. The trading wallet derives from the ACCOUNT, so it
+         differing from a linked funding wallet is normal — the old "connected:"
+         mismatch warning here was meaningless under that model (they always
+         differ) and it printed a merely-detected extension address. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '7px 10px', border: '1px solid var(--color-charcoal-vein)' }}>
         <Link2 size={12} style={{ color: 'var(--color-bone-glow)', flexShrink: 0 }} />
-        <span style={{ ...LABEL, color: 'var(--color-bone-dim)' }}>Saved · linked to</span>
-        <span style={{ fontSize: 11, fontFamily: MONO, color: 'var(--color-bone-glow)', letterSpacing: '-0.3px' }}>{short(linkedAddr)}</span>
-        {externalWallet && linkedAddr && externalWallet.toLowerCase() !== linkedAddr.toLowerCase() && (
-          <span style={{ fontSize: 9, fontFamily: MONO, color: 'var(--down)', marginLeft: 'auto' }}>connected: {short(externalWallet)}</span>
+        <span style={{ ...LABEL, color: 'var(--color-bone-dim)' }}>Saved to your account</span>
+        {externalWallet && (
+          <span style={{ fontSize: 9, fontFamily: MONO, color: 'var(--color-bone-dim)', marginLeft: 'auto' }}>
+            funding: {short(externalWallet)}{externalConnected ? '' : ' · offline'}
+          </span>
         )}
       </div>
 
-      <p style={{ ...LABEL, margin: '0 0 6px' }}>Deposit · 1 confirmation, or send {sym} directly to the address above</p>
+      {/* With no external wallet linked (a pure social login), sending to this
+         address IS the way to fund the wallet — so it is spelled out, copyable,
+         rather than referred to as "the address above". */}
+      <p style={{ ...LABEL, margin: '0 0 6px' }}>Deposit · send {sym} to your trading wallet</p>
+      {turboAddress && (
+        <button onClick={() => { try { navigator.clipboard?.writeText(turboAddress); showToast?.('connect', 'Address copied'); } catch { /* clipboard blocked */ } }}
+          title="Copy your trading wallet address"
+          style={{ ...btn(false), width: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 10 }}>
+          <Copy size={11} /> {short(turboAddress)}
+        </button>
+      )}
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
         {quicks.map((q) => (
           <button key={q} onClick={() => setAmount(String(q))} style={btn(String(q) === amount)}>{q}</button>
@@ -233,7 +271,10 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
           style={{ flex: 1.2, padding: '10px 8px', borderRadius: 9999, border: '1px solid var(--color-charcoal-vein)', background: 'transparent', color: 'var(--color-bone-glow)', fontSize: 11, fontWeight: 400, fontFamily: MONO, letterSpacing: '-0.3px', textAlign: 'center', outline: 'none', minWidth: 0 }} />
       </div>
       <button onClick={doDeposit} disabled={busy} style={{ ...btn(true), width: '100%', opacity: busy ? 0.6 : 1 }}>
-        {busy ? 'Waiting…' : externalWallet ? `Deposit ${amount || '—'} ${sym}` : `Connect wallet to deposit`}
+        {busy ? 'Waiting…'
+          : externalConnected ? `Deposit ${amount || '—'} ${sym}`
+          : externalWallet ? 'Reconnect wallet to deposit'
+          : 'Connect wallet to deposit'}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '12px 0 6px' }}>
@@ -266,7 +307,7 @@ export default function TurboActions({ externalWallet, onConnect, showToast, onC
       )}
       <p style={{ fontSize: 9.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45, margin: '10px 0 0', display: 'flex', gap: 5 }}>
         <RefreshCw size={10} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span>Recoverable anywhere: reconnect {short(linkedAddr)} on any device and re-sign to restore this exact wallet. Keep only active trading funds here.</span>
+        <span>Recoverable anywhere: sign in with the same account on any device and this exact wallet comes back. Keep only active trading funds here.</span>
       </p>
     </div>
   );

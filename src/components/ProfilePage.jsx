@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Copy, Radio, ExternalLink, Trash2, LogOut, Check, SlidersHorizontal, Filter, History, ArrowUpRight, ArrowDownRight, Wallet as WalletIcon } from 'lucide-react';
+import { Copy, Radio, ExternalLink, Trash2, LogOut, Check, SlidersHorizontal, Filter, History, ArrowUpRight, ArrowDownRight, Wallet as WalletIcon, Link2 } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 import { MONAD_MAINNET, EXPLORER_URL, EXPLORER_ADDR_URL, INDEXER_HTTP, ACTIVE, CHAINS } from '../config/chain.js';
 import { WALLET_NAME } from '../services/activeWallet';
 import { fetchTokensByAddresses } from '../services/dexscreenerApi';
@@ -385,7 +386,7 @@ function PositionsTab({ portfolio, monPriceUsd, onSell, onGoToDeck, onDeposit })
 
 /* ── Wallet tab — balance, chart, turbo deposit/withdraw, metrics row,
    auto-copy. Everything money-shaped lives here. ── */
-function WalletTab({ monBalance, balanceUsd, balanceHistory, externalWallet, onConnect, showToast, onTurboChanged, walletAddress, STATS, autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday }) {
+function WalletTab({ monBalance, balanceUsd, balanceHistory, externalWallet, externalConnected, accountAddress, onConnect, showToast, onTurboChanged, walletAddress, STATS, autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday }) {
   return (
     <>
       <div data-tour="turbo-card" style={{ ...CARD, padding: 16 }}>
@@ -402,7 +403,7 @@ function WalletTab({ monBalance, balanceUsd, balanceHistory, externalWallet, onC
         <BalanceChart history={balanceHistory} />
 
         {/* Turbo actions live right here — agreement once, then deposit/withdraw/export */}
-        <TurboActions externalWallet={externalWallet} onConnect={onConnect} showToast={showToast} onChanged={onTurboChanged} turboBalance={monBalance} turboAddress={walletAddress} />
+        <TurboActions externalWallet={externalWallet} externalConnected={externalConnected} accountAddress={accountAddress} onConnect={onConnect} showToast={showToast} onChanged={onTurboChanged} turboBalance={monBalance} turboAddress={walletAddress} />
       </div>
 
       {/* ── Metrics row — compact tiles, one tone lighter, 8px radius ── */}
@@ -469,10 +470,11 @@ export default function ProfilePage({
   settings, updateSetting, onToggleWhaleAlerts,
   lastTxHash, indexerUp,
   onDisconnect, onClearData,
-  externalWallet, onConnect, showToast, onTurboChanged, activity,
+  externalWallet, externalConnected, accountAddress, onConnect, showToast, onTurboChanged, activity,
   autoCopy, updateAutoCopy, autoCopyDefaults, autoSpentToday, onReplayTours,
   onSell, onGoToDeck,
 }) {
+  const { user, authenticated, ready, login, linkEmail, linkWallet, linkTwitter, linkGoogle, linkDiscord } = usePrivy();
   const [copied, setCopied] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [tab, setTab] = useState('wallet');
@@ -517,7 +519,9 @@ export default function ProfilePage({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 17, fontWeight: 400, color: 'var(--color-bone-glow)', fontFamily: MONO, letterSpacing: '-0.6px' }}>
-                  {walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Not connected'}
+                  {walletAddress
+                    ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`
+                    : (ready && !authenticated ? 'Not signed in' : 'No trading wallet yet')}
                 </span>
                 {walletAddress && (
                   <button onClick={copyAddr} title="Copy address" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: copied ? 'var(--color-bone-glow)' : 'var(--color-bone-dim)' }}>
@@ -539,6 +543,50 @@ export default function ProfilePage({
           <div style={{ ...LABEL, fontSize: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
             {ACTIVE.kind === 'evm' ? `${MONAD_MAINNET.chainName} · id ${MONAD_MAINNET.chainIdNum}` : `${ACTIVE.label} · mainnet-beta`}
           </div>
+
+          {/* ── Signed out → the way IN. Privy's modal is both sign-in and
+             sign-up, so this one button covers "log in" and "register". ── */}
+          {ready && !authenticated && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
+              <button onClick={login} style={{
+                ...PILL_ON, width: '100%', padding: '11px 0', fontSize: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '-0.3px',
+              }}>
+                <WalletIcon size={13} /> Sign in / Sign up
+              </button>
+              <p style={{ fontSize: 9.5, color: 'var(--color-bone-dim)', fontWeight: 400, lineHeight: 1.45, margin: '8px 0 0' }}>
+                Continue with Google, X, Discord, GitHub or email. Your trading wallet is created from that account — connecting an external wallet is optional.
+              </p>
+            </div>
+          )}
+
+          {/* ── Privy Account Links ── */}
+          {user && (() => {
+            const hasExternalWallet = user.linkedAccounts?.some(a => a.type === 'wallet' && a.walletClientType !== 'privy');
+            const hasGoogle = user.linkedAccounts?.some(a => a.type === 'google_oauth');
+            const hasTwitter = user.linkedAccounts?.some(a => a.type === 'twitter_oauth');
+            const hasEmail = user.linkedAccounts?.some(a => a.type === 'email');
+            
+            return (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-charcoal-vein)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--up)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'var(--color-bone-glow)', fontFamily: MONO, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.google?.email || (user.twitter?.username ? `@${user.twitter.username}` : (user.email?.address || 'Connected'))}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    {!hasExternalWallet && <button onClick={linkWallet} style={{ ...PILL, padding: '4px 10px', fontSize: 9.5 }}>+ Wallet</button>}
+                    {!hasGoogle && <button onClick={linkGoogle} style={{ ...PILL, padding: '4px 10px', fontSize: 9.5 }}>+ Google</button>}
+                    {!hasTwitter && <button onClick={linkTwitter} style={{ ...PILL, padding: '4px 10px', fontSize: 9.5 }}>+ X</button>}
+                    {!hasEmail && <button onClick={linkEmail} style={{ ...PILL, padding: '4px 10px', fontSize: 9.5 }}>+ Email</button>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── Section 2: underline tab nav ── */}
@@ -548,7 +596,7 @@ export default function ProfilePage({
         {tab === 'wallet' && (
           <WalletTab
             monBalance={monBalance} balanceUsd={balanceUsd} balanceHistory={balanceHistory}
-            externalWallet={externalWallet} onConnect={onConnect} showToast={showToast} onTurboChanged={onTurboChanged}
+            externalWallet={externalWallet} externalConnected={externalConnected} accountAddress={accountAddress} onConnect={onConnect} showToast={showToast} onTurboChanged={onTurboChanged}
             walletAddress={walletAddress} STATS={STATS}
             autoCopy={autoCopy} updateAutoCopy={updateAutoCopy} autoCopyDefaults={autoCopyDefaults} autoSpentToday={autoSpentToday}
           />
@@ -590,6 +638,7 @@ export default function ProfilePage({
               )}
             </div>
 
+
             {/* ── Network + indexer status ── */}
             <div style={{ ...CARD, padding: 12 }}>
               <SectionTitle icon={<Radio size={12} color={indexerUp ? 'var(--color-bone-glow)' : 'var(--color-bone-dim)'} />}>Connections</SectionTitle>
@@ -620,7 +669,7 @@ export default function ProfilePage({
               <SectionTitle icon={<Trash2 size={12} color="var(--color-bone-dim)" />}>Manage</SectionTitle>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
                 <button onClick={onDisconnect} style={{ ...PILL, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', fontSize: 12, textTransform: 'uppercase' }}>
-                  <LogOut size={14} /> Disconnect Wallet
+                  <LogOut size={14} /> Log Out
                 </button>
                 {!confirmClear ? (
                   <button onClick={() => setConfirmClear(true)} style={{ ...PILL, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 0', fontSize: 12, textTransform: 'uppercase', color: 'var(--down)', borderColor: 'rgba(255, 77, 106, 0.4)' }}>
