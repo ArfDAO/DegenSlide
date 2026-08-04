@@ -1,15 +1,15 @@
 {
   "source": "Monad mainnet — on-chain discovery + bot elimination (Swap logs, all quote anchors)",
-  "scannedAt": "2026-08-04T07:38:59.458Z",
-  "scannedBlocks": 680002,
+  "scannedAt": "2026-08-04T15:03:03.315Z",
+  "scannedBlocks": 540,
   "minUsdPerSwap": 5,
   "minLiquidityUsd": 150000,
-  "scanCursorBlock": 83887744,
+  "scanCursorBlock": 83287743,
   "botsRemoved": {
-    "contracts": 62,
-    "sameBlockArb": 281,
-    "churnMM": 1,
-    "wash": 1
+    "contracts": 0,
+    "sameBlockArb": 1,
+    "churnMM": 0,
+    "wash": 0
   },
   "count": 1021,
   "whales": [
@@ -35,29 +35,6 @@
       "winTokens": 0,
       "winRate": 0,
       "qualityScore": 168849.36
-    },
-    {
-      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
-      "volumeUsd": 178202.11,
-      "volumeMon": 8311665.35,
-      "trades": 32,
-      "buys": 13,
-      "sells": 19,
-      "directionality": 0.19,
-      "lpAddedUsd": 3477081.64,
-      "lpEvents": 2,
-      "isMarketMaker": true,
-      "maxLiquidityUsd": 1151943,
-      "tokens": [
-        "EURW"
-      ],
-      "lastToken": "EURW",
-      "realizedUsd": -295.95,
-      "realizedMon": -13803.64,
-      "closedTokens": 1,
-      "winTokens": 0,
-      "winRate": 0,
-      "qualityScore": 121490.69
     },
     {
       "address": "0xbacd289f6978e9a0523b8c03b2e006e4da20651c",
@@ -311,6 +288,29 @@
       "winTokens": 0,
       "winRate": null,
       "qualityScore": 765.94
+    },
+    {
+      "address": "0x759f32065c0b61e24a3b26e6fe051b65e7e3311c",
+      "volumeUsd": 11586.07,
+      "volumeMon": 562430.56,
+      "trades": 1,
+      "buys": 1,
+      "sells": 0,
+      "directionality": 1,
+      "lpAddedUsd": 0,
+      "lpEvents": 0,
+      "isMarketMaker": false,
+      "maxLiquidityUsd": 1150149,
+      "tokens": [
+        "EURW"
+      ],
+      "lastToken": "EURW",
+      "realizedUsd": 0,
+      "realizedMon": 0,
+      "closedTokens": 0,
+      "winTokens": 0,
+      "winRate": null,
+      "qualityScore": 579.3
     },
     {
       "address": "0xd363ca972b2ec34269b2ea81f7a32ccb35099d7a",
