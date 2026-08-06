@@ -57,14 +57,29 @@ export const CHAINS = {
   },
 };
 
+// ── Which chains the FRONTEND exposes ────────────────────────────────────────
+// Monad-only for now (hackathon build): the Solana entry above, its services and
+// the Solana indexer all stay in the tree untouched — they are simply not
+// selectable or visible in the UI. Re-enable by adding 'solana' back here; the
+// chain switcher reappears on its own because it renders from this list.
+export const ENABLED_CHAINS = ['monad'];
+export const MULTI_CHAIN = ENABLED_CHAINS.length > 1;
+
 export function activeChainId() {
+  const fallback = ENABLED_CHAINS[0];
   try {
     const v = JSON.parse(localStorage.getItem('degen_network'));
-    return CHAINS[v] ? v : 'monad';
-  } catch { return 'monad'; }
+    // A stored chain that is no longer enabled (e.g. 'solana' from an earlier
+    // session) must not resurrect it — fall back instead of trusting storage.
+    return CHAINS[v] && ENABLED_CHAINS.includes(v) ? v : fallback;
+  } catch { return fallback; }
 }
 export function setActiveChainId(id) {
-  try { localStorage.setItem('degen_network', JSON.stringify(CHAINS[id] ? id : 'monad')); } catch {}
+  // Only an ENABLED chain can be selected — this is the second half of the
+  // guard in activeChainId(), so a disabled chain can't be written to storage
+  // in the first place.
+  const next = CHAINS[id] && ENABLED_CHAINS.includes(id) ? id : ENABLED_CHAINS[0];
+  try { localStorage.setItem('degen_network', JSON.stringify(next)); } catch {}
 }
 export const ACTIVE = CHAINS[activeChainId()];
 

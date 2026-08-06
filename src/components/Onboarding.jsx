@@ -19,7 +19,7 @@ export default function Onboarding({ onDone }) {
     {
       Icon: PieChart, tint: 'var(--accent)', bg: 'var(--accent-soft)', bd: 'rgba(214, 99, 58, 0.4)',
       title: 'Manage in Portfolio',
-      body: 'Track live PnL, buy more, sell any percentage, and set stop-loss / take-profit that auto-close for you — on Monad and Solana.',
+      body: 'Track live PnL, buy more, sell any percentage, and set stop-loss / take-profit that auto-close for you.',
     },
   ];
   return (
