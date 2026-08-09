@@ -19,7 +19,6 @@ const TOURS = {
     { icon: '🎚️', title: 'Whale size tiers', target: '[data-tour="deck-tiers"]', text: 'Filter the deck by trade size — Big, Shark or Whale. The counters show how many live signals sit in each tier right now.' },
     { icon: '👆', title: 'Swipe to act', target: '[data-tour="deck-actions"]', text: 'Swipe right (or ✓) to copy the trade instantly from your Turbo wallet — no popups. Swipe left (✕) to skip, swipe up (♥) to save the whale to your watchlist.' },
     { icon: '⚙️', title: 'Your copy size', target: '[data-tour="trade-settings"]', text: 'Set how much each copy spends — a fixed amount, or Mirror mode to copy a % of the whale’s own size. Slippage lives here too.' },
-    { icon: '🌐', title: 'Switch chains', target: '[data-tour="chain-switch"]', text: 'One tap swaps the whole app between Monad and Solana — separate decks, whales and balances per chain.' },
   ],
   portfolio: [
     { icon: '📊', title: 'Your copies live here', target: '[data-tour="portfolio-head"]', text: 'Every copied trade becomes a position with live PnL. Buy more, close any % of it, or share a PnL card with one tap.' },
@@ -52,7 +51,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 // so the Solana build has to read the Solana one or it never sees the account's
 // embedded Solana wallet.
 import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
-import { EXPLORER_URL, EXPLORER_ADDR_URL, DEFAULT_SLIPPAGE_BPS, ACTIVE, CHAINS, setActiveChainId, INDEXER_HTTP, DEXSCREENER_CHAIN } from './config/chain.js';
+import { EXPLORER_URL, EXPLORER_ADDR_URL, DEFAULT_SLIPPAGE_BPS, ACTIVE, CHAINS, ENABLED_CHAINS, MULTI_CHAIN, setActiveChainId, INDEXER_HTTP, DEXSCREENER_CHAIN } from './config/chain.js';
 // connectWallet / isWalletAvailable / onAccountsChanged are deliberately NOT
 // imported: browser-extension connection is no longer an entry path (Privy owns
 // auth, and wallets are linked through it), so nothing may auto-connect one.
@@ -1443,19 +1442,23 @@ export default function App() {
         </div>
 
         <div className="page-head-right">
-          {/* Network switcher — top-right on every page. Persists the choice and
-              reloads onto the selected chain's indexer. */}
-          <div className="seg-track" data-tour="chain-switch">
-            {Object.values(CHAINS).map((c) => {
-              const on = ACTIVE.id === c.id;
-              return (
-                <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
-                  onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
-                  {c.nativeSymbol}
-                </button>
-              );
-            })}
-          </div>
+          {/* Network switcher — only rendered when more than one chain is
+              enabled (config/chain.js → ENABLED_CHAINS). On the Monad-only
+              build there is nothing to switch between, so it is absent rather
+              than a dead single-button control. */}
+          {MULTI_CHAIN && (
+            <div className="seg-track" data-tour="chain-switch">
+              {ENABLED_CHAINS.map((id) => CHAINS[id]).filter(Boolean).map((c) => {
+                const on = ACTIVE.id === c.id;
+                return (
+                  <button key={c.id} type="button" className={`seg-item ${on ? 'on' : ''}`}
+                    onClick={() => { if (!on) { setActiveChainId(c.id); window.location.reload(); } }}>
+                    {c.nativeSymbol}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
